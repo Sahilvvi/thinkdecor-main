@@ -16,7 +16,7 @@ type FileState = {
 const DEMO_BASE = 'https://viz2d-demo.vercel.app'
 
 export const config = {
-  companyLogo: '/logo.png?v=2',
+  companyLogo: '/logo.png?v=3',
   websiteUrl: '/',
   name: 'ThinkDecor',
   sampleFiles: [

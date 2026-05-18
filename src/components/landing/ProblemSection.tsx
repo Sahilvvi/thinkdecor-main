@@ -170,7 +170,7 @@ export function ProblemSection() {
                   {/* THINKDECOR APP BRANDING HEADER (Highly detailed mobile UI navbar) */}
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 z-20 relative">
                     <div className="flex items-center gap-1.5">
-                      <img src="/logo.png?v=2" alt="D" className="w-4 h-4 rounded" />
+                      <img src="/logo.png?v=3" alt="D" className="w-4 h-4 rounded" />
                       <div className="text-left">
                         <span className="text-[10px] font-bold text-white tracking-wide block leading-none">ThinkDecor</span>
                         <span className="text-[7px] text-primary font-medium tracking-wide uppercase leading-none block mt-0.5">Spatial Engine v2.0</span>

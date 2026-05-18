@@ -1,0 +1,12 @@
+{
+  "name": "viz2d-deployment",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "build": "echo 'Using pre-built dist folder'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

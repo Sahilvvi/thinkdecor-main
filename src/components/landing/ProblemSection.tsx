@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
 import { Eye, Home, CircleDollarSign, Compass, MessageSquare, AlertTriangle } from 'lucide-react';
 
 const doubts = [
@@ -29,6 +30,38 @@ const doubts = [
 ];
 
 export function ProblemSection() {
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const handleMove = (clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(percentage);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    isDragging.current = true;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    handleMove(clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    handleMove(e.clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || e.touches.length === 0) return;
+    handleMove(e.touches[0].clientX);
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+  };
+
   return (
     <section className="relative py-24 sm:py-32 bg-transparent overflow-hidden">
       {/* Background spotlights & grid */}
@@ -154,27 +187,56 @@ export function ProblemSection() {
                     
                     {/* Simulated Mini Spatial Canvas / Before-After Slider Mockup */}
                     <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2 mb-2 relative overflow-hidden group/canvas">
-                      <div className="aspect-[16/10] rounded-lg overflow-hidden relative bg-black/40">
+                      <div 
+                        ref={containerRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleMouseUp}
+                        className="aspect-[16/10] rounded-lg overflow-hidden relative bg-black/40 cursor-ew-resize select-none"
+                      >
+                        {/* Base Background Image: After (Styled Room) */}
                         <img 
                           src="/assets/samples/styled_room.png" 
-                          alt="Simulated canvas" 
-                          className="w-full h-full object-cover opacity-60" 
+                          alt="Styled room" 
+                          className="w-full h-full object-cover pointer-events-none select-none" 
+                          style={{ filter: 'brightness(0.7)' }}
                         />
+
+                        {/* Top Clipped Image: Before (Empty Room) */}
+                        <div 
+                          className="absolute inset-0 pointer-events-none select-none"
+                          style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                        >
+                          <img 
+                            src="/assets/samples/empty_room.png" 
+                            alt="Empty room" 
+                            className="w-full h-full object-cover" 
+                            style={{ filter: 'brightness(0.7)' }}
+                          />
+                        </div>
+
                         {/* Target reticle styling overlay */}
                         <div className="absolute inset-0 border border-primary/20 rounded-lg pointer-events-none" />
-                        <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-primary" />
-                        <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-primary" />
-                        <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-primary" />
-                        <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-primary" />
+                        <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-primary pointer-events-none" />
+                        <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-primary pointer-events-none" />
+                        <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-primary pointer-events-none" />
+                        <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-primary pointer-events-none" />
                         
                         {/* Mini slider divider indicator */}
-                        <div className="absolute inset-y-0 left-1/2 w-0.5 bg-primary shadow-[0_0_10px_rgba(0,229,204,0.8)] z-10">
-                          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                            <span className="text-[5px] text-black font-bold font-mono">&lt;&gt;</span>
+                        <div 
+                          className="absolute inset-y-0 w-0.5 bg-primary shadow-[0_0_10px_rgba(0,229,204,0.8)] z-10 pointer-events-none"
+                          style={{ left: `${sliderPosition}%` }}
+                        >
+                          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(0,229,204,0.6)]">
+                            <span className="text-[6px] text-black font-bold font-mono select-none">&lt;&gt;</span>
                           </div>
                         </div>
-                        <div className="absolute bottom-2 left-3 text-[7px] text-white/70 bg-black/50 px-1.5 py-0.5 rounded">Before</div>
-                        <div className="absolute bottom-2 right-3 text-[7px] text-primary bg-black/50 px-1.5 py-0.5 rounded">After</div>
+                        <div className="absolute bottom-2 left-3 text-[7px] text-white/70 bg-black/60 px-1.5 py-0.5 rounded pointer-events-none select-none backdrop-blur-sm">Before</div>
+                        <div className="absolute bottom-2 right-3 text-[7px] text-primary bg-black/60 px-1.5 py-0.5 rounded pointer-events-none select-none backdrop-blur-sm">After</div>
                       </div>
                       <div className="flex justify-between items-center mt-2 px-1 text-[8px] text-white/50">
                         <span>Project: LivingRoom_Edit_1</span>

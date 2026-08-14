@@ -1,9 +1,83 @@
+# ThinkDecor — Apache config for Hostinger
+# Lives in public/ so Vite copies it into dist/ on every build.
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Force HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Force the apex domain (avoids duplicate-content and cookie split
+  # between www and non-www). Swap the two blocks if you prefer www.
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+  # SPA routing — every unmatched path serves index.html so React Router
+  # can handle it. Without this, /pricing returns a 404 on refresh.
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
   RewriteRule . /index.html [L]
 </IfModule>
+
+# ----------------------------------------------------------------------
+# Caching
+# ----------------------------------------------------------------------
+<IfModule mod_headers.c>
+  # Hashed build assets never change content under the same name,
+  # so they can be cached hard.
+  <FilesMatch "\.(js|css|woff2|woff|ttf|eot|svg|jpg|jpeg|png|webp|avif|gif|ico|mp4)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # index.html must NEVER be cached. If it is, a returning visitor loads
+  # an old index.html that references hashed JS files deleted by the last
+  # deploy — which presents as a blank white page.
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Basic hardening
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), payment=(self)"
+</IfModule>
+
+# ----------------------------------------------------------------------
+# Compression
+# ----------------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE application/xml image/svg+xml
+  AddOutputFilterByType DEFLATE font/woff font/woff2
+</IfModule>
+
+# ----------------------------------------------------------------------
+# MIME types Hostinger sometimes misses
+# ----------------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType application/wasm .wasm
+  AddType font/woff2 .woff2
+  AddType image/webp .webp
+  AddType image/avif .avif
+</IfModule>
+
+# Block access to source maps and dotfiles in production
+<FilesMatch "\.map$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+<FilesMatch "^\.">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+ErrorDocument 404 /index.html

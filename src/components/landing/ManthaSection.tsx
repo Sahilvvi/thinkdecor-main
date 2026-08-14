@@ -73,10 +73,10 @@ export function ManthaSection() {
               AI Intelligence
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Meet <span className="text-gradient-primary">Mantha</span>
+              Meet <span className="text-gradient-primary">Mantha</span> — Your AI Interior Design Assistant
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              The intelligence behind Think Decor. Mantha doesn't just show decor. It helps you design with clarity and confidence.
+              Mantha is the AI home styling intelligence behind ThinkDecor. She analyses your room, learns your style, and suggests furniture, paint, and home décor ideas that actually work in your space.
             </p>
           </div>
 

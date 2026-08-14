@@ -96,21 +96,21 @@ export function ThinkDecorWaySection() {
           >
             The Styling Paradigm Shift
           </motion.p>
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6"
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6"
           >
-            The <span className="text-gradient-primary">Think Decor</span> Way
+            How Our <span className="text-gradient-primary">AI Room Design Tool</span> Works
           </motion.h2>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-base sm:text-lg md:text-xl text-white/50 font-light"
+            className="text-base sm:text-lg md:text-xl text-foreground/58 font-light"
           >
-            A smarter, AI-driven approach to decorating. Moving you smoothly from spatial uncertainty to design clarity.
+            Upload your room photo and get instant AI-powered interior design ideas — from spatial analysis to furniture, paint, and décor visualisation.
           </motion.p>
         </div>
 
@@ -129,8 +129,8 @@ export function ThinkDecorWaySection() {
                   onClick={() => handleStepClick(index)}
                   className={`relative p-5 sm:p-6 rounded-2xl border transition-all duration-500 cursor-pointer flex gap-5 text-left items-start group select-none ${
                     isActive 
-                      ? 'bg-white/[0.03] border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.4)]'
-                      : 'bg-transparent border-transparent hover:bg-white/[0.01] hover:border-white/5'
+                      ? 'bg-foreground/[0.03] border-foreground/10 shadow-[0_20px_50px_rgba(0,0,0,0.4)]'
+                      : 'bg-transparent border-transparent hover:bg-foreground/[0.01] hover:border-foreground/5'
                   }`}
                 >
                   
@@ -148,7 +148,7 @@ export function ThinkDecorWaySection() {
                   <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 ${
                     isActive 
                       ? 'bg-primary text-[#011411] shadow-[0_0_20px_rgba(0,229,204,0.35)]'
-                      : 'bg-white/5 text-white/50 group-hover:text-white/80'
+                      : 'bg-white/5 text-foreground/58 group-hover:text-foreground/80'
                   }`}>
                     <IconComponent className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
                   </div>
@@ -156,11 +156,11 @@ export function ThinkDecorWaySection() {
                   {/* Content */}
                   <div className="flex-1">
                     <span className={`text-[10px] sm:text-xs font-semibold tracking-wider transition-colors duration-500 ${
-                      isActive ? 'text-primary' : 'text-white/30'
+                      isActive ? 'text-primary' : 'text-foreground/42'
                     }`}>
                       {step.tagline}
                     </span>
-                    <h3 className="text-white font-semibold text-lg sm:text-xl mt-1 tracking-tight">
+                    <h3 className="text-foreground font-semibold text-lg sm:text-xl mt-1 tracking-tight">
                       {step.title}
                     </h3>
                     
@@ -168,14 +168,14 @@ export function ThinkDecorWaySection() {
                     <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
                       isActive ? 'max-h-24 opacity-100 mt-2.5' : 'max-h-0 opacity-0'
                     }`}>
-                      <p className="text-white/60 text-xs sm:text-sm font-light leading-relaxed">
+                      <p className="text-foreground/65 text-xs sm:text-sm font-light leading-relaxed">
                         {step.description}
                       </p>
                     </div>
                   </div>
 
                   {/* Absolute index number */}
-                  <div className="absolute right-6 top-6 text-white/10 font-mono text-sm font-bold">
+                  <div className="absolute right-6 top-6 text-foreground/10 font-mono text-sm font-bold">
                     0{index + 1}
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export function ThinkDecorWaySection() {
 
           {/* Right Column: Premium Visual Showcase Board */}
           <div className="lg:col-span-7 flex flex-col items-center justify-center">
-            <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 bg-black/40 backdrop-blur-md shadow-[0_50px_100px_rgba(0,0,0,0.65)] p-4 sm:p-6 flex items-center justify-center">
+            <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden border border-foreground/10 bg-black/40 backdrop-blur-md shadow-[0_50px_100px_rgba(0,0,0,0.65)] p-4 sm:p-6 flex items-center justify-center">
               
               {/* Subtle glass reflection overlay */}
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-20" />
@@ -199,15 +199,15 @@ export function ThinkDecorWaySection() {
                     animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                     exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                     transition={{ duration: 0.6 }}
-                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-white/5 p-6"
+                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-foreground/5 p-6"
                   >
                     {/* Glowing scanning laser lines */}
                     <div className="absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(0,229,204,0.8)] animate-[scan_3s_ease-in-out_infinite]" />
                     
                     {/* Abstract room outline grid */}
-                    <div className="w-full max-w-[280px] sm:max-w-[340px] aspect-[4/3] border border-white/10 rounded-lg relative flex items-center justify-center bg-black/30">
-                      <div className="absolute inset-4 border border-dashed border-white/5 flex items-center justify-center">
-                        <div className="absolute inset-4 border border-white/5 flex items-center justify-center">
+                    <div className="w-full max-w-[280px] sm:max-w-[340px] aspect-[4/3] border border-foreground/10 rounded-lg relative flex items-center justify-center bg-black/30">
+                      <div className="absolute inset-4 border border-dashed border-foreground/5 flex items-center justify-center">
+                        <div className="absolute inset-4 border border-foreground/5 flex items-center justify-center">
                           <Eye className="w-8 h-8 text-primary/30 animate-pulse" />
                         </div>
                       </div>
@@ -232,14 +232,14 @@ export function ThinkDecorWaySection() {
                     animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                     exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                     transition={{ duration: 0.6 }}
-                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-white/5 p-6"
+                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-foreground/5 p-6"
                   >
                     {/* Before/After Split Mockup */}
-                    <div className="w-full max-w-[280px] sm:max-w-[340px] aspect-[4/3] rounded-lg relative overflow-hidden bg-black/40 border border-white/10">
+                    <div className="w-full max-w-[280px] sm:max-w-[340px] aspect-[4/3] rounded-lg relative overflow-hidden bg-black/40 border border-foreground/10">
                       
                       {/* Left side (Before) */}
                       <div className="absolute inset-0 bg-[#053b34]/15 flex items-center justify-center">
-                        <span className="text-white/20 font-bold uppercase tracking-widest text-xs select-none">Raw Photo</span>
+                        <span className="text-foreground/20 font-bold uppercase tracking-widest text-xs select-none">Raw Photo</span>
                       </div>
 
                       {/* Right side (After - slider reveal) */}
@@ -267,7 +267,7 @@ export function ThinkDecorWaySection() {
                     animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                     exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                     transition={{ duration: 0.6 }}
-                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-white/5 p-6"
+                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-foreground/5 p-6"
                   >
                     {/* Simulated Mantha Chat Suggestions UI */}
                     <div className="w-full max-w-[320px] space-y-4">
@@ -277,8 +277,8 @@ export function ThinkDecorWaySection() {
                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[#011411] font-bold text-xs shrink-0 shadow-lg">
                           M
                         </div>
-                        <div className="bg-white/[0.04] border border-white/10 p-3.5 rounded-2xl rounded-tl-none text-left">
-                          <p className="text-white/80 text-[11px] sm:text-xs leading-relaxed">
+                        <div className="bg-foreground/[0.04] border border-foreground/10 p-3.5 rounded-2xl rounded-tl-none text-left">
+                          <p className="text-foreground/80 text-[11px] sm:text-xs leading-relaxed">
                             "I suggest pairing a **Deep Olive Armchair** to match your room's walnut floor. Here is a custom palette:"
                           </p>
                         </div>
@@ -286,10 +286,10 @@ export function ThinkDecorWaySection() {
 
                       {/* Color Palette swatches */}
                       <div className="flex items-center gap-3 pl-11">
-                        <span className="w-6 h-6 rounded-full bg-[#053b34] border border-white/10 shadow-lg" />
-                        <span className="w-6 h-6 rounded-full bg-[#a27b5c] border border-white/10 shadow-lg" />
-                        <span className="w-6 h-6 rounded-full bg-[#dcd7c9] border border-white/10 shadow-lg" />
-                        <span className="w-6 h-6 rounded-full bg-[#2c3e50] border border-white/10 shadow-lg" />
+                        <span className="w-6 h-6 rounded-full bg-[#053b34] border border-foreground/10 shadow-lg" />
+                        <span className="w-6 h-6 rounded-full bg-[#a27b5c] border border-foreground/10 shadow-lg" />
+                        <span className="w-6 h-6 rounded-full bg-[#dcd7c9] border border-foreground/10 shadow-lg" />
+                        <span className="w-6 h-6 rounded-full bg-[#2c3e50] border border-foreground/10 shadow-lg" />
                       </div>
                     </div>
 
@@ -307,25 +307,25 @@ export function ThinkDecorWaySection() {
                     animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                     exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                     transition={{ duration: 0.6 }}
-                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-white/5 p-6"
+                    className="relative w-full h-full flex flex-col items-center justify-center bg-[#02100e] rounded-2xl overflow-hidden border border-foreground/5 p-6"
                   >
                     {/* Simulated purchase checkout checklist */}
-                    <div className="w-full max-w-[280px] space-y-3.5 bg-black/30 border border-white/5 rounded-xl p-5 text-left">
-                      <div className="flex items-center gap-3 text-xs text-white/80">
+                    <div className="w-full max-w-[280px] space-y-3.5 bg-black/30 border border-foreground/5 rounded-xl p-5 text-left">
+                      <div className="flex items-center gap-3 text-xs text-foreground/80">
                         <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">✓</div>
                         Room proportions matched
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-white/80">
+                      <div className="flex items-center gap-3 text-xs text-foreground/80">
                         <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">✓</div>
                         Wall color palette verified
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-white/80">
+                      <div className="flex items-center gap-3 text-xs text-foreground/80">
                         <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">✓</div>
                         Selected pieces fit budget
                       </div>
                       
-                      <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Spatial Assurance</span>
+                      <div className="pt-3 border-t border-foreground/5 flex items-center justify-between">
+                        <span className="text-[10px] text-foreground/50 font-bold uppercase tracking-wider">Spatial Assurance</span>
                         <span className="text-[10px] text-primary font-bold uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded">100% Risk Free</span>
                       </div>
                     </div>

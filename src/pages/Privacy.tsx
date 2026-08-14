@@ -1,5 +1,6 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { SEO } from '@/components/shared/SEO';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { Shield, FileText } from 'lucide-react';
 
@@ -26,9 +27,19 @@ const sections = [
     title: 'Data Sharing and Disclosure',
     content: [
       'We do not sell your personal information to third parties.',
-      'We may share data with trusted service providers who assist in operating our platform.',
+      'Payments are processed by Stripe Payments Europe Ltd. Card details go directly to Stripe and are never stored on our servers. Stripe receives your name, email and billing address in order to take payment.',
+      'Our application data and authentication are hosted on Supabase, which stores data within the region selected for our project.',
       'We may disclose information if required by law or to protect our legal rights.',
       'Brand partners may receive aggregated, anonymised insights — never individual user data.',
+    ],
+  },
+  {
+    title: 'Legal Basis and Retention',
+    content: [
+      'We process your data to perform our contract with you (providing the service and taking payment), and on the basis of legitimate interest for security and service improvement.',
+      'Account and room scan data is kept for as long as your account is open, then deleted within 90 days of closure.',
+      'Payment and invoice records are retained for 7 years, as required by UK tax law. This is why some billing data survives account deletion.',
+      'Enquiries sent through our contact form are kept for up to 24 months.',
     ],
   },
   {
@@ -43,10 +54,11 @@ const sections = [
   {
     title: 'Your Rights',
     content: [
-      'You can access, update, or delete your personal information at any time.',
-      'You can request a copy of the data we hold about you.',
+      'You have rights under UK GDPR, including the right to access, correct, or delete your personal data.',
+      'You can request a copy of the data we hold about you (Subject Access Request).',
       'You can opt out of marketing communications whenever you choose.',
       'You can delete your account, which removes your data from our active systems.',
+      'You have the right to lodge a complaint with the UK Information Commissioner\'s Office (ICO).',
     ],
   },
   {
@@ -61,6 +73,7 @@ const sections = [
   {
     title: 'Contact Us',
     content: [
+      'Think Decor Ltd is registered in England and Wales.',
       'If you have any questions about this Privacy Policy, please contact us at info@thinkdecor.app.',
       'We are committed to resolving any privacy concerns promptly and transparently.',
     ],
@@ -73,6 +86,11 @@ export default function Privacy() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Privacy Policy | ThinkDecor"
+        description="How ThinkDecor collects, uses and protects your data, including the room photos you upload."
+        canonical="https://thinkdecor.app/privacy"
+      />
       <Navbar />
       <main className="pt-24">
         {/* Hero */}

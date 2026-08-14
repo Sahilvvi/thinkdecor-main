@@ -1,5 +1,6 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { SEO } from '@/components/shared/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +46,11 @@ export default function BookDemo() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Book a Demo | AI Interior Design Tool for Furniture & Décor Brands | ThinkDecor"
+        description="See how ThinkDecor's AI room design tool works for your brand. Book a live demo to discover how virtual room visualisation reduces customer hesitation and increases conversions."
+        canonical="https://thinkdecor.app/book-demo"
+      />
       <Navbar />
       <main className="pt-24">
         {/* Hero section */}

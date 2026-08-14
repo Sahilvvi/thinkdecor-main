@@ -1,13 +1,18 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/Logo';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
+import { PHASE1_PLAN, pence } from '@/lib/billing';
+
+const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
+
 const navLinks = [
-  { href: '/for-homes', label: 'For Homes' },
-  { href: '/for-brands', label: 'For Brands' },
-  { href: '/about', label: 'About' },
+  { href: '/#features', label: 'Features' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
 ];
 
@@ -23,21 +28,21 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link
+              <a
                 key={link.href}
-                to={link.href}
+                href={link.href}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
           </div>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link to="/demo">
+          {/* Desktop CTAs */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link to="/pricing">
               <Button variant="hero" size="sm">
-                Get Started Free
+                Start for {INTRO}
               </Button>
             </Link>
           </div>
@@ -56,19 +61,19 @@ export function Navbar() {
           <div className="md:hidden py-4 border-t border-border/30">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <Link
+                <a
                   key={link.href}
-                  to={link.href}
+                  href={link.href}
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border/30">
-                <Link to="/demo" onClick={() => setMobileOpen(false)}>
+                <Link to="/pricing" onClick={() => setMobileOpen(false)}>
                   <Button variant="hero" className="w-full">
-                    Get Started Free
+                    Start for {INTRO}
                   </Button>
                 </Link>
               </div>

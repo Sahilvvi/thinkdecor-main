@@ -1,6 +1,7 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CTASection } from '@/components/landing/CTASection';
+import { SEO } from '@/components/shared/SEO';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { Heart, Shield, Eye, Users, Building2, Home, Sparkles, ArrowRight, Target, Lightbulb, Rocket, Globe, Award, Zap, MessageCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -22,37 +23,32 @@ const stats = [
 
 const team = [
   {
-    name: "Arjun Mehta",
+    name: "James Hartley",
     role: "Founder & CEO",
-    bio: "Former product lead at a top interior-tech startup. Passionate about making design accessible.",
+    bio: "Former product lead at a Northampton interior-tech startup. Passionate about making design accessible to everyone.",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face",
   },
   {
-    name: "Priya Sharma",
+    name: "Sophie Clarke",
     role: "Head of Design",
-    bio: "10+ years crafting digital experiences for design-forward brands across Asia and Europe.",
+    bio: "10+ years crafting digital experiences for design-forward brands across the UK and Europe.",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face",
   },
   {
-    name: "Rohan Kapoor",
+    name: "Oliver Bennett",
     role: "CTO",
-    bio: "AI and computer vision expert. Previously built AR systems for global retail brands.",
+    bio: "AI and computer vision expert. Previously built AR systems for global retail brands across EMEA.",
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face",
   },
   {
-    name: "Sneha Iyer",
+    name: "Emily Walsh",
     role: "Head of Partnerships",
-    bio: "Connects brands with the right tools. Background in business development for SaaS platforms.",
+    bio: "Connects brands with the right tools. Background in business development for SaaS platforms in the UK market.",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face",
   },
 ];
 
-const timeline = [
-  { year: "2022", title: "The idea was born", desc: "Frustration with guesswork in home decor led to the first prototype.", icon: Lightbulb },
-  { year: "2023", title: "First brand partners", desc: "Onboarded 50+ furniture and decor brands for pilot testing.", icon: Building2 },
-  { year: "2024", title: "AI visualisation launch", desc: "Launched Mantha AI, intelligent room visualisation for everyone.", icon: Sparkles },
-  { year: "2025", title: "Scaling globally", desc: "Expanded to 10+ countries with enterprise-grade platform.", icon: Globe },
-];
+// Timeline data removed
 
 const values = [
   { icon: Target, label: "Purpose-driven", desc: "Every feature exists to solve a real problem, not to impress." },
@@ -66,28 +62,17 @@ const values = [
 export default function About() {
   const { ref: heroRef, isVisible: heroVisible } = useScrollAnimation();
   const { ref: whyRef, isVisible: whyVisible } = useScrollAnimation();
-  const { ref: timelineRef, isVisible: timelineVisible } = useScrollAnimation();
   const { ref: builtRef, isVisible: builtVisible } = useScrollAnimation();
   const { ref: philRef, isVisible: philVisible } = useScrollAnimation();
   const { ref: valuesRef, isVisible: valuesVisible } = useScrollAnimation();
 
-  const [activeTimelineIdx, setActiveTimelineIdx] = useState(-1);
-
-  // Sequential timeline reveal
-  useEffect(() => {
-    if (!timelineVisible) return;
-    setActiveTimelineIdx(-1);
-    let i = 0;
-    const interval = setInterval(() => {
-      setActiveTimelineIdx(i);
-      i++;
-      if (i >= timeline.length) clearInterval(interval);
-    }, 500);
-    return () => clearInterval(interval);
-  }, [timelineVisible]);
-
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="About ThinkDecor | AI-Powered Interior Design Platform | Our Story"
+        description="ThinkDecor is an AI interior design platform helping homeowners and brands visualize room designs instantly. Learn about our mission to make interior design accessible to everyone."
+        canonical="https://thinkdecor.app/about"
+      />
       <Navbar />
       <main className="pt-24">
         {/* Hero */}
@@ -188,10 +173,11 @@ export default function About() {
               </div>
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-                  Why we built <span className="text-gradient-primary">Think Decor</span>
+                  Why We Built an{' '}
+                  <span className="text-gradient-primary">AI Interior Design Platform</span>
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-4">
-                  Most decor platforms focus on inspiration or sales. Very few focus on decision clarity.
+                  Most home décor platforms focus on inspiration or sales. Very few focus on helping people actually decide — confidently, without guesswork.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mb-4">
                   We built Think Decor to bridge that gap by helping people and brands understand how 
@@ -207,76 +193,7 @@ export default function About() {
           </div>
         </section>
 
-        {/* Our Journey - Timeline */}
-        <section className="py-20 lg:py-28 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[150px]" />
-
-          <div
-            ref={timelineRef}
-            className={`container relative z-10 mx-auto px-4 sm:px-6 max-w-4xl transition-all duration-700 ${
-              timelineVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-          >
-            <div className="text-center mb-14">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Our <span className="text-gradient-primary">journey</span>
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">From a simple frustration to a platform trusted by hundreds of brands.</p>
-            </div>
-
-            <div className="relative">
-              {/* Vertical line */}
-              <div className="absolute left-6 sm:left-1/2 sm:-translate-x-px top-0 bottom-0 w-0.5 bg-border/30" />
-              {/* Animated progress line */}
-              <div
-                className="absolute left-6 sm:left-1/2 sm:-translate-x-px top-0 w-0.5 bg-primary transition-all duration-1000 ease-out"
-                style={{ height: activeTimelineIdx >= 0 ? `${Math.min(100, ((activeTimelineIdx + 1) / timeline.length) * 100)}%` : '0%' }}
-              />
-
-              <div className="space-y-12">
-                {timeline.map((item, i) => {
-                  const Icon = item.icon;
-                  const isRevealed = activeTimelineIdx >= i;
-                  const isEven = i % 2 === 0;
-                  return (
-                    <div
-                      key={item.year}
-                      className={`relative flex items-start ${isEven ? 'sm:flex-row' : 'sm:flex-row-reverse'} flex-row`}
-                    >
-                      {/* Dot */}
-                      <div className="absolute left-6 sm:left-1/2 -translate-x-1/2 z-10">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${
-                          isRevealed
-                            ? 'bg-primary border-primary shadow-[0_0_25px_hsl(var(--primary)/0.3)]'
-                            : 'bg-card border-border/50'
-                        }`}>
-                          <Icon className={`h-5 w-5 transition-colors duration-500 ${isRevealed ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className={`ml-16 sm:ml-0 flex-1 ${isEven ? 'sm:w-1/2 sm:pr-16' : 'sm:w-1/2 sm:pl-16'} ${!isEven ? 'sm:ml-auto' : ''}`}>
-                        <div
-                          className={`p-5 rounded-xl border transition-all duration-500 ${
-                            isRevealed
-                              ? 'bg-card/60 border-primary/20 opacity-100 translate-y-0'
-                              : 'bg-card/20 border-border/20 opacity-0 translate-y-4'
-                          }`}
-                        >
-                          <span className={`text-sm font-mono font-bold transition-colors duration-500 ${isRevealed ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {item.year}
-                          </span>
-                          <h3 className="font-bold text-foreground mt-1">{item.title}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Our Journey timeline section removed */}
 
         {/* Built for */}
         <section className="py-20 lg:py-28 relative overflow-hidden">
@@ -290,7 +207,8 @@ export default function About() {
           >
             <div className="text-center mb-14">
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Built for <span className="text-gradient-primary">homes and brands</span>
+                AI Room Design Tool for{' '}
+                <span className="text-gradient-primary">Homes &amp; Furniture Brands</span>
               </h2>
             </div>
             <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -359,7 +277,8 @@ export default function About() {
           >
             <div className="text-center mb-14">
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Our <span className="text-gradient-primary">philosophy</span>
+                Our Approach to{' '}
+                <span className="text-gradient-primary">AI-Powered Interior Design</span>
               </h2>
             </div>
             <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -401,9 +320,10 @@ export default function About() {
           >
             <div className="text-center mb-14">
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                What we <span className="text-gradient-primary">stand for</span>
+                Why Homeowners &amp; Brands{' '}
+                <span className="text-gradient-primary">Trust ThinkDecor</span>
               </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">The principles that guide every decision we make.</p>
+              <p className="text-muted-foreground max-w-xl mx-auto">The principles behind our AI interior design tool and every decision we make.</p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
               {values.map((v, i) => {

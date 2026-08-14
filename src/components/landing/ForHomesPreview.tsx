@@ -29,8 +29,8 @@ export function ForHomesPreview() {
               <BeforeAfterSlider
                 beforeSrc="/assets/samples/empty_room.png"
                 afterSrc="/assets/samples/styled_room.png"
-                beforeAlt="Empty original room"
-                afterAlt="Fully furnished and styled room"
+                beforeAlt="Empty room before AI interior design tool"
+                afterAlt="Room redesigned online with AI — furniture, paint and décor visualized"
                 aspectRatio="aspect-[4/3]"
               />
             </div>
@@ -46,11 +46,11 @@ export function ForHomesPreview() {
               <span className="text-sm font-medium text-primary">For Homes</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold leading-tight">
-              Design your home with confidence,{' '}
-              <span className="text-gradient-primary">even on a budget.</span>
+              Upload Your Room Photo &amp; Redesign{' '}
+              <span className="text-gradient-primary">Your Home Online Free</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Whether you own or rent, Think Decor helps you make decor decisions that feel right.
+              Whether you own or rent, ThinkDecor's AI interior design tool helps you visualize furniture, paint, and home décor in your actual space — no design experience needed.
             </p>
 
             <ul className="space-y-3">

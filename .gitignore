@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-new
 dist-ssr
 *.local
 
@@ -31,4 +32,8 @@ dist-ssr
 deploy_temp/
 *.zip
 vite.config.ts.timestamp-*
+testfile_in_root
+
+# Source video kept locally; the served copy lives in public/
+MAIN-TOP.mp4
 

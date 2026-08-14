@@ -7,25 +7,25 @@ const doubts = [
     icon: Eye,
     title: "Visual Fit",
     text: "Will this actually look good in my room?",
-    description: "Hard to visualize scales and matching colors before buying."
+    description: "Our AI room design tool lets you upload a photo and see exactly how furniture, paint, and décor look in your actual space."
   },
   {
     icon: Home,
-    title: "Atmosphere",
+    title: "Room Atmosphere",
     text: "What if it feels different at home?",
-    description: "Lighting and room dimensions change everything."
+    description: "ThinkDecor accounts for your room's lighting and dimensions — giving you a realistic home interior design preview before you buy."
   },
   {
     icon: CircleDollarSign,
     title: "Value Check",
     text: "Is this really worth the money?",
-    description: "Avoid expensive returns and buyer regret."
+    description: "Visualize home décor in your space before spending — avoid expensive returns and buyer regret with our free AI design tool."
   },
   {
     icon: Compass,
     title: "Decision Confidence",
     text: "How confident am I about this choice?",
-    description: "Shop with absolute clarity and peace of mind."
+    description: "Redesign your room online with AI and move forward only when things feel right — no guesswork, no pressure."
   }
 ];
 
@@ -85,20 +85,20 @@ export function ProblemSection() {
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               ThinkDecor AI
             </div>
-            <p className="text-white/60 text-xs sm:text-sm tracking-wider font-light max-w-md">
+            <p className="text-foreground/65 text-xs sm:text-sm tracking-wider font-light max-w-md">
               Precision Spatial Visualizer &bull; Live spatial engine
             </p>
           </motion.div>
 
           {/* Section Heading Label */}
-          <motion.h2 
+          <motion.p
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-white/40 text-sm font-semibold uppercase tracking-[0.15em] mb-2 text-center"
+            className="text-foreground/50 text-sm font-semibold uppercase tracking-[0.15em] mb-2 text-center"
           >
-            Solve the home styling doubt loop
-          </motion.h2>
+            Why homeowners need an AI interior design tool
+          </motion.p>
 
           {/* Massive Watermark Backdrop & Overlaid Main Headline Container */}
           <div className="relative w-full flex items-center justify-center mb-16 py-4">
@@ -108,17 +108,17 @@ export function ProblemSection() {
             </div>
 
             {/* Main Headline Overlaid with a stunning top-to-bottom white-to-gray gradient */}
-            <motion.h1 
+            <motion.h2
               initial={{ opacity: 0, scale: 0.97 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
               className="relative text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-center max-w-4xl leading-[1.08] z-10 bg-gradient-to-b from-white via-white to-white/70 bg-clip-text text-transparent"
             >
-              Decor decisions shouldn't
+              Home design decisions
               <br />
-              feel this uncertain.
-            </motion.h1>
+              shouldn't feel like guesswork.
+            </motion.h2>
           </div>
 
           {/* Bento Column Layout (Phone Mockup + Vertical Cards) */}
@@ -132,13 +132,13 @@ export function ProblemSection() {
                 
                 {/* PHYSICAL SIDE BUTTONS (High-end Apple 3D detailing) */}
                 {/* Ring/Silent Switch (Left) */}
-                <div className="absolute -left-[6px] top-20 w-[6px] h-6 bg-gradient-to-b from-white/20 to-white/10 rounded-l-md border-l border-y border-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
+                <div className="absolute -left-[6px] top-20 w-[6px] h-6 bg-gradient-to-b from-white/20 to-white/10 rounded-l-md border-l border-y border-foreground/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
                 {/* Volume Up Button (Left) */}
-                <div className="absolute -left-[6px] top-32 w-[6px] h-12 bg-gradient-to-b from-white/20 to-white/10 rounded-l-md border-l border-y border-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
+                <div className="absolute -left-[6px] top-32 w-[6px] h-12 bg-gradient-to-b from-white/20 to-white/10 rounded-l-md border-l border-y border-foreground/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
                 {/* Volume Down Button (Left) */}
-                <div className="absolute -left-[6px] top-48 w-[6px] h-12 bg-gradient-to-b from-white/20 to-white/10 rounded-l-md border-l border-y border-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
+                <div className="absolute -left-[6px] top-48 w-[6px] h-12 bg-gradient-to-b from-white/20 to-white/10 rounded-l-md border-l border-y border-foreground/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
                 {/* Power/Side Button (Right) */}
-                <div className="absolute -right-[6px] top-36 w-[6px] h-16 bg-gradient-to-b from-white/20 to-white/10 rounded-r-md border-r border-y border-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
+                <div className="absolute -right-[6px] top-36 w-[6px] h-16 bg-gradient-to-b from-white/20 to-white/10 rounded-r-md border-r border-y border-foreground/10 shadow-[0_2px_4px_rgba(0,0,0,0.5)] z-0" />
 
                 {/* Main Phone Body */}
                 <motion.div 
@@ -146,10 +146,10 @@ export function ProblemSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.8, type: 'spring', stiffness: 90, damping: 15 }}
-                  className="relative w-full h-full rounded-[46px] border-[6px] border-white/10 bg-[#000504]/90 p-4 shadow-[0_0_60px_rgba(0,229,204,0.08)] overflow-hidden z-10 hover:border-primary/20 transition-colors duration-500"
+                  className="relative w-full h-full rounded-[46px] border-[6px] border-foreground/10 bg-background/90 p-4 shadow-[0_0_60px_rgba(0,229,204,0.08)] overflow-hidden z-10 hover:border-primary/20 transition-colors duration-500"
                 >
                   {/* Dynamic Island Notch */}
-                  <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full border border-white/5 z-30 flex items-center justify-center gap-1.5 px-3">
+                  <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full border border-foreground/5 z-30 flex items-center justify-center gap-1.5 px-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     <span className="text-[7px] text-primary/80 font-bold uppercase tracking-widest">Spatial Active</span>
                   </div>
@@ -159,7 +159,7 @@ export function ProblemSection() {
                   <div className="absolute -bottom-20 -right-20 w-48 h-48 rounded-full bg-cyan-500/[0.05] blur-3xl pointer-events-none" />
                   
                   {/* Phone Status Bar */}
-                  <div className="flex justify-between items-center text-[9px] text-white/50 mb-4 pt-1 px-2 z-20 relative">
+                  <div className="flex justify-between items-center text-[9px] text-foreground/58 mb-4 pt-1 px-2 z-20 relative">
                     <span className="font-semibold">9:41</span>
                     <div className="flex gap-1.5 items-center">
                       <span className="w-2.5 h-1.5 rounded-sm bg-white/40" />
@@ -168,11 +168,11 @@ export function ProblemSection() {
                   </div>
 
                   {/* THINKDECOR APP BRANDING HEADER (Highly detailed mobile UI navbar) */}
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 z-20 relative">
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-foreground/10 z-20 relative">
                     <div className="flex items-center gap-1.5">
-                      <img src="/logo.png?v=3" alt="D" className="w-4 h-4 rounded" />
+                      <img src="/logo.png?v=4" alt="D" className="w-4 h-4 rounded" />
                       <div className="text-left">
-                        <span className="text-[10px] font-bold text-white tracking-wide block leading-none">ThinkDecor</span>
+                        <span className="text-[10px] font-bold text-foreground tracking-wide block leading-none">ThinkDecor</span>
                         <span className="text-[7px] text-primary font-medium tracking-wide uppercase leading-none block mt-0.5">Spatial Engine v2.0</span>
                       </div>
                     </div>
@@ -186,7 +186,7 @@ export function ProblemSection() {
                   <div className="flex flex-col justify-between h-[82%] z-20 relative">
                     
                     {/* Simulated Mini Spatial Canvas / Before-After Slider Mockup */}
-                    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2 mb-2 relative overflow-hidden group/canvas">
+                    <div className="rounded-xl border border-foreground/10 bg-foreground/[0.02] p-2 mb-2 relative overflow-hidden group/canvas">
                       <div 
                         ref={containerRef}
                         onMouseDown={handleMouseDown}
@@ -235,10 +235,10 @@ export function ProblemSection() {
                             <span className="text-[6px] text-black font-bold font-mono select-none">&lt;&gt;</span>
                           </div>
                         </div>
-                        <div className="absolute bottom-2 left-3 text-[7px] text-white/70 bg-black/60 px-1.5 py-0.5 rounded pointer-events-none select-none backdrop-blur-sm">Before</div>
-                        <div className="absolute bottom-2 right-3 text-[7px] text-primary bg-black/60 px-1.5 py-0.5 rounded pointer-events-none select-none backdrop-blur-sm">After</div>
+                        <div className="absolute bottom-2 left-3 text-[7px] text-foreground/70 bg-black/42 px-1.5 py-0.5 rounded pointer-events-none select-none backdrop-blur-sm">Before</div>
+                        <div className="absolute bottom-2 right-3 text-[7px] text-primary bg-black/42 px-1.5 py-0.5 rounded pointer-events-none select-none backdrop-blur-sm">After</div>
                       </div>
-                      <div className="flex justify-between items-center mt-2 px-1 text-[8px] text-white/50">
+                      <div className="flex justify-between items-center mt-2 px-1 text-[8px] text-foreground/58">
                         <span>Project: LivingRoom_Edit_1</span>
                         <span className="text-primary font-bold">94% Confidence</span>
                       </div>
@@ -252,10 +252,10 @@ export function ProblemSection() {
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.2, type: 'spring', stiffness: 120, damping: 10 }}
-                        className="p-2.5 rounded-2xl rounded-tl-none bg-white/[0.02] border border-white/5 text-[9px] text-left"
+                        className="p-2.5 rounded-2xl rounded-tl-none bg-foreground/[0.02] border border-foreground/5 text-[9px] text-left"
                       >
-                        <p className="text-white/50 text-[7px] mb-0.5 font-bold uppercase tracking-wider flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5 text-primary" /> Visual fit</p>
-                        <span className="text-white/90 font-medium">💭 "Will this green sofa match my walls?"</span>
+                        <p className="text-foreground/58 text-[7px] mb-0.5 font-bold uppercase tracking-wider flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5 text-primary" /> Visual fit</p>
+                        <span className="text-foreground/90 font-medium">💭 "Will this green sofa match my walls?"</span>
                       </motion.div>
 
                       <motion.div 
@@ -263,10 +263,10 @@ export function ProblemSection() {
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.4, type: 'spring', stiffness: 120, damping: 10 }}
-                        className="p-2.5 rounded-2xl rounded-tl-none bg-white/[0.02] border border-white/5 text-[9px] text-left"
+                        className="p-2.5 rounded-2xl rounded-tl-none bg-foreground/[0.02] border border-foreground/5 text-[9px] text-left"
                       >
-                        <p className="text-white/50 text-[7px] mb-0.5 font-bold uppercase tracking-wider flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5 text-cyan-400" /> Lighting shift</p>
-                        <span className="text-white/90 font-medium">💭 "What if night lighting changes the look entirely?"</span>
+                        <p className="text-foreground/58 text-[7px] mb-0.5 font-bold uppercase tracking-wider flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5 text-cyan-400" /> Lighting shift</p>
+                        <span className="text-foreground/90 font-medium">💭 "What if night lighting changes the look entirely?"</span>
                       </motion.div>
 
                       <motion.div 
@@ -274,10 +274,10 @@ export function ProblemSection() {
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.6, type: 'spring', stiffness: 120, damping: 10 }}
-                        className="p-2.5 rounded-2xl rounded-tl-none bg-white/[0.02] border border-white/5 text-[9px] text-left"
+                        className="p-2.5 rounded-2xl rounded-tl-none bg-foreground/[0.02] border border-foreground/5 text-[9px] text-left"
                       >
-                        <p className="text-white/50 text-[7px] mb-0.5 font-bold uppercase tracking-wider flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5 text-emerald-400" /> Buyer regret</p>
-                        <span className="text-white/90 font-medium">💭 "Returns cost hundreds... Is it really worth it?"</span>
+                        <p className="text-foreground/58 text-[7px] mb-0.5 font-bold uppercase tracking-wider flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5 text-emerald-400" /> Buyer regret</p>
+                        <span className="text-foreground/90 font-medium">💭 "Returns cost hundreds... Is it really worth it?"</span>
                       </motion.div>
 
                       {/* Doubt Loop Indicator (Styled perfectly to match ThinkDecor app error alerts) */}
@@ -312,28 +312,28 @@ export function ProblemSection() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1, duration: 0.5 }}
-                    className="group relative rounded-2xl border border-white/10 bg-white/[0.01] p-5 sm:p-6 flex gap-5 items-center text-left overflow-hidden transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.03] hover:-translate-y-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_50px_rgba(0,229,204,0.04)]"
+                    className="group relative rounded-2xl border border-foreground/10 bg-foreground/[0.01] p-5 sm:p-6 flex gap-5 items-center text-left overflow-hidden transition-all duration-500 hover:border-primary/30 hover:bg-foreground/[0.03] hover:-translate-y-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_20px_50px_rgba(0,229,204,0.04)]"
                   >
                     {/* Ambient spotlight glow inside each card */}
                     <div className="absolute -top-12 -right-12 w-28 h-28 rounded-full bg-primary/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                     
                     {/* Premium Icon Box */}
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/10 flex items-center justify-center text-primary flex-shrink-0 group-hover:scale-105 group-hover:border-primary/40 group-hover:bg-primary/10 transition-all duration-500 shadow-lg">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-foreground/10 flex items-center justify-center text-primary flex-shrink-0 group-hover:scale-105 group-hover:border-primary/40 group-hover:bg-primary/10 transition-all duration-500 shadow-lg">
                       <IconComp className="w-5 h-5 transition-transform duration-500 group-hover:rotate-6" />
                     </div>
                     
                     {/* Details */}
                     <div className="flex-1">
                       <div className="flex flex-wrap items-baseline justify-between mb-1.5">
-                        <h3 className="text-white font-semibold text-base tracking-tight group-hover:text-primary transition-colors duration-300">
+                        <h3 className="text-foreground font-semibold text-base tracking-tight group-hover:text-primary transition-colors duration-300">
                           {doubt.title}
                         </h3>
-                        <span className="text-[9px] uppercase font-bold tracking-widest text-white/30 group-hover:text-primary/50 transition-colors">Pillar 0{index + 1}</span>
+                        <span className="text-[9px] uppercase font-bold tracking-widest text-foreground/42 group-hover:text-primary/50 transition-colors">Pillar 0{index + 1}</span>
                       </div>
-                      <p className="text-white/90 text-sm font-medium leading-relaxed mb-1">
+                      <p className="text-foreground/90 text-sm font-medium leading-relaxed mb-1">
                         {doubt.text}
                       </p>
-                      <p className="text-white/50 text-xs font-light leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                      <p className="text-foreground/58 text-xs font-light leading-relaxed group-hover:text-foreground/70 transition-colors duration-300">
                         {doubt.description}
                       </p>
                     </div>

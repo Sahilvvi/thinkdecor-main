@@ -18,11 +18,11 @@ export function UseCasesSection() {
           }`}
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-            Built for
-            <span className="text-gradient-primary"> Everyone</span>
+            AI Interior Design for
+            <span className="text-gradient-primary"> Homeowners &amp; Brands</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Whether you're a homeowner dreaming of a renovation or a professional designer working on client projects
+            Whether you're redesigning your own room or helping customers visualize your products — ThinkDecor's AI home design tool works for you
           </p>
         </div>
 
@@ -43,7 +43,7 @@ export function UseCasesSection() {
               <div className="relative aspect-[16/10] overflow-hidden">
                 <img 
                   src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=500&fit=crop"
-                  alt="Personal home design"
+                  alt="Homeowner using AI interior design tool to redesign living room online"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
@@ -58,21 +58,20 @@ export function UseCasesSection() {
                   <h3 className="text-2xl font-bold">Personal Use</h3>
                 </div>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
-                  Visualize your dream home before spending a dime. Experiment with paint colors, furniture arrangements, and design styles. 
-                  Make confident decisions about renovations and purchases.
+                  Upload your room photo and instantly visualize furniture, paint, flooring, and home décor with AI. Redesign any room online — free to start, no design experience needed.
                 </p>
                 <ul className="space-y-2 text-sm text-muted-foreground mb-6">
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Redesign any room in your home
+                    Upload photo to redesign any room online
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Try different paint colors instantly
+                    Visualize paint colors, flooring &amp; furniture with AI
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Preview furniture before buying
+                    Make confident home décor decisions before buying
                   </li>
                 </ul>
                 <Link to="/demo">
@@ -102,7 +101,7 @@ export function UseCasesSection() {
               <div className="relative aspect-[16/10] overflow-hidden">
                 <img 
                   src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=500&fit=crop"
-                  alt="Professional interior design"
+                  alt="Professional interior designer using AI room design software for client projects"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />

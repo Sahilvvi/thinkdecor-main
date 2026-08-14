@@ -85,7 +85,7 @@ export function BeforeAfterSlider({
           style={{ width: containerWidth > 0 ? `${containerWidth}px` : '100vw', maxWidth: 'none' }}
           draggable={false}
         />
-        <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
+        <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-black/42 backdrop-blur-sm text-foreground text-xs font-medium">
           Before
         </div>
       </div>

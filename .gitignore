@@ -38,3 +38,6 @@ testfile_in_root
 # Source video kept locally; the served copy lives in public/
 MAIN-TOP.mp4
 
+
+# Supabase CLI link cache (project ref, CLI version) — local only
+supabase/.temp/

@@ -9,9 +9,10 @@ import { Logo } from '@/components/brand/Logo';
 /**
  * Admin sign-in. Sign-up is deliberately NOT available here.
  *
- * Accounts are created by an administrator in the Supabase dashboard
- * (Authentication → Users → Add user). Anyone who can sign in can read
- * every customer lead, so self-service registration must not exist.
+ * Customers can create accounts at /signup, so signing in is not enough to
+ * reach the CMS: the account also needs role = 'admin' in public.user_roles.
+ * AdminRoute checks that in the UI, and RLS enforces it on leads, payments,
+ * blog posts and blog media (20260914100000_lock_admin_data.sql).
  */
 export default function AdminAuth() {
   const [email, setEmail] = useState('');

@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { ProtectedRoute, GuestRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute, GuestRoute, AdminRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/app/AppShell";
 import { useAuthStore } from "@/stores/authStore";
 import { AnimatePresence } from "framer-motion";
@@ -71,11 +71,11 @@ function AppRoutes() {
         <Route path="/blog" element={<PageTransition><Blog /></PageTransition>} />
         <Route path="/blog/:slug" element={<PageTransition><BlogPostPage /></PageTransition>} />
 
-        {/* Journal admin — signed-out visitors go to the CMS login, not the customer one */}
+        {/* Journal admin — admin role required; signed-out visitors go to the CMS login */}
         <Route path="/admin" element={<AdminAuth />} />
-        <Route path="/admin/blog" element={<ProtectedRoute redirectTo="/admin"><BlogAdmin /></ProtectedRoute>} />
-        <Route path="/admin/blog/:id" element={<ProtectedRoute redirectTo="/admin"><BlogEditor /></ProtectedRoute>} />
-        <Route path="/admin/leads" element={<ProtectedRoute redirectTo="/admin"><Leads /></ProtectedRoute>} />
+        <Route path="/admin/blog" element={<AdminRoute><BlogAdmin /></AdminRoute>} />
+        <Route path="/admin/blog/:id" element={<AdminRoute><BlogEditor /></AdminRoute>} />
+        <Route path="/admin/leads" element={<AdminRoute><Leads /></AdminRoute>} />
 
         {/* Live product demo */}
         <Route path="/demo" element={<PageTransition><Viz2dDemo /></PageTransition>} />

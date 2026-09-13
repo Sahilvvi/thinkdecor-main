@@ -140,7 +140,7 @@ export function SmartWizard() {
           {/* ---------- copy ---------- */}
           <div>
             <Reveal>
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Start from nothing</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Coming soon</p>
               <h2 className="mt-5 text-[clamp(2rem,4.2vw,3.2rem)] font-bold leading-[1.06] tracking-[-0.025em] text-foreground">
                 Smart Wizard
               </h2>
@@ -168,10 +168,10 @@ export function SmartWizard() {
             <Reveal delay={0.2} className="mt-8">
               <Magnetic>
                 <Link
-                  to="/demo"
+                  to="/signup"
                   className="group inline-flex items-center gap-2.5 rounded-full bg-primary px-7 py-3.5 text-[14.5px] font-semibold text-primary-foreground shadow-[0_14px_32px_-12px_hsl(168_100%_17%/0.45)] transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
                 >
-                  Learn more
+                  Try photo redesigns free
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </Magnetic>

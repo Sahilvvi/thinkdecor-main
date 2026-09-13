@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/brand/Logo';
 import { SEO } from '@/components/shared/SEO';
+import { Captcha } from '@/components/auth/Captcha';
 import { useAuthStore } from '@/stores/authStore';
 import { safeReturnPath } from '@/lib/returnPath';
+import { CAPTCHA_ENABLED } from '@/lib/captcha';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
@@ -14,6 +16,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const { signIn } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,10 +30,11 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email, password, captchaToken ?? undefined);
 
     if (error) {
       toast.error(error.message || 'Failed to sign in');
+      setCaptchaKey((k) => k + 1); // tokens are single-use
       setIsLoading(false);
     } else {
       toast.success('Welcome back!');
@@ -93,7 +98,15 @@ export default function Login() {
               />
             </div>
 
-            <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
+            <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
+
+            <Button
+              type="submit"
+              variant="hero"
+              className="w-full"
+              size="lg"
+              disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

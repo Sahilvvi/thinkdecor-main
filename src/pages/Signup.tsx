@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/brand/Logo';
 import { SEO } from '@/components/shared/SEO';
+import { Captcha } from '@/components/auth/Captcha';
 import { useAuthStore } from '@/stores/authStore';
 import { safeReturnPath } from '@/lib/returnPath';
+import { CAPTCHA_ENABLED } from '@/lib/captcha';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, Check, MailCheck } from 'lucide-react';
 import { FREE_SIGNUP_CREDITS } from '@/lib/generation';
@@ -27,18 +29,29 @@ export default function Signup() {
   /** Set when Supabase wants the email confirmed before the first sign-in. */
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const { signUp, resendConfirmation } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const captchaMissing = CAPTCHA_ENABLED && !captchaToken;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error, needsConfirmation } = await signUp(email.trim(), password, name.trim(), phone);
+    const { error, needsConfirmation } = await signUp(
+      email.trim(),
+      password,
+      name.trim(),
+      phone,
+      captchaToken ?? undefined,
+    );
 
     if (error) {
       toast.error(error.message || 'Failed to create account');
+      setCaptchaKey((k) => k + 1); // tokens are single-use
       setIsLoading(false);
     } else if (needsConfirmation) {
       setPendingEmail(email.trim());
@@ -52,8 +65,9 @@ export default function Signup() {
   const handleResend = async () => {
     if (!pendingEmail) return;
     setResending(true);
-    const { error } = await resendConfirmation(pendingEmail);
+    const { error } = await resendConfirmation(pendingEmail, captchaToken ?? undefined);
     setResending(false);
+    setCaptchaKey((k) => k + 1);
     if (error) toast.error(error.message || "Couldn't resend the email");
     else toast.success('Confirmation email sent again');
   };
@@ -72,11 +86,11 @@ export default function Signup() {
 
         <div className="relative z-10 max-w-md p-12">
           <h2 className="text-[clamp(2rem,3.4vw,2.8rem)] font-bold leading-[1.1] tracking-[-0.03em] text-primary-foreground">
-            Measure it. Redesign it.
+            See it redesigned.
           </h2>
           <p className="mt-5 text-[15.5px] leading-relaxed text-primary-foreground/70">
-            Scan a room with your phone, get an accurate plan, then let Mantha AI
-            restyle it — furniture, materials, palette and budget.
+            Upload a photo of any room and Mantha AI restyles it in seconds — in the
+            style you pick, keeping the space you already have.
           </p>
 
           <ul className="mt-9 space-y-4">
@@ -117,8 +131,11 @@ export default function Signup() {
                 We sent a confirmation link to <span className="font-semibold text-foreground">{pendingEmail}</span>.
                 Click it to finish creating your account — your {FREE_SIGNUP_CREDITS} free redesigns are waiting.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={handleResend} variant="outline" disabled={resending}>
+              <div className="mt-6">
+                <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={handleResend} variant="outline" disabled={resending || captchaMissing}>
                   {resending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Resend email
                 </Button>
@@ -197,7 +214,9 @@ export default function Signup() {
                   <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
                 </div>
 
-                <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
+                <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
+
+                <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading || captchaMissing}>
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />

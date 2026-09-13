@@ -3,6 +3,7 @@ import { ArrowRight, Images, LayoutGrid, Plus, Sparkles, Wand2 } from 'lucide-re
 
 import { SEO } from '@/components/shared/SEO';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StoredImage } from '@/components/app/StoredImage';
 import { useDisplayName } from '@/hooks/useProfile';
 import {
   FREE_SIGNUP_CREDITS, formatDate, isSetupError, useCreditBalance, useGenerations,
@@ -160,7 +161,7 @@ export default function Overview() {
                 className="group overflow-hidden rounded-2xl border border-border/70 bg-card transition-colors hover:border-primary/30"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-secondary">
-                  <img
+                  <StoredImage
                     src={g.output_image_url ?? g.input_image_url}
                     alt="Generated design"
                     loading="lazy"

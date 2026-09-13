@@ -90,3 +90,45 @@ export async function startCheckout(productKey: string, interval?: Interval, pro
   // Full navigation, not a new tab — popup blockers eat window.open here.
   window.location.href = data.url as string;
 }
+
+/**
+ * Opens Stripe's hosted Customer Portal for the signed-in customer, where they
+ * can cancel, change card or download invoices. Fails as loudly as checkout.
+ */
+export async function openBillingPortal() {
+  const res = await supabase.functions
+    .invoke('create-portal-session', { body: {} })
+    .catch((e: unknown) => {
+      console.error('[billing-portal] network failure:', e);
+      throw new CheckoutError('network', 'Could not reach the billing service.', String(e));
+    });
+
+  const { data, error } = res;
+
+  if (error) {
+    const context = (error as { context?: Response }).context;
+    let payload: { error?: string; code?: string } | null = null;
+    try {
+      payload = context ? await context.json() : null;
+    } catch {
+      payload = null;
+    }
+    console.error('[billing-portal] invoke failed', { status: context?.status, payload, error });
+
+    // The gateway's own 404 (function missing) has no code; ours says no_customer.
+    if (context?.status === 404 && payload?.code !== 'no_customer') {
+      throw new CheckoutError(
+        'not_deployed',
+        'Billing management is not switched on yet.',
+        'The create-portal-session edge function has not been deployed.',
+      );
+    }
+    throw new CheckoutError(payload?.code ?? 'server', payload?.error ?? 'Could not open billing.');
+  }
+
+  if (!data?.url) {
+    throw new CheckoutError('server', 'Billing did not return a link.');
+  }
+
+  window.location.href = data.url as string;
+}

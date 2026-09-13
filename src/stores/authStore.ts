@@ -6,6 +6,8 @@ interface AuthResult {
   error: Error | null;
 }
 
+// Every method that hits a CAPTCHA-protected Supabase endpoint takes an
+// optional Turnstile token. It's ignored until CAPTCHA is enabled in Supabase.
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -16,11 +18,12 @@ interface AuthState {
     password: string,
     name: string,
     phone?: string,
+    captchaToken?: string,
   ) => Promise<AuthResult & { needsConfirmation: boolean }>;
-  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
-  resendConfirmation: (email: string) => Promise<AuthResult>;
-  requestPasswordReset: (email: string) => Promise<AuthResult>;
+  resendConfirmation: (email: string, captchaToken?: string) => Promise<AuthResult>;
+  requestPasswordReset: (email: string, captchaToken?: string) => Promise<AuthResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
   initialize: () => Promise<void>;
 }
@@ -58,7 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (email: string, password: string, name: string, phone?: string) => {
+  signUp: async (email, password, name, phone, captchaToken) => {
     set({ loading: true });
     // name/phone ride along as user metadata — the handle_new_user() trigger
     // reads them straight into the profiles row on insert.
@@ -68,6 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: {
         emailRedirectTo: `${window.location.origin}/app`,
         data: { name, phone: phone?.trim() || null },
+        captchaToken,
       },
     });
     set({ loading: false });
@@ -76,11 +80,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return { error, needsConfirmation: !error && !data.session };
   },
 
-  signIn: async (email: string, password: string) => {
+  signIn: async (email, password, captchaToken) => {
     set({ loading: true });
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: { captchaToken },
     });
     set({ loading: false });
     return { error };
@@ -95,23 +100,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // The three below deliberately leave `loading` alone: ProtectedRoute swaps
   // the whole page for a spinner while it's true, which would wipe the form
   // someone is in the middle of submitting.
-  resendConfirmation: async (email: string) => {
+  resendConfirmation: async (email, captchaToken) => {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: `${window.location.origin}/app` },
+      options: { emailRedirectTo: `${window.location.origin}/app`, captchaToken },
     });
     return { error };
   },
 
-  requestPasswordReset: async (email: string) => {
+  requestPasswordReset: async (email, captchaToken) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
+      captchaToken,
     });
     return { error };
   },
 
-  updatePassword: async (password: string) => {
+  updatePassword: async (password) => {
     const { error } = await supabase.auth.updateUser({ password });
     return { error };
   },

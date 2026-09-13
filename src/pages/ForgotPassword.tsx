@@ -8,20 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/brand/Logo';
 import { SEO } from '@/components/shared/SEO';
+import { Captcha } from '@/components/auth/Captcha';
 import { useAuthStore } from '@/stores/authStore';
+import { CAPTCHA_ENABLED } from '@/lib/captcha';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const { requestPasswordReset } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const address = email.trim();
-    const { error } = await requestPasswordReset(address);
+    const { error } = await requestPasswordReset(address, captchaToken ?? undefined);
     setIsLoading(false);
+    setCaptchaKey((k) => k + 1); // tokens are single-use
 
     if (error) {
       toast.error(error.message || "Couldn't send the reset email. Please try again.");
@@ -88,7 +93,15 @@ export default function ForgotPassword() {
                 />
               </div>
 
-              <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
+              <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
+
+              <Button
+                type="submit"
+                variant="hero"
+                className="w-full"
+                size="lg"
+                disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />

@@ -83,8 +83,8 @@ export function HeroVideo() {
         transition={{ delay: 1, duration: 0.7 }}
         className="absolute -left-4 top-[22%] hidden rounded-2xl border border-foreground/[0.12] bg-black/38 px-4 py-2.5 backdrop-blur-xl lg:block"
       >
-        <span className="block text-[10px] uppercase tracking-[0.14em] text-foreground/50">Accuracy</span>
-        <span className="block text-[15px] font-semibold text-foreground">±1.2 cm</span>
+        <span className="block text-[10px] uppercase tracking-[0.14em] text-foreground/50">Room scanning</span>
+        <span className="block text-[15px] font-semibold text-foreground">Coming soon</span>
       </motion.span>
 
       <motion.span
@@ -92,8 +92,8 @@ export function HeroVideo() {
         transition={{ delay: 1.2, duration: 0.7 }}
         className="absolute -right-4 bottom-[16%] hidden rounded-2xl border border-primary/30 bg-primary/90 px-4 py-2.5 backdrop-blur-xl lg:block"
       >
-        <span className="block text-[10px] uppercase tracking-[0.14em] text-primary-foreground/70">Scan to plan</span>
-        <span className="block text-[15px] font-semibold text-primary-foreground">4 minutes</span>
+        <span className="block text-[10px] uppercase tracking-[0.14em] text-primary-foreground/70">Redesign</span>
+        <span className="block text-[15px] font-semibold text-primary-foreground">In seconds</span>
       </motion.span>
     </div>
   );

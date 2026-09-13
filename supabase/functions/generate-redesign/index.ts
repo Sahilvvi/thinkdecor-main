@@ -5,21 +5,32 @@
 //          (optional) supabase secrets set OPENAI_IMAGE_MODEL=gpt-image-1
 // Then set VITE_LIVE_GENERATION=true in the site's .env and rebuild.
 //
+// Self-contained (no ../_shared import) so it also deploys from the Supabase
+// dashboard's function editor.
+//
 // Order of work, all server-side so the browser can't skip a step:
-//   1. check the caller is signed in and the photo is their own upload
-//   2. spend one credit (spend_credit refuses at zero)
+//   1. check the caller is signed in and the photo is their own, under 10 MB
+//   2. spend one credit — spend_credit() refuses at zero and past the hourly cap
 //   3. call the model
-//   4. store the result and record it in `generations`
+//   4. store the result in the private bucket and record it in `generations`
 // If 3 or 4 fails, the credit is refunded.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/catalog.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const MODEL = Deno.env.get("OPENAI_IMAGE_MODEL") ?? "gpt-image-1";
+
+const BUCKET = "generations";
+const MAX_INPUT_BYTES = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,8 +70,8 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request.", code: "bad_request" }, 400);
   }
 
-  const { inputUrl, templateKey, roomType, roomLabel, stylePrompt, prompt } = body as {
-    inputUrl?: string;
+  const { inputPath, templateKey, roomType, roomLabel, stylePrompt, prompt } = body as {
+    inputPath?: string;
     templateKey?: string;
     roomType?: string;
     roomLabel?: string;
@@ -68,10 +79,21 @@ Deno.serve(async (req) => {
     prompt?: string;
   };
 
-  // Only ever generate from the caller's own uploads — never fetch an arbitrary URL.
-  const allowedPrefix = `${SUPABASE_URL}/storage/v1/object/public/generations/${user.id}/`;
-  if (typeof inputUrl !== "string" || !inputUrl.startsWith(allowedPrefix)) {
+  // ---- 1. check the photo before any credit is spent ------------------------
+  // Only ever read the caller's own uploads.
+  if (typeof inputPath !== "string" || !inputPath.startsWith(`${user.id}/`) || inputPath.includes("..")) {
     return json({ error: "That photo couldn't be used. Please upload it again.", code: "bad_image" }, 400);
+  }
+
+  const { data: sourceBlob, error: downloadError } = await admin.storage.from(BUCKET).download(inputPath);
+  if (downloadError || !sourceBlob) {
+    return json({ error: "That photo couldn't be found. Please upload it again.", code: "bad_image" }, 400);
+  }
+  if (sourceBlob.size > MAX_INPUT_BYTES) {
+    return json({ error: "That photo is over 10MB — please use a smaller one.", code: "image_too_large" }, 413);
+  }
+  if (sourceBlob.type && !ALLOWED_TYPES.includes(sourceBlob.type)) {
+    return json({ error: "Please use a JPG, PNG or WebP photo.", code: "bad_image_type" }, 415);
   }
 
   // ---- 2. spend -----------------------------------------------------------
@@ -80,15 +102,15 @@ Deno.serve(async (req) => {
     if (/no credits remaining/i.test(spendError.message)) {
       return json({ error: "You're out of credits.", code: "out_of_credits" }, 402);
     }
+    if (/rate limited/i.test(spendError.message)) {
+      return json({ error: "Too many designs this hour — try again shortly.", code: "rate_limited" }, 429);
+    }
     console.error("spend_credit failed:", spendError);
     return json({ error: "Couldn't reserve a credit. Please try again.", code: "spend_failed" }, 500);
   }
 
   try {
     // ---- 3. generate ------------------------------------------------------
-    const source = await fetch(inputUrl);
-    if (!source.ok) throw new Error(`Could not read source image (${source.status})`);
-    const sourceBlob = await source.blob();
     const ext = (sourceBlob.type.split("/")[1] ?? "png").replace("jpeg", "jpg");
 
     const fullPrompt = [
@@ -118,20 +140,18 @@ Deno.serve(async (req) => {
 
     // ---- 4. store + record -------------------------------------------------
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const path = `${user.id}/out-${Date.now()}.png`;
+    const outputPath = `${user.id}/out-${Date.now()}.png`;
     const { error: uploadError } = await admin.storage
-      .from("generations")
-      .upload(path, bytes, { contentType: "image/png" });
+      .from(BUCKET)
+      .upload(outputPath, bytes, { contentType: "image/png" });
     if (uploadError) throw uploadError;
-
-    const outputUrl = admin.storage.from("generations").getPublicUrl(path).data.publicUrl;
 
     const { data: generation, error: insertError } = await asUser
       .from("generations")
       .insert({
         user_id: user.id,
-        input_image_url: inputUrl,
-        output_image_url: outputUrl,
+        input_image_url: inputPath,
+        output_image_url: outputPath,
         template_key: templateKey ?? null,
         room_type: roomType ?? null,
         prompt: prompt ?? null,

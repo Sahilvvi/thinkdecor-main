@@ -10,9 +10,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
+import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import {
-  type Generation, downloadImage, formatDate, isSetupError, useDeleteGeneration, useGenerations,
+  type Generation, downloadStoredImage, formatDate, isSetupError, useDeleteGeneration, useGenerations,
 } from '@/lib/generation';
 import { roomLabel, templateByKey } from '@/lib/templates';
 
@@ -20,6 +20,10 @@ function titleFor(g: Generation) {
   const style = templateByKey(g.template_key)?.label ?? 'Custom';
   const room = roomLabel(g.room_type);
   return room ? `${style} · ${room}` : style;
+}
+
+function download(g: Generation) {
+  if (g.output_image_url) downloadStoredImage(g.output_image_url, `thinkdecor-${g.id.slice(0, 8)}.jpg`);
 }
 
 export default function Library() {
@@ -33,7 +37,7 @@ export default function Library() {
   const regenerate = (g: Generation) => {
     navigate('/app/create', {
       state: {
-        inputUrl: g.input_image_url,
+        inputPath: g.input_image_url,
         templateKey: g.template_key,
         roomType: g.room_type,
         prompt: g.prompt,
@@ -44,7 +48,7 @@ export default function Library() {
   const handleDelete = async () => {
     if (!confirming) return;
     try {
-      await deleteGeneration.mutateAsync(confirming.id);
+      await deleteGeneration.mutateAsync(confirming);
       toast.success('Design deleted');
       if (viewing?.id === confirming.id) setViewing(null);
     } catch {
@@ -113,7 +117,7 @@ export default function Library() {
                 className="block aspect-[4/3] w-full overflow-hidden bg-secondary"
                 aria-label={`Open ${titleFor(g)}`}
               >
-                <img
+                <StoredImage
                   src={g.output_image_url ?? g.input_image_url}
                   alt={titleFor(g)}
                   loading="lazy"
@@ -126,10 +130,7 @@ export default function Library() {
                   <p className="text-[12.5px] text-foreground/50">{formatDate(g.created_at)}</p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-1">
-                  <IconButton
-                    label="Download"
-                    onClick={() => g.output_image_url && downloadImage(g.output_image_url, `thinkdecor-${g.id.slice(0, 8)}.jpg`)}
-                  >
+                  <IconButton label="Download" onClick={() => download(g)}>
                     <Download className="h-4 w-4" />
                   </IconButton>
                   <IconButton label="Regenerate" onClick={() => regenerate(g)}>
@@ -155,13 +156,7 @@ export default function Library() {
                 Created {formatDate(viewing.created_at)} — drag to compare your photo with the redesign.
               </DialogDescription>
               <div className="overflow-hidden rounded-2xl border border-border/70">
-                <BeforeAfterSlider
-                  beforeSrc={viewing.input_image_url}
-                  afterSrc={viewing.output_image_url ?? viewing.input_image_url}
-                  beforeAlt="Your original photo"
-                  afterAlt="The redesigned room"
-                  aspectRatio="aspect-[4/3]"
-                />
+                <StoredCompare before={viewing.input_image_url} after={viewing.output_image_url} />
               </div>
               {viewing.prompt && (
                 <p className="rounded-xl bg-secondary px-4 py-3 text-[13.5px] text-foreground/70">
@@ -186,10 +181,7 @@ export default function Library() {
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    viewing.output_image_url &&
-                    downloadImage(viewing.output_image_url, `thinkdecor-${viewing.id.slice(0, 8)}.jpg`)
-                  }
+                  onClick={() => download(viewing)}
                   className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground"
                 >
                   <Download className="h-4 w-4" /> Download
@@ -206,7 +198,8 @@ export default function Library() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this design?</AlertDialogTitle>
             <AlertDialogDescription>
-              It will be removed from your library. This can't be undone, and the credit isn't refunded.
+              It will be removed from your library, along with its stored image. This can't be undone, and the
+              credit isn't refunded.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

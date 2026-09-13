@@ -32,14 +32,14 @@ export function DesignGenerator() {
           {/* ---------- copy ---------- */}
           <div>
             <Reveal>
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Instant results</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Available now</p>
               <h2 className="mt-5 text-[clamp(2rem,4.2vw,3.2rem)] font-bold leading-[1.06] tracking-[-0.025em] text-foreground">
                 Design Generator
               </h2>
               <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
-                Upload a photo of the space and get a plethora of configurations back —
-                different styles, layouts and palettes for the same room. No render queue,
-                no waiting hours. The results are instant.
+                Upload a photo of the space and try it in different styles and palettes —
+                the same room, restyled. No render queue, no waiting hours. Results arrive
+                in seconds.
               </p>
             </Reveal>
 
@@ -66,10 +66,10 @@ export function DesignGenerator() {
             <Reveal delay={0.2} className="mt-8">
               <Magnetic>
                 <Link
-                  to="/demo"
+                  to="/signup"
                   className="group inline-flex items-center gap-2.5 rounded-full bg-primary px-7 py-3.5 text-[14.5px] font-semibold text-primary-foreground shadow-[0_14px_32px_-12px_hsl(168_100%_17%/0.45)] transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
                 >
-                  Learn more about Design Generator
+                  Try it free
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </Magnetic>

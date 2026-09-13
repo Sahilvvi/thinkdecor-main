@@ -27,40 +27,48 @@ import { EarlyBirdStrip } from '@/components/premium/EarlyBirdStrip';
 import { Comparison } from '@/components/premium/Comparison';
 import { AboutBlurb } from '@/components/premium/AboutBlurb';
 import { Testimonials } from '@/components/premium/Testimonials';
+import { FREE_SIGNUP_CREDITS } from '@/lib/generation';
+import { ROOM_TYPES, TEMPLATES } from '@/lib/templates';
+import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 
 /* ---------------------------------------------------------------- *
- *  Homepage — restored to the "spatial intelligence" build:
- *  scan a room, get an accurate floor plan, then let Mantha AI
- *  redesign it. Every section below matches the thinkdecor-live
- *  reference build section-for-section.
+ *  Homepage — the "spatial intelligence" layout from the thinkdecor-live
+ *  build, with copy that matches the product today: photo redesigns are
+ *  live; room scanning, measured plans and exports are labelled
+ *  "coming soon" wherever they appear.
  * ---------------------------------------------------------------- */
 
+const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
+const MONTHLY = money(PHASE1_PLAN.monthly);
+
+// Everything below describes what the app does today. Room scanning, measured
+// plans and exports still appear on this page, but labelled "coming soon".
 const HERO_TRUST = [
-  { icon: Smartphone, t: 'No hardware needed' },
-  { icon: Clock, t: 'Live in 5–7 days' },
-  { icon: FileDown, t: 'Export PDF · SVG · CAD' },
+  { icon: Smartphone, t: 'Any phone photo' },
+  { icon: Gift, t: `${FREE_SIGNUP_CREDITS} free redesigns` },
+  { icon: Clock, t: 'Results in seconds' },
 ];
 
 const CTA_TRUST = [
   { icon: Smartphone, t: 'No hardware needed' },
-  { icon: Gift, t: 'First plan free' },
-  { icon: FileDown, t: 'Export PDF · SVG · CAD' },
+  { icon: Gift, t: `${FREE_SIGNUP_CREDITS} free redesigns` },
+  { icon: FileDown, t: 'Download every design' },
 ];
 
 const STATS = [
-  { to: 92, suffix: '%', decimals: 0, t: 'Time saved', d: 'versus manual measuring' },
-  { to: 99.2, suffix: '%', decimals: 1, t: 'Accuracy', d: 'against laser reference' },
-  { to: 4, suffix: ' min', decimals: 0, t: 'Processing', d: 'scan to finished plan' },
-  { to: 71, suffix: '%', decimals: 0, t: 'Cost reduction', d: 'per surveyed property' },
+  { to: FREE_SIGNUP_CREDITS, suffix: '', decimals: 0, t: 'Free redesigns', d: 'when you sign up' },
+  { to: TEMPLATES.length, suffix: '', decimals: 0, t: 'Interior styles', d: 'to start from' },
+  { to: ROOM_TYPES.length, suffix: '', decimals: 0, t: 'Room types', d: 'living rooms to bathrooms' },
+  { to: PHASE1_PLAN.credits, suffix: '', decimals: 0, t: 'Designs a month', d: 'on the ThinkDecor plan' },
 ];
 
 const MANTHA_FEATURES = [
-  'Understands your actual space',
-  'Multiple interior concepts',
-  'Furniture recommendations',
-  'Material suggestions',
-  'Budget estimation',
-  'Live shopping links',
+  'Restyles your actual room',
+  `${TEMPLATES.length} interior styles to start from`,
+  'Describe changes in plain words',
+  'Regenerate for new variations',
+  'Every design saved to your library',
+  'Budgets & shopping lists — coming soon',
 ];
 
 const WHO_ITS_FOR = [
@@ -76,28 +84,28 @@ const WHO_ITS_FOR = [
 
 const FAQS = [
   {
-    q: 'What do I need to scan a room?',
-    a: 'Just your phone. Walk through the space once and ThinkDecor captures everything it needs — no LiDAR, laser measures or special hardware required.',
+    q: 'What do I need to get started?',
+    a: 'A photo of your room from any phone — straight-on, in daylight if you can. No special hardware, no measuring equipment.',
   },
   {
-    q: 'How accurate are the measurements?',
-    a: 'Measurements land within roughly ±1.2 cm of laser-reference readings for typical residential rooms, covering wall lengths, room dimensions, ceiling height and total area.',
-  },
-  {
-    q: 'What formats can I export?',
-    a: 'Floor plans export to PDF, SVG and CAD-ready DWG, so they drop straight into your existing architectural or design workflow.',
+    q: 'How do credits work?',
+    a: `Every account starts with ${FREE_SIGNUP_CREDITS} free redesigns, and each design or regeneration uses one credit. The ThinkDecor plan adds ${PHASE1_PLAN.credits} credits every month — ${INTRO} for your first month, then ${MONTHLY}.`,
   },
   {
     q: 'What is Mantha AI?',
-    a: 'Mantha is the design intelligence layer. Once your space is measured it generates complete interior concepts — furniture, materials, colour palettes, budgets and shopping links — and you can talk to it in plain language.',
+    a: 'Mantha is the design intelligence inside ThinkDecor. Give it a photo, a style and a few words about what you want, and it restyles your actual room — keeping the walls, windows and layout you already have.',
   },
   {
-    q: 'Can I edit what the AI generates?',
-    a: 'Yes. Every plan and concept is editable — move furniture, swap materials, adjust walls and dimensions, and see the result update live.',
+    q: 'Can I change what the AI creates?',
+    a: 'Yes. Regenerate for a new variation, or describe what to change — "lighter floors", "a green velvet sofa" — and Mantha refines the same photo. Every design is saved to your library to compare and download.',
   },
   {
-    q: 'How long does processing take?',
-    a: 'Most rooms finish in under four minutes from the end of the scan to a complete measured floor plan.',
+    q: 'Can ThinkDecor measure my room?',
+    a: 'Not yet. Room scanning with measured floor plans — and PDF, SVG and CAD exports — is in development. Today, ThinkDecor redesigns rooms from a photo.',
+  },
+  {
+    q: 'Can I cancel any time?',
+    a: 'Yes. Manage or cancel your plan from Settings in your account, and it stays active until the end of the period you have already paid for.',
   },
 ];
 
@@ -107,8 +115,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="ThinkDecor | AI Room Measurement & Interior Design"
-        description="Scan any room with your phone. ThinkDecor generates an accurate floor plan with full measurements, then Mantha AI redesigns the space — concepts, furniture, materials and budget."
+        title="ThinkDecor | AI Interior Design From a Photo"
+        description={`Upload a photo of any room and Mantha AI redesigns it in the style you choose. Start with ${FREE_SIGNUP_CREDITS} free redesigns, then ${INTRO} for your first month.`}
         canonical="https://thinkdecor.app/"
       />
       <Navbar />
@@ -146,18 +154,18 @@ export default function Home() {
 
                 <Reveal delay={0.5} className="mt-7">
                   <p className="max-w-[46ch] text-[16.5px] leading-relaxed text-foreground/60">
-                    From one room scan, ThinkDecor instantly generates accurate measurements
-                    and transforms your space using Mantha AI.
+                    Upload a photo of any room and Mantha AI redesigns it in the style you
+                    choose — in seconds. Room scanning and measured plans are coming soon.
                   </p>
                 </Reveal>
 
                 <Reveal delay={0.6} className="mt-9">
                   <Magnetic>
                     <Link
-                      to="/pricing"
+                      to="/signup"
                       className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-primary px-9 py-4 text-[15px] font-semibold text-primary-foreground shadow-[0_20px_46px_-14px_hsl(168_100%_17%/0.5)] transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
                     >
-                      <span className="relative">Get early access</span>
+                      <span className="relative">Try it free</span>
                       <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
                   </Magnetic>
@@ -199,7 +207,6 @@ export default function Home() {
                 </motion.div>
               ))}
             </Stagger>
-            <p className="mt-6 text-center text-[11.5px] text-foreground/40">Based on early ThinkDecor testing</p>
           </div>
         </section>
 
@@ -210,12 +217,12 @@ export default function Home() {
         <section id="scan" className="scroll-mt-24 py-16 lg:py-20">
           <div className="container mx-auto max-w-[1200px] px-6 sm:px-8">
             <Reveal className="mx-auto max-w-[640px] text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">See it happen</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Coming soon · Room scanning</p>
               <h2 className="mx-auto mt-5 max-w-[22ch] text-[clamp(1.9rem,4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.02em] text-foreground">
                 One walkthrough. Everything else is automatic.
               </h2>
               <p className="mx-auto mt-5 max-w-[52ch] text-[15.5px] leading-relaxed text-foreground/55">
-                Watch a room go from phone scan to point cloud, floor plan and finished interior.
+                Where ThinkDecor is heading: walk a room once with your phone for a measured plan and a finished interior. Photo redesigns are available today.
               </p>
             </Reveal>
 
@@ -231,14 +238,14 @@ export default function Home() {
             <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
               <div>
                 <Reveal>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Product 01</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Coming soon</p>
                   <h2 className="mt-5 text-[clamp(2rem,4.2vw,3.2rem)] font-bold leading-[1.06] tracking-[-0.025em] text-foreground">
                     AI Measurement
                   </h2>
                   <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
                     Record a room with your phone and ThinkDecor returns a precise, editable
                     floor plan — wall lengths, room dimensions, doors, windows and total area.
-                    In minutes, not site visits.
+                    In minutes, not site visits — arriving with the ThinkDecor scanning app.
                   </p>
                 </Reveal>
               </div>
@@ -259,14 +266,14 @@ export default function Home() {
             <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
               <div>
                 <Reveal>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Product 02</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Available now</p>
                   <h2 className="mt-5 text-[clamp(2rem,4.2vw,3.2rem)] font-bold leading-[1.06] tracking-[-0.025em] text-foreground">
                     Mantha AI
                   </h2>
                   <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
-                    Talk to your space in plain language. Mantha reads the room you measured
-                    and returns complete interiors — furniture, materials, palette, budget and
-                    where to buy.
+                    Upload a photo, pick a style and say what you want in plain words. Mantha
+                    restyles your actual room — same walls, windows and layout. Budgets and
+                    shopping lists are coming soon.
                   </p>
                 </Reveal>
 
@@ -303,10 +310,13 @@ export default function Home() {
         <section className="py-16 lg:py-20">
           <div className="container mx-auto max-w-[1200px] px-6 sm:px-8">
             <Reveal className="mx-auto max-w-[640px] text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">What you get</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">On the roadmap</p>
               <h2 className="mx-auto mt-5 max-w-[22ch] text-[clamp(1.9rem,4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.02em] text-foreground">
-                Every output from a single scan.
+                Everything one scan will unlock.
               </h2>
+              <p className="mx-auto mt-5 max-w-[52ch] text-[15.5px] leading-relaxed text-foreground/55">
+                Photo redesigns are available today — the rest arrives with room scanning.
+              </p>
             </Reveal>
 
             <Reveal delay={0.12} y={38} className="mt-12">
@@ -324,7 +334,7 @@ export default function Home() {
                 Built for everyone who works in rooms.
               </h2>
               <p className="mx-auto mt-5 max-w-[52ch] text-[15.5px] leading-relaxed text-foreground/55">
-                One scan, many jobs — from a first renovation to a hundred-unit survey.
+                One photo, many jobs — from a first renovation to staging a listing.
               </p>
             </Reveal>
 
@@ -417,20 +427,20 @@ export default function Home() {
                 <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-white/[0.09] blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-[hsl(160_84%_45%)]/20 blur-3xl" />
                 <div className="relative">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/70">Early access open</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/70">Start free</p>
                   <h2 className="mx-auto mt-5 max-w-[18ch] text-[clamp(2.1rem,5vw,3.8rem)] font-bold leading-[1.03] tracking-[-0.035em] text-white">
                     Your room deserves smarter intelligence.
                   </h2>
                   <p className="mx-auto mt-5 max-w-[42ch] text-[15.5px] text-white/70">
-                    Scan once. Measure everything. Redesign instantly.
+                    Your first {FREE_SIGNUP_CREDITS} redesigns are free — no card needed.
                   </p>
                   <div className="mt-9 flex justify-center">
                     <Magnetic>
                       <Link
-                        to="/pricing"
+                        to="/signup"
                         className="group inline-flex items-center gap-2.5 rounded-full bg-white px-10 py-4 text-[15px] font-semibold text-primary shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:scale-[1.04] active:scale-[0.98]"
                       >
-                        Get early access
+                        Try it free
                         <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                       </Link>
                     </Magnetic>

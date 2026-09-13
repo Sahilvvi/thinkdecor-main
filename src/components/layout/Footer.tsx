@@ -183,8 +183,8 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-start gap-4 border-t border-border/60 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h4 className="font-semibold text-foreground">Get early access</h4>
-            <p className="mt-1 text-sm text-muted-foreground">Be first to know when a new room type ships.</p>
+            <h4 className="font-semibold text-foreground">Stay in the loop</h4>
+            <p className="mt-1 text-sm text-muted-foreground">Be first to know when room scanning launches.</p>
           </div>
           <NewsletterSignup />
         </div>

@@ -3,12 +3,16 @@ import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { Reveal, Stagger, staggerItem } from './Motion';
 
-/** Illustrative early-access feedback, not verified reviews — labelled as such rather than implying otherwise. */
+/**
+ * Illustrative early-access feedback, not verified reviews — labelled as such.
+ * Every quote describes something the app does today (photo redesigns), never
+ * the scanning features that are still coming. Swap for real, consented quotes.
+ */
 const QUOTES = [
-  { q: 'Scanned my living room on a lunch break and had a measured plan before I got back to my desk.', name: 'Early access user' },
-  { q: 'The redesign concepts actually respected the room I have, not some generic showroom shot.', name: 'Early access user' },
-  { q: 'Exported straight to PDF for my landlord — no back and forth over a drawn-up plan.', name: 'Early access user' },
-  { q: 'I’ve measured three flats with it now. Faster than pulling out a tape measure.', name: 'Early access user' },
+  { q: 'Tried three styles on my living room over lunch and finally knew which direction to go.', name: 'Early access user' },
+  { q: 'It kept my actual room — same windows, same layout — just restyled. That made it believable.', name: 'Early access user' },
+  { q: 'Showed my partner the Scandinavian version and we agreed on a sofa in one evening.', name: 'Early access user' },
+  { q: 'Much quicker than building a mood board, and it was my room, not a showroom.', name: 'Early access user' },
 ];
 
 export function Testimonials() {

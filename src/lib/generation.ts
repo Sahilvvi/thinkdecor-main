@@ -2,31 +2,41 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
-import { uploadFile } from '@/lib/storage';
 import { TEMPLATES, roomLabel, templateByKey, type RoomType } from '@/lib/templates';
 
 /**
- * Everything the app needs for credits and generations, in one place.
+ * Everything the app needs for credits, generations and room photos.
  *
- * Credits live in the append-only credit_ledger (see migration
- * 20260914090000_app_phase2.sql): signup +2, each generation -1, paid renewal
- * +20. credit_balance() is the source of truth; spend_credit() is the only way
- * to spend, and it refuses at zero, so the free limit holds server-side.
+ * Credits live in the append-only credit_ledger: signup +2, each generation
+ * -1, paid renewal +20. credit_balance() is the source of truth; spend_credit()
+ * is the only way to spend, and it refuses at zero or past the hourly cap, so
+ * both limits hold server-side.
+ *
+ * Room photos live in the PRIVATE `generations` bucket. The database stores the
+ * bucket path (<user_id>/<file>), and images are shown through short-lived
+ * signed URLs.
  */
 
 export const FREE_SIGNUP_CREDITS = 2;
+/** Mirrors the cap inside spend_credit() (20260914130000_generation_rate_limit.sql). */
+export const HOURLY_GENERATION_LIMIT = 10;
 
 // src/integrations/supabase/types.ts is generated and predates the Phase 2
-// migration, so it doesn't know the generations table or the credit RPCs yet.
+// migrations, so it doesn't know the generations table or the credit RPCs yet.
 // Use an untyped handle here instead of casting at every call site.
 const db = supabase as unknown as SupabaseClient;
+
+const BUCKET = 'generations';
+const SIGNED_URL_TTL_S = 60 * 60;
 
 export type GenerationStatus = 'pending' | 'completed' | 'failed';
 
 export interface Generation {
   id: string;
   user_id: string;
+  /** Bucket path of the uploaded photo (or, for old rows, a full URL). */
   input_image_url: string;
+  /** Bucket path, or a site asset like /assets/samples/1.jpg (placeholder). */
   output_image_url: string | null;
   template_key: string | null;
   room_type: RoomType | null;
@@ -42,6 +52,13 @@ export class OutOfCreditsError extends Error {
   }
 }
 
+export class RateLimitError extends Error {
+  constructor() {
+    super(`You've reached ${HOURLY_GENERATION_LIMIT} designs this hour. Take a breather and try again shortly.`);
+    this.name = 'RateLimitError';
+  }
+}
+
 /** A failure with a message that's safe to show the user as-is. */
 export class GenerationError extends Error {
   constructor(message: string) {
@@ -50,7 +67,7 @@ export class GenerationError extends Error {
   }
 }
 
-/** True when the Phase 2 migration hasn't been applied to this project yet. */
+/** True when a required migration hasn't been applied to this project yet. */
 export function isSetupError(err: unknown): boolean {
   const e = err as { code?: string; message?: string } | null;
   if (!e) return false;
@@ -61,6 +78,46 @@ export function isSetupError(err: unknown): boolean {
 }
 
 const retryUnlessSetup = (count: number, err: unknown) => !isSetupError(err) && count < 2;
+
+function spendError(message: string): Error | null {
+  if (/no credits remaining/i.test(message)) return new OutOfCreditsError();
+  if (/rate limited/i.test(message)) return new RateLimitError();
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Private photos                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A bucket path needs signing before it can be shown. Anything that already
+ * starts with http, /, blob: or data: is displayable as-is: site sample
+ * images, local upload previews, or URLs from before the bucket went private.
+ */
+export function isStoragePath(ref?: string | null): ref is string {
+  return !!ref && !/^(https?:|\/|blob:|data:)/.test(ref);
+}
+
+async function signedUrlFor(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL_S);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/** Displayable URL for a stored photo reference; undefined while it's being signed. */
+export function useStoredImageUrl(ref?: string | null): string | undefined {
+  const needsSigning = isStoragePath(ref);
+  const { data } = useQuery({
+    queryKey: ['signed-url', ref],
+    enabled: needsSigning,
+    // Refresh a few minutes before the signed URL itself expires.
+    staleTime: (SIGNED_URL_TTL_S - 300) * 1000,
+    gcTime: SIGNED_URL_TTL_S * 1000,
+    queryFn: () => signedUrlFor(ref as string),
+  });
+  if (!ref) return undefined;
+  return needsSigning ? data : ref;
+}
 
 /* ------------------------------------------------------------------ */
 /* Queries                                                             */
@@ -107,11 +164,23 @@ export function useDeleteGeneration() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      // The stored input photo is left in place: regenerations share it, so
-      // removing it here could break other entries in the library.
-      const { error } = await db.from('generations').delete().eq('id', id);
+    mutationFn: async (generation: Generation) => {
+      const { error } = await db.from('generations').delete().eq('id', generation.id);
       if (error) throw error;
+
+      // Tidy up the stored files. The output belongs to this design alone; the
+      // input photo is shared by regenerations, so only remove it once no other
+      // design uses it. Best effort: the row is already gone either way.
+      const toRemove: string[] = [];
+      if (isStoragePath(generation.output_image_url)) toRemove.push(generation.output_image_url);
+      if (isStoragePath(generation.input_image_url)) {
+        const { count } = await db
+          .from('generations')
+          .select('id', { count: 'exact', head: true })
+          .eq('input_image_url', generation.input_image_url);
+        if (!count) toRemove.push(generation.input_image_url);
+      }
+      if (toRemove.length) await supabase.storage.from(BUCKET).remove(toRemove);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['generations'] }),
   });
@@ -123,37 +192,31 @@ export function useDeleteGeneration() {
 
 export interface GenerateRequest {
   userId: string;
-  /** A fresh File to upload, or the URL of a photo already uploaded (regenerate/refine). */
+  /** A fresh File to upload, or the bucket path of a photo already stored (regenerate/refine). */
   image: File | string;
   templateKey: string;
   roomType: RoomType;
   prompt?: string;
-  /** Increments on each regenerate of the same photo, so variations differ. */
+  /** Increments on each regenerate of the same photo, so placeholder variations differ. */
   attempt?: number;
 }
 
 /**
  * Two generation paths:
- *  - Live: the `generate-redesign` edge function spends the credit, calls the
- *    image model, stores the result, and refunds the credit if the model
- *    fails. Switched on with VITE_LIVE_GENERATION=true once the function is
- *    deployed with its OPENAI_API_KEY secret.
+ *  - Live: the `generate-redesign` edge function checks the photo, spends the
+ *    credit, calls the image model, stores the result, and refunds the credit
+ *    if the model fails. Switched on with VITE_LIVE_GENERATION=true once the
+ *    function is deployed with its OPENAI_API_KEY secret.
  *  - Placeholder (default): returns a sample design after a short delay, so
  *    credits, history and the library all work before a model is connected.
  */
 export const IS_PLACEHOLDER_GENERATOR = import.meta.env.VITE_LIVE_GENERATION !== 'true';
 
-async function runGenerator(request: {
-  inputUrl: string;
-  templateKey: string;
-  roomType: RoomType;
-  prompt?: string;
-  attempt: number;
-}): Promise<string> {
+async function runPlaceholderGenerator(templateKey: string, attempt: number): Promise<string> {
   await new Promise((resolve) => setTimeout(resolve, 2200));
   const pool = TEMPLATES.map((t) => t.image);
-  const start = Math.max(0, TEMPLATES.findIndex((t) => t.key === request.templateKey));
-  return pool[(start + request.attempt) % pool.length];
+  const start = Math.max(0, TEMPLATES.findIndex((t) => t.key === templateKey));
+  return pool[(start + attempt) % pool.length];
 }
 
 function safeFileName(name: string) {
@@ -182,19 +245,25 @@ export async function generateRedesign({
   prompt,
   attempt = 0,
 }: GenerateRequest): Promise<Generation> {
-  // 1. The source photo — uploaded once, then reused for every refinement.
-  const inputUrl =
-    typeof image === 'string'
-      ? image
-      : await uploadFile('generations', userId, image, safeFileName(image.name));
+  // 1. The source photo — uploaded once to the private bucket, then reused by
+  //    every refinement of the same room.
+  let inputPath: string;
+  if (typeof image === 'string') {
+    inputPath = image;
+  } else {
+    inputPath = `${userId}/${safeFileName(image.name)}`;
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(inputPath, image, { contentType: image.type || undefined });
+    if (uploadError) throw uploadError;
+  }
 
-  // Live: the edge function does spend → generate → store → record, and
-  // refunds the credit server-side if the model fails.
+  // Live: the edge function does check → spend → generate → store → record.
   if (!IS_PLACEHOLDER_GENERATOR) {
     const template = templateByKey(templateKey);
     const { data, error } = await supabase.functions.invoke('generate-redesign', {
       body: {
-        inputUrl,
+        inputPath,
         templateKey,
         roomType,
         roomLabel: roomLabel(roomType),
@@ -205,28 +274,27 @@ export async function generateRedesign({
     if (error) {
       const payload = await readFunctionError(error);
       if (payload?.code === 'out_of_credits') throw new OutOfCreditsError();
+      if (payload?.code === 'rate_limited') throw new RateLimitError();
       throw new GenerationError(payload?.error ?? 'Generation failed. Please try again.');
     }
     return (data as { generation: Generation }).generation;
   }
 
-  // 2. Spend a credit (placeholder path). The database refuses at zero.
-  const { error: spendError } = await db.rpc('spend_credit');
-  if (spendError) {
-    if (/no credits remaining/i.test(spendError.message)) throw new OutOfCreditsError();
-    throw spendError;
-  }
+  // 2. Spend a credit (placeholder path). The database refuses at zero and
+  //    past the hourly cap.
+  const { error: spendFailure } = await db.rpc('spend_credit');
+  if (spendFailure) throw spendError(spendFailure.message) ?? spendFailure;
 
   // 3. Generate.
-  const outputUrl = await runGenerator({ inputUrl, templateKey, roomType, prompt, attempt });
+  const outputRef = await runPlaceholderGenerator(templateKey, attempt);
 
   // 4. Record it in the library.
   const { data, error } = await db
     .from('generations')
     .insert({
       user_id: userId,
-      input_image_url: inputUrl,
-      output_image_url: outputUrl,
+      input_image_url: inputPath,
+      output_image_url: outputRef,
       template_key: templateKey,
       room_type: roomType,
       prompt: prompt?.trim() || null,
@@ -271,6 +339,12 @@ export async function downloadImage(url: string, fileName: string) {
     // Cross-origin or offline — opening the image still lets them save it.
     window.open(url, '_blank', 'noopener,noreferrer');
   }
+}
+
+/** Download a stored photo reference, signing it first if it's in the private bucket. */
+export async function downloadStoredImage(ref: string, fileName: string) {
+  const url = isStoragePath(ref) ? await signedUrlFor(ref) : ref;
+  await downloadImage(url, fileName);
 }
 
 export function formatDate(iso: string) {

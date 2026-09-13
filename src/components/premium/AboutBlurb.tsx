@@ -22,11 +22,11 @@ export function AboutBlurb() {
 
             <div>
               <p className="max-w-[56ch] text-[15.5px] leading-relaxed text-foreground/62">
-                ThinkDecor turns a single phone scan into an accurate, editable floor
-                plan — then hands it to Mantha AI, which reads the space and generates
-                complete interior concepts: furniture, materials, palette and budget.
-                No hardware to buy, no site visit to book. It's built for anyone who
-                needs a room measured and redesigned faster than the old way ever allowed.
+                ThinkDecor lets you upload a photo of any room and see it redesigned by
+                Mantha AI — in the style you choose, keeping the walls and windows you
+                already have. Try looks side by side, refine them in plain words, and keep
+                every version in your library. Room scanning and measured floor plans are
+                on the way.
               </p>
 
               <Link

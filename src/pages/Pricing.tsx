@@ -73,7 +73,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-background">
       <SEO
         title="Pricing | ThinkDecor"
-        description="Start for 69p, then £4.99 a month. Scan a room, get an accurate floor plan, then let Mantha AI redesign it — furniture, materials, palette and budget. Cancel anytime."
+        description="Start for 69p, then £4.99 a month. Upload a photo of any room and Mantha AI redesigns it in the style you choose — 20 designs a month. Cancel anytime."
         canonical="https://thinkdecor.app/pricing"
       />
       <Navbar />

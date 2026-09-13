@@ -7,7 +7,7 @@ import {
 import { Reveal, Magnetic } from './Motion';
 
 const STEPS = [
-  { n: 1, icon: UserPlus,  time: '3 min',  lead: 'Sign up',            rest: 'Create your account — the first floor plan is free.' },
+  { n: 1, icon: UserPlus,  time: '3 min',  lead: 'Sign up',            rest: 'Create your account — photo redesigns work today.' },
   { n: 2, icon: Download,  time: '30 sec', lead: 'Get the app',        rest: 'Log in and download ThinkDecor to your phone.' },
   { n: 3, icon: ScanLine,  time: '5 min',  lead: 'Scan the property',  rest: 'Walk through the space once, then upload.' },
   { n: 4, icon: FileDown,  time: '10 sec', lead: 'Download',           rest: 'Your measured plans and 3D design, ready to use.' },
@@ -51,7 +51,7 @@ function Stage({ n }: { n: number }) {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }}
             className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-foreground/40"
           >
-            <Sparkles className="h-3 w-3 text-primary" /> First plan on us
+            <Sparkles className="h-3 w-3 text-primary" /> 2 free redesigns today
           </motion.p>
         </motion.div>
       </div>
@@ -172,14 +172,14 @@ export function FourSteps() {
     <section id="get-started" className="scroll-mt-24 border-y border-foreground/[0.07] py-20 lg:py-24">
       <div className="container mx-auto max-w-[1200px] px-6 sm:px-8">
         <Reveal className="text-center">
-          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Getting started</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Coming soon · Scanning app</p>
           <h2 className="mx-auto mt-5 max-w-[20ch] text-[clamp(1.9rem,4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.02em] text-foreground">
-            Start creating floor plans in four steps.
+            Floor plans in four steps.
           </h2>
           <p className="mx-auto mt-5 flex flex-wrap items-center justify-center gap-2 text-[15.5px] leading-relaxed text-foreground/55">
-            Under nine minutes from sign-up to a finished plan
+            How room scanning will work when the ThinkDecor app launches
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.07] px-3 py-1 text-[12.5px] font-medium text-primary">
-              <Clock className="h-3 w-3" /> 8 min 40 s total
+              <Clock className="h-3 w-3" /> In development
             </span>
           </p>
         </Reveal>
@@ -311,10 +311,10 @@ export function FourSteps() {
         <Reveal delay={0.2} className="mt-14 text-center">
           <Magnetic>
             <Link
-              to="/pricing"
+              to="/signup"
               className="group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-4 text-[15px] font-semibold text-primary-foreground shadow-[0_14px_34px_-10px_hsl(168_100%_17%/0.45)] transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
             >
-              Get early access
+              Try photo redesigns free
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           </Magnetic>

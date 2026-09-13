@@ -6,11 +6,11 @@ import {
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
-import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
+import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import { useAuthStore } from '@/stores/authStore';
 import {
-  FREE_SIGNUP_CREDITS, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, downloadImage, isSetupError,
-  type Generation, useCreditBalance, useGenerate,
+  FREE_SIGNUP_CREDITS, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
+  downloadStoredImage, isSetupError, type Generation, useCreditBalance, useGenerate,
 } from '@/lib/generation';
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
@@ -21,12 +21,13 @@ const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-/** The photo in the composer: a new local file, or one already uploaded (refining/regenerating). */
-type SourceImage = { kind: 'file'; file: File; preview: string } | { kind: 'url'; url: string };
+/** The photo in the composer: a new local file, or one already stored (refining/regenerating). */
+type SourceImage = { kind: 'file'; file: File; preview: string } | { kind: 'stored'; path: string };
 
 interface Turn {
   id: string;
-  sourcePreview: string;
+  /** Local blob: preview while uploading; the stored bucket path once saved. */
+  sourceRef: string;
   templateKey: string;
   roomType: RoomType;
   prompt: string;
@@ -37,13 +38,13 @@ interface Turn {
 }
 
 interface PrefillState {
-  inputUrl?: string;
+  inputPath?: string;
   templateKey?: string | null;
   roomType?: RoomType | null;
   prompt?: string | null;
 }
 
-const previewOf = (s: SourceImage) => (s.kind === 'file' ? s.preview : s.url);
+const refOf = (s: SourceImage) => (s.kind === 'file' ? s.preview : s.path);
 
 export default function Create() {
   const { user } = useAuthStore();
@@ -55,7 +56,7 @@ export default function Create() {
   const generate = useGenerate();
 
   const [source, setSource] = useState<SourceImage | null>(
-    prefill?.inputUrl ? { kind: 'url', url: prefill.inputUrl } : null,
+    prefill?.inputPath ? { kind: 'stored', path: prefill.inputPath } : null,
   );
   const [templateKey, setTemplateKey] = useState(
     templateByKey(searchParams.get('template'))?.key ?? templateByKey(prefill?.templateKey)?.key ?? DEFAULT_TEMPLATE_KEY,
@@ -83,8 +84,8 @@ export default function Create() {
 
   const pickFile = (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file (JPG, PNG or WebP).');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Please choose a JPG, PNG or WebP photo.');
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -96,7 +97,7 @@ export default function Create() {
 
   const run = async (args: {
     image: File | string;
-    preview: string;
+    sourceRef: string;
     templateKey: string;
     roomType: RoomType;
     prompt: string;
@@ -108,7 +109,7 @@ export default function Create() {
       ...prev,
       {
         id,
-        sourcePreview: args.preview,
+        sourceRef: args.sourceRef,
         templateKey: args.templateKey,
         roomType: args.roomType,
         prompt: args.prompt,
@@ -126,31 +127,34 @@ export default function Create() {
         prompt: args.prompt,
         attempt: args.attempt,
       });
-      setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'done', result } : t)));
+      // Point the bubble at the stored photo in the same update that swaps the
+      // composer over, so the local preview can be released safely.
+      setTurns((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status: 'done', result, sourceRef: result.input_image_url } : t)),
+      );
       // Keep refining the same photo without uploading it again.
-      setSource({ kind: 'url', url: result.input_image_url });
+      setSource({ kind: 'stored', path: result.input_image_url });
     } catch (err) {
       const message =
         err instanceof OutOfCreditsError
           ? "You're out of credits."
-          : err instanceof GenerationError
+          : err instanceof RateLimitError || err instanceof GenerationError
             ? err.message
             : isSetupError(err)
-            ? "Generation isn't switched on yet — the latest database update still needs to be applied."
-            : 'Something went wrong generating that design. No worries — try again.';
+              ? "Generation isn't switched on yet — the latest database update still needs to be applied."
+              : 'Something went wrong generating that design. No worries — try again.';
       setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'error', error: message } : t)));
     }
   };
 
   const send = () => {
     if (!source || !canSend) return;
-    const text = prompt.trim();
     run({
-      image: source.kind === 'file' ? source.file : source.url,
-      preview: previewOf(source),
+      image: source.kind === 'file' ? source.file : source.path,
+      sourceRef: refOf(source),
       templateKey,
       roomType,
-      prompt: text,
+      prompt: prompt.trim(),
       attempt: 0,
     });
     setPrompt('');
@@ -160,7 +164,7 @@ export default function Create() {
     if (!turn.result || busy || outOfCredits) return;
     run({
       image: turn.result.input_image_url,
-      preview: turn.result.input_image_url,
+      sourceRef: turn.result.input_image_url,
       templateKey: turn.templateKey,
       roomType: turn.roomType,
       prompt: turn.prompt,
@@ -212,7 +216,7 @@ export default function Create() {
               {/* The request */}
               <div className="flex justify-end">
                 <div className="max-w-[min(100%,440px)] rounded-[20px] rounded-br-md bg-primary p-3 text-primary-foreground">
-                  <img src={turn.sourcePreview} alt="Your room" className="aspect-[4/3] w-full rounded-xl object-cover" />
+                  <StoredImage src={turn.sourceRef} alt="Your room" className="aspect-[4/3] w-full rounded-xl object-cover" />
                   <div className="mt-3 flex flex-wrap gap-1.5 px-1">
                     <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-medium">
                       {templateByKey(turn.templateKey)?.label}
@@ -241,7 +245,7 @@ export default function Create() {
                   {turn.status === 'pending' && (
                     <div className="mt-2 overflow-hidden rounded-[20px] border border-border/70 bg-card">
                       <div className="relative aspect-[4/3] w-full max-w-[640px] overflow-hidden bg-secondary">
-                        <img src={turn.sourcePreview} alt="" className="h-full w-full scale-105 object-cover opacity-60 blur-md" />
+                        <StoredImage src={turn.sourceRef} className="h-full w-full scale-105 object-cover opacity-60 blur-md" />
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                           <Loader2 className="h-7 w-7 animate-spin text-primary" />
                           <p className="text-[14px] font-medium text-foreground">Redesigning your room…</p>
@@ -263,13 +267,7 @@ export default function Create() {
 
                   {turn.status === 'done' && turn.result && (
                     <div className="mt-2 max-w-[640px] overflow-hidden rounded-[20px] border border-border/70 bg-card">
-                      <BeforeAfterSlider
-                        beforeSrc={turn.result.input_image_url}
-                        afterSrc={turn.result.output_image_url ?? turn.result.input_image_url}
-                        beforeAlt="Your original photo"
-                        afterAlt="The redesigned room"
-                        aspectRatio="aspect-[4/3]"
-                      />
+                      <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} />
                       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                         <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/55">
                           <Check className="h-3.5 w-3.5 text-primary" />
@@ -291,7 +289,7 @@ export default function Create() {
                             type="button"
                             onClick={() =>
                               turn.result?.output_image_url &&
-                              downloadImage(turn.result.output_image_url, `thinkdecor-${turn.result.id.slice(0, 8)}.jpg`)
+                              downloadStoredImage(turn.result.output_image_url, `thinkdecor-${turn.result.id.slice(0, 8)}.jpg`)
                             }
                             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground"
                           >
@@ -359,7 +357,7 @@ export default function Create() {
               {/* Photo */}
               {source ? (
                 <div className="relative flex-shrink-0">
-                  <img src={previewOf(source)} alt="Selected room" className="h-16 w-16 rounded-xl object-cover" />
+                  <StoredImage src={refOf(source)} alt="Selected room" className="h-16 w-16 rounded-xl object-cover" />
                   <button
                     type="button"
                     onClick={() => setSource(null)}

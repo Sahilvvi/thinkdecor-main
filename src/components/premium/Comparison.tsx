@@ -3,18 +3,20 @@ import { Reveal } from './Motion';
 
 type Mark = 'yes' | 'partly' | 'no';
 
+// Only claims the app backs up today — room scanning and plans are labelled
+// "coming soon" elsewhere and deliberately left out of this table.
 const ROWS: { feature: string; us: Mark; a: Mark; b: Mark }[] = [
-  { feature: 'Works from one phone scan', us: 'yes', a: 'no', b: 'no' },
-  { feature: 'Measurements to ±1.2 cm', us: 'yes', a: 'yes', b: 'partly' },
-  { feature: 'Built-in AI redesign (Mantha)', us: 'yes', a: 'no', b: 'no' },
-  { feature: 'Exports PDF · SVG · CAD', us: 'yes', a: 'partly', b: 'no' },
-  { feature: 'No hardware to buy', us: 'yes', a: 'no', b: 'yes' },
+  { feature: 'Starts from a photo of your own room', us: 'yes', a: 'no', b: 'yes' },
+  { feature: 'A finished redesign in seconds', us: 'yes', a: 'no', b: 'no' },
+  { feature: 'Try several styles on the same room', us: 'yes', a: 'partly', b: 'partly' },
+  { feature: 'Describe changes in plain words', us: 'yes', a: 'no', b: 'yes' },
+  { feature: 'Costs less than a tin of paint', us: 'yes', a: 'yes', b: 'no' },
 ];
 
 const COLUMNS = [
   { key: 'us' as const, label: 'ThinkDecor', us: true },
-  { key: 'a' as const, label: 'Manual measuring' },
-  { key: 'b' as const, label: 'Traditional survey' },
+  { key: 'a' as const, label: 'Mood boards' },
+  { key: 'b' as const, label: 'Hiring a designer' },
 ];
 
 const MARK_LABEL: Record<Mark, string> = { yes: 'Yes', partly: 'Partly', no: 'No' };
@@ -47,7 +49,7 @@ function MarkIcon({ mark }: { mark: Mark }) {
   );
 }
 
-/** Why ThinkDecor — a plain feature comparison against the two ways people solve this today. */
+/** Why ThinkDecor — a plain comparison against the two ways people plan a room today. */
 export function Comparison() {
   return (
     <section id="comparison" className="scroll-mt-24 border-y border-foreground/[0.07] py-16 lg:py-20">
@@ -55,7 +57,7 @@ export function Comparison() {
         <Reveal className="mx-auto max-w-[640px] text-center">
           <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Why ThinkDecor</p>
           <h2 className="mx-auto mt-5 max-w-[26ch] text-[clamp(1.9rem,4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.02em] text-foreground">
-            One scan does what used to take a toolkit and a site visit.
+            See the redesign before you buy a thing.
           </h2>
         </Reveal>
 

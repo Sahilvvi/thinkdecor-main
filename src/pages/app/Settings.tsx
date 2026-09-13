@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, LogOut, Sparkles } from 'lucide-react';
+import { ExternalLink, Loader2, LogOut, Sparkles } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
 } from '@/hooks/useProfile';
 import { formatDate, isSetupError, useCreditBalance } from '@/lib/generation';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
+import { CheckoutError, openBillingPortal } from '@/lib/checkout';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
@@ -33,6 +34,7 @@ export default function Settings() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+  const [openingPortal, setOpeningPortal] = useState(false);
 
   // Fill the form once, when the profile first arrives — never overwrite typing.
   useEffect(() => {
@@ -82,6 +84,17 @@ export default function Settings() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/login', { replace: true });
+  };
+
+  const manageBilling = async () => {
+    setOpeningPortal(true);
+    try {
+      await openBillingPortal();
+      // On success the browser navigates to Stripe, so nothing runs after this.
+    } catch (err) {
+      toast.error(err instanceof CheckoutError ? err.message : "Couldn't open billing. Please try again.");
+      setOpeningPortal(false);
+    }
   };
 
   const active = isActiveSubscription(subscription);
@@ -202,14 +215,22 @@ export default function Settings() {
               )}
             </div>
 
-            {active ? (
-              <p className="mt-4 text-[13px] text-foreground/55">
-                To change or cancel your plan, <Link to="/contact" className="font-semibold text-primary hover:underline">contact us</Link>.
-              </p>
-            ) : (
+            {!active && (
               <Button asChild variant="hero" className="mt-4 w-full">
                 <Link to="/pricing">Upgrade — {INTRO} first month, then {MONTHLY}</Link>
               </Button>
+            )}
+
+            {subscription && (
+              <div className="mt-4">
+                <Button variant="outline" className="w-full" onClick={manageBilling} disabled={openingPortal}>
+                  {openingPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                  Manage billing
+                </Button>
+                <p className="mt-2 text-center text-[12.5px] text-foreground/50">
+                  Cancel, change your card or download invoices.
+                </p>
+              </div>
             )}
           </section>
 

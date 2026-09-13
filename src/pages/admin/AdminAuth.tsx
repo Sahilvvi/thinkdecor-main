@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, Lock } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { Captcha } from '@/components/auth/Captcha';
+import { CAPTCHA_ENABLED } from '@/lib/captcha';
 import { SEO } from '@/components/shared/SEO';
 import { Logo } from '@/components/brand/Logo';
 
@@ -18,16 +20,19 @@ export default function AdminAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const { signIn } = useAuthStore();
   const nav = useNavigate();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email, password, captchaToken ?? undefined);
     setBusy(false);
 
     if (error) {
+      setCaptchaKey((k) => k + 1); // tokens are single-use
       toast.error(
         /invalid/i.test(error.message)
           ? 'Wrong email or password'
@@ -92,9 +97,10 @@ export default function AdminAuth() {
               placeholder="Password"
               className={field}
             />
+            <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || (CAPTCHA_ENABLED && !captchaToken)}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-[14.5px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}

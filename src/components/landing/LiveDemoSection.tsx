@@ -22,11 +22,10 @@ export function LiveDemoSection() {
             Interactive Experience
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-            Try the <span className="text-gradient-primary">Live Web Demo</span>
+            Try the Free <span className="text-gradient-primary">AI Room Designer</span> — Live Demo
           </h2>
           <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Experience how decisions feel when you can actually see them. 
-            Click on any surface to change colors, textures, and materials in real-time.
+            Visualize furniture, paint colours, flooring, and home décor in your actual room — instantly. No design experience needed, free to start.
           </p>
 
           <Link to="/demo">

@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-new
 dist-ssr
 *.local
 
@@ -29,6 +30,14 @@ dist-ssr
 
 # Deploy and temporary files
 deploy_temp/
+_archive/
 *.zip
 vite.config.ts.timestamp-*
+testfile_in_root
 
+# Source video kept locally; the served copy lives in public/
+MAIN-TOP.mp4
+
+
+# Supabase CLI link cache (project ref, CLI version) — local only
+supabase/.temp/

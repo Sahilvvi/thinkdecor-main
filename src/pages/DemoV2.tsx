@@ -197,8 +197,8 @@ export default function DemoV2() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="absolute bottom-4 left-4 text-left">
-                    <div className="text-white font-semibold text-lg">{sample.name}</div>
-                    <div className="text-white/70 text-sm">{sample.description}</div>
+                    <div className="text-foreground font-semibold text-lg">{sample.name}</div>
+                    <div className="text-foreground/70 text-sm">{sample.description}</div>
                     <div className="text-primary text-xs mt-1">{sample.components.length} customizable components</div>
                   </div>
                   <div className="absolute top-3 right-3 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">

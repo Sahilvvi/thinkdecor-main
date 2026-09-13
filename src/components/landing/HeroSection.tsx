@@ -19,13 +19,13 @@ const itemVariants = {
   visible: { 
     opacity: 1, 
     y: 0,
-    transition: { type: 'spring', stiffness: 100, damping: 20 }
+    transition: { type: 'spring' as const, stiffness: 100, damping: 20 }
   },
 };
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-32 pb-20 bg-[#000504]">
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-32 pb-20 bg-background">
       
       {/* Background Video (Seamlessly Blended Backdrop) */}
       <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none">
@@ -39,16 +39,16 @@ export function HeroSection() {
         />
         
         {/* Color Overlay to match ThinkDecor's dark green/teal brand colors */}
-        <div className="absolute inset-0 bg-[#000504]/25 mix-blend-multiply" />
+        <div className="absolute inset-0 bg-background/25 mix-blend-multiply" />
 
         {/* Radial vignette mask to dissolve video boundaries into the website canvas */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,#000504_90%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,hsl(0 0% 100%)_90%)]" />
 
         {/* Bottom feather mask to smoothly merge into the next sections */}
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#000504] via-[#000504]/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[hsl(0 0% 100%)] via-[hsl(0 0% 100%)]/80 to-transparent" />
         
         {/* Top feather mask to blend into the sticky Navbar header */}
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#000504] to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[hsl(0 0% 100%)] to-transparent" />
       </div>
 
       {/* Main Text Content Overlaid on the Video Backdrop */}
@@ -62,32 +62,32 @@ export function HeroSection() {
         >
           {/* Small Tagline */}
           <motion.div variants={itemVariants} className="mb-6">
-            <p className="text-xs sm:text-sm font-semibold text-white/50 mb-1.5 uppercase tracking-[0.2em]">
-              ThinkDecor Exclusive
+            <p className="text-xs sm:text-sm font-semibold text-foreground/58 mb-1.5 uppercase tracking-[0.2em]">
+              Free AI Interior Design Tool
             </p>
             <p className="text-primary font-bold text-lg sm:text-2xl tracking-wider">
-              AI-powered decor intelligence
+              Upload a photo. Redesign any room online.
             </p>
           </motion.div>
 
           {/* Huge Main Headline with custom text drop shadows */}
-          <motion.h1 
-            variants={itemVariants} 
-            className="text-5xl sm:text-7xl md:text-8xl lg:text-[7rem] font-bold tracking-tight text-white mb-10 leading-[1.05]"
+          <motion.h1
+            variants={itemVariants}
+            className="text-5xl sm:text-7xl md:text-8xl lg:text-[7rem] font-bold tracking-tight text-foreground mb-10 leading-[1.05]"
             style={{ textShadow: '0 4px 24px rgba(0, 0, 0, 0.65)' }}
           >
-            Decor that thinks
+            AI Interior Design.
             <br />
-            before you buy.
+            Redesign Any Room Online.
           </motion.h1>
 
           {/* Subtitle / Value Prop */}
-          <motion.p 
-            variants={itemVariants} 
-            className="text-base sm:text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 font-light"
+          <motion.p
+            variants={itemVariants}
+            className="text-base sm:text-lg md:text-xl text-foreground/70 max-w-2xl mx-auto mb-10 font-light"
             style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.5)' }}
           >
-            See exactly how furniture, colors, and textures blend in your actual rooms before purchasing. Pure AI magic.
+            Upload your room photo and instantly visualize furniture, paint, flooring, and décor with AI — free to start, no design experience needed.
           </motion.p>
 
           {/* CTA Buttons */}

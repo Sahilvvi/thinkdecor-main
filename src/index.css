@@ -6,65 +6,65 @@
 
 @layer base {
   :root {
-    /* Black background with teal primary */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
+    /* Cream background · dark turquoise accent · near-black text */
+    --background: 0 0% 99.6%;      /* #fefefe */
+    --foreground: 0 0% 4%;         /* near-black text */
 
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
 
-    /* Teal primary #00594E */
+    /* Dark turquoise #00594E */
     --primary: 168 100% 17%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 168 30% 12%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 168 24% 95%;
+    --secondary-foreground: 168 100% 12%;
 
-    --muted: 168 15% 10%;
-    --muted-foreground: 0 0% 55%;
+    --muted: 168 14% 96%;
+    --muted-foreground: 0 0% 40%;
 
     --accent: 168 80% 25%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 84% 39%;
+    --success: 160 84% 30%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
+    --warning: 38 92% 42%;
+    --warning-foreground: 0 0% 100%;
 
-    --border: 168 15% 15%;
-    --input: 168 15% 12%;
+    --border: 168 12% 88%;
+    --input: 168 12% 90%;
     --ring: 168 100% 17%;
 
     --radius: 0.75rem;
 
-    /* Custom gradients */
+    /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(168 100% 17%) 0%, hsl(168 80% 25%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 0%) 0%, hsl(168 100% 5%) 50%, hsl(0 0% 0%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(168 20% 6%) 0%, hsl(0 0% 5%) 100%);
-    --gradient-glow: radial-gradient(ellipse at center, hsl(168 100% 17% / 0.15) 0%, transparent 70%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(168 30% 97%) 50%, hsl(0 0% 100%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(168 20% 98%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(168 100% 17% / 0.10) 0%, transparent 70%);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.5);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.6), 0 2px 4px -2px hsl(0 0% 0% / 0.5);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.6), 0 4px 6px -4px hsl(0 0% 0% / 0.5);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.6), 0 8px 10px -6px hsl(0 0% 0% / 0.5);
-    --shadow-glow: 0 0 40px hsl(168 100% 17% / 0.3);
+    /* Shadows — soft, light-mode appropriate */
+    --shadow-sm: 0 1px 2px hsl(168 20% 10% / 0.06);
+    --shadow-md: 0 4px 12px -2px hsl(168 20% 10% / 0.08), 0 2px 4px -2px hsl(168 20% 10% / 0.05);
+    --shadow-lg: 0 12px 28px -6px hsl(168 20% 10% / 0.10), 0 4px 10px -4px hsl(168 20% 10% / 0.06);
+    --shadow-xl: 0 24px 60px -12px hsl(168 20% 10% / 0.14), 0 8px 20px -8px hsl(168 20% 10% / 0.08);
+    --shadow-glow: 0 0 40px hsl(168 100% 17% / 0.16);
 
     /* Sidebar */
-    --sidebar-background: 168 20% 4%;
-    --sidebar-foreground: 0 0% 85%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 20%;
     --sidebar-primary: 168 100% 17%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 168 20% 10%;
-    --sidebar-accent-foreground: 0 0% 85%;
-    --sidebar-border: 168 15% 14%;
+    --sidebar-accent: 168 24% 96%;
+    --sidebar-accent-foreground: 168 100% 14%;
+    --sidebar-border: 168 12% 90%;
     --sidebar-ring: 168 100% 17%;
   }
 }
@@ -92,7 +92,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted/30;
+    @apply bg-muted;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -107,11 +107,11 @@
 @layer utilities {
   /* Glass morphism */
   .glass {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+    @apply bg-white/70 backdrop-blur-xl border border-border;
   }
 
   .glass-strong {
-    @apply bg-card/90 backdrop-blur-2xl border border-border/60;
+    @apply bg-white/85 backdrop-blur-2xl border border-border;
   }
 
   /* Glow effects */
@@ -218,11 +218,20 @@
     }
   }
 
+  /* Hide scrollbar while keeping scroll (e.g. horizontal pill row) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Grid pattern background */
   .bg-grid {
     background-image: 
-      linear-gradient(hsl(168 15% 12% / 0.5) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(168 15% 12% / 0.5) 1px, transparent 1px);
+      linear-gradient(hsl(168 30% 40% / 0.16) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(168 30% 40% / 0.16) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 
@@ -306,5 +315,72 @@
     100% {
       transform: translateX(0);
     }
+  }
+}
+
+/* ---------------- Blog article typography ---------------- */
+@layer components {
+  .post-body {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    color: hsl(0 0% 4% / 0.74);
+  }
+  .post-body > * + * { margin-top: 1.5rem; }
+  .post-body h2 {
+    margin-top: 3rem;
+    font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: hsl(0 0% 4%);
+  }
+  .post-body h3 {
+    margin-top: 2.25rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: hsl(0 0% 4% / 0.92);
+  }
+  .post-body strong { color: hsl(0 0% 4%); font-weight: 600; }
+  .post-body em { color: hsl(0 0% 4% / 0.8); }
+  .post-body a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: hsl(var(--primary) / 0.4);
+    transition: text-decoration-color 0.25s ease;
+  }
+  .post-body a:hover { text-decoration-color: hsl(var(--primary)); }
+  .post-body code {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.875em;
+    background: hsl(168 30% 96%);
+    border: 1px solid hsl(168 20% 88%);
+    border-radius: 6px;
+    padding: 0.15em 0.45em;
+    color: hsl(168 100% 20%);
+  }
+  .post-body ul { padding-left: 1.15rem; }
+  .post-body li { margin-top: 0.6rem; list-style: none; position: relative; }
+  .post-body li::before {
+    content: '';
+    position: absolute;
+    left: -1.15rem;
+    top: 0.72em;
+    width: 5px; height: 5px;
+    border-radius: 999px;
+    background: hsl(var(--primary));
+  }
+  .post-body blockquote {
+    border-left: 2px solid hsl(var(--primary) / 0.5);
+    padding: 0.25rem 0 0.25rem 1.5rem;
+    color: hsl(0 0% 4% / 0.82);
+    font-size: 1.125rem;
+    font-style: italic;
+  }
+  .post-body figure { margin-top: 2.25rem; }
+  .post-body img {
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid hsl(168 12% 88%);
   }
 }

@@ -41,26 +41,25 @@ export function CTASection() {
           </motion.div>
 
           {/* Headline */}
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-6 sm:mb-8"
           >
-            Ready to see your space
+            Redesign Your Room Online —
             <br />
-            <span className="text-gradient-primary">with clarity?</span>
+            <span className="text-gradient-primary">Free AI Interior Design Tool</span>
           </motion.h2>
 
           {/* Description */}
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed"
           >
-            Join homeowners and brands who make confident decor decisions with Think Decor. 
-            From guesswork to clarity, in seconds.
+            Upload your room photo and visualize furniture, paint, flooring, and home décor with AI — instantly, for free.
           </motion.p>
 
           {/* CTA Buttons */}

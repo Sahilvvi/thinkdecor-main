@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { safeReturnPath } from '@/lib/returnPath';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /** Where a signed-out visitor is sent. Customer app → /login, CMS → /admin. */
+  redirectTo?: string;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRouteProps) {
   const { user, loading, initialized, initialize } = useAuthStore();
   const location = useLocation();
 
@@ -27,7 +30,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/admin" state={{ from: location }} replace />;
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+/** For /login, /signup and /forgot-password: someone already signed in skips ahead. */
+export function GuestRoute({ children }: { children: React.ReactNode }) {
+  const { user, initialized } = useAuthStore();
+  const location = useLocation();
+
+  if (initialized && user) {
+    return <Navigate to={safeReturnPath(location.state)} replace />;
   }
 
   return <>{children}</>;

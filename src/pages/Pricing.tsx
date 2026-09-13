@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Check, ArrowRight, Loader2, ShieldCheck, CreditCard, AlertTriangle } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
@@ -8,6 +8,7 @@ import { SEO } from '@/components/shared/SEO';
 import { Reveal } from '@/components/premium/Motion';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { startCheckout, CheckoutError } from '@/lib/checkout';
+import { useAuthStore } from '@/stores/authStore';
 
 const FAQS = [
   {
@@ -40,8 +41,20 @@ export default function Pricing() {
   const [failure, setFailure] = useState<{ title: string; detail?: string } | null>(null);
 
   const plan = PHASE1_PLAN;
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const go = async () => {
+    // Credits are granted to an account by the Stripe webhook. A buyer with no
+    // account has nowhere for them to land, so checkout needs one first. The
+    // return path keeps any ?ref= promo code intact.
+    if (!user) {
+      toast('Create a free account first — your plan and credits attach to it.');
+      navigate('/signup', { state: { from: { pathname: '/pricing', search: location.search } } });
+      return;
+    }
+
     setBusy(true);
     setFailure(null);
     try {
@@ -60,7 +73,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-background">
       <SEO
         title="Pricing | ThinkDecor"
-        description="Start for 69p, then £4.99 a month. Redesign your room with Mantha AI and work out how much paint or flooring you need. Cancel anytime."
+        description="Start for 69p, then £4.99 a month. Scan a room, get an accurate floor plan, then let Mantha AI redesign it — furniture, materials, palette and budget. Cancel anytime."
         canonical="https://thinkdecor.app/pricing"
       />
       <Navbar />

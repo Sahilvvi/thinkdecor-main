@@ -30,6 +30,7 @@ dist-ssr
 
 # Deploy and temporary files
 deploy_temp/
+_archive/
 *.zip
 vite.config.ts.timestamp-*
 testfile_in_root

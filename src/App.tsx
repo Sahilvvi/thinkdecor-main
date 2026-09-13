@@ -4,7 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute, GuestRoute } from "@/components/auth/ProtectedRoute";
+import { AppShell } from "@/components/app/AppShell";
 import { useAuthStore } from "@/stores/authStore";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -24,9 +25,15 @@ import BlogAdmin from "./pages/admin/BlogAdmin";
 import BlogEditor from "./pages/admin/BlogEditor";
 import Leads from "./pages/admin/Leads";
 import Viz2dDemo from "./visualizer-demo";
-import Dashboard from "./pages/app/Dashboard";
-import Editor from "./pages/app/Editor";
-import Admin from "./pages/app/Admin";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Overview from "./pages/app/Overview";
+import Templates from "./pages/app/Templates";
+import Library from "./pages/app/Library";
+import Create from "./pages/app/Create";
+import Settings from "./pages/app/Settings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -64,20 +71,30 @@ function AppRoutes() {
         <Route path="/blog" element={<PageTransition><Blog /></PageTransition>} />
         <Route path="/blog/:slug" element={<PageTransition><BlogPostPage /></PageTransition>} />
 
-        {/* Journal admin */}
+        {/* Journal admin — signed-out visitors go to the CMS login, not the customer one */}
         <Route path="/admin" element={<AdminAuth />} />
-        <Route path="/admin/blog" element={<ProtectedRoute><BlogAdmin /></ProtectedRoute>} />
-        <Route path="/admin/blog/:id" element={<ProtectedRoute><BlogEditor /></ProtectedRoute>} />
-        <Route path="/admin/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+        <Route path="/admin/blog" element={<ProtectedRoute redirectTo="/admin"><BlogAdmin /></ProtectedRoute>} />
+        <Route path="/admin/blog/:id" element={<ProtectedRoute redirectTo="/admin"><BlogEditor /></ProtectedRoute>} />
+        <Route path="/admin/leads" element={<ProtectedRoute redirectTo="/admin"><Leads /></ProtectedRoute>} />
 
         {/* Live product demo */}
         <Route path="/demo" element={<PageTransition><Viz2dDemo /></PageTransition>} />
 
-        {/* Protected app routes */}
-        <Route path="/app" element={<ProtectedRoute><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
-        <Route path="/app/projects" element={<ProtectedRoute><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
-        <Route path="/app/editor/:projectId" element={<ProtectedRoute><PageTransition><Editor /></PageTransition></ProtectedRoute>} />
-        <Route path="/app/admin" element={<ProtectedRoute><PageTransition><Admin /></PageTransition></ProtectedRoute>} />
+        {/* Customer auth */}
+        <Route path="/login" element={<GuestRoute><PageTransition><Login /></PageTransition></GuestRoute>} />
+        <Route path="/signup" element={<GuestRoute><PageTransition><Signup /></PageTransition></GuestRoute>} />
+        <Route path="/forgot-password" element={<GuestRoute><PageTransition><ForgotPassword /></PageTransition></GuestRoute>} />
+        {/* Not a GuestRoute: the reset link signs the visitor in, and they must stay here to set a password */}
+        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+
+        {/* Signed-in app */}
+        <Route path="/app" element={<ProtectedRoute><AppShell><Overview /></AppShell></ProtectedRoute>} />
+        <Route path="/app/templates" element={<ProtectedRoute><AppShell><Templates /></AppShell></ProtectedRoute>} />
+        <Route path="/app/library" element={<ProtectedRoute><AppShell><Library /></AppShell></ProtectedRoute>} />
+        <Route path="/app/create" element={<ProtectedRoute><AppShell><Create /></AppShell></ProtectedRoute>} />
+        <Route path="/app/settings" element={<ProtectedRoute><AppShell><Settings /></AppShell></ProtectedRoute>} />
+        {/* Old editor URLs (/app/projects, /app/editor/…) land on the new overview */}
+        <Route path="/app/*" element={<Navigate to="/app" replace />} />
 
         {/* Everything else → landing */}
         <Route path="*" element={<Navigate to="/" replace />} />

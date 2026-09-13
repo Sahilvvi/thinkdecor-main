@@ -5,11 +5,13 @@ import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { PHASE1_PLAN, pence } from '@/lib/billing';
+import { useAuthStore } from '@/stores/authStore';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 
 const navLinks = [
-  { href: '/#features', label: 'Features' },
+  { href: '/#get-started', label: 'How it works' },
+  { href: '/#comparison', label: 'Compare' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/blog', label: 'Blog' },
   { href: '/#faq', label: 'FAQ' },
@@ -18,6 +20,8 @@ const navLinks = [
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuthStore();
+  const account = user ? { to: '/app', label: 'Dashboard' } : { to: '/login', label: 'Sign in' };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
@@ -40,6 +44,12 @@ export function Navbar() {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
+            <Link
+              to={account.to}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {account.label}
+            </Link>
             <Link to="/pricing">
               <Button variant="hero" size="sm">
                 Start for {INTRO}
@@ -71,6 +81,11 @@ export function Navbar() {
                 </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border/30">
+                <Link to={account.to} onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    {account.label}
+                  </Button>
+                </Link>
                 <Link to="/pricing" onClick={() => setMobileOpen(false)}>
                   <Button variant="hero" className="w-full">
                     Start for {INTRO}

@@ -1,19 +1,22 @@
+import { useState } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { Link } from 'react-router-dom';
-import { Linkedin, Instagram, MapPin, Mail } from 'lucide-react';
+import { Linkedin, Instagram, MapPin, Mail, Loader2, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 
 // Read from the billing config so the footer can never quote a stale price.
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
 
-// Phase 1: Features · Pricing · FAQ · Contact. Every target below exists —
-// #features and #faq are real sections on the homepage.
+// Every target below is a real id on the homepage (src/pages/Home.tsx) or a
+// real route in App.tsx — nothing here points at a dead anchor.
 const exploreLinks = [
-  { label: 'Features', href: '/#features' },
+  { label: 'How it works', href: '/#get-started' },
+  { label: 'Compare', href: '/#comparison' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'FAQ', href: '/#faq' },
-  { label: 'Contact', href: '/contact' },
 ];
 
 const legalLinks = [
@@ -22,12 +25,72 @@ const legalLinks = [
   { label: 'Refund Policy', href: '/refunds' },
 ];
 
-// Only routes that actually exist in App.tsx. About.tsx, Careers.tsx and
+// Only routes/anchors that actually exist. About.tsx, Careers.tsx and
 // BookDemo.tsx exist as files but are NOT routed, so linking them would
-// bounce the visitor to the homepage via the catch-all.
+// bounce the visitor to the homepage via the catch-all — use the homepage
+// #about section instead.
 const companyLinks = [
+  { label: 'About', href: '/#about' },
   { label: 'Blog', href: '/blog' },
+  { label: 'Contact', href: '/contact' },
 ];
+
+function NewsletterSignup() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: 'Newsletter signup',
+        email: trimmed,
+        reason: 'newsletter',
+        message: 'Early-access email signup from footer',
+      });
+      if (error) throw error;
+      setSent(true);
+      setEmail('');
+      toast.success("You're on the list — we'll be in touch.");
+    } catch (err) {
+      console.error('Newsletter signup failed:', err);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex w-full max-w-md flex-col gap-2.5 sm:flex-row">
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Your email for early access"
+        aria-label="Email address"
+        className="w-full flex-1 rounded-full border border-border/60 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-colors focus:border-primary"
+      />
+      <button
+        type="submit"
+        disabled={loading || sent}
+        className="flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03] disabled:opacity-70 disabled:hover:scale-100"
+      >
+        {loading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : sent ? (
+          <Check className="h-3.5 w-3.5" />
+        ) : null}
+        {sent ? 'Joined' : 'Join the list'}
+      </button>
+    </form>
+  );
+}
 
 export function Footer() {
   return (
@@ -118,7 +181,15 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border/60 flex flex-col gap-5">
+        <div className="mt-12 flex flex-col items-start gap-4 border-t border-border/60 pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h4 className="font-semibold text-foreground">Get early access</h4>
+            <p className="mt-1 text-sm text-muted-foreground">Be first to know when a new room type ships.</p>
+          </div>
+          <NewsletterSignup />
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-border/60 flex flex-col gap-5">
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:justify-start">
             {legalLinks.map((link) => (
               <Link

@@ -20,7 +20,7 @@ export function HeroVideo() {
     v.addEventListener('loadeddata', kick);
     if (reduceMotion) { v.pause(); return () => v.removeEventListener('loadeddata', kick); }
 
-    const io = new IntersectionObserver(([e]) => { e.isIntersecting ? kick() : v.pause(); }, { threshold: 0.01 });
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) kick(); else v.pause(); }, { threshold: 0.01 });
     io.observe(host);
     const onVisible = () => { if (document.visibilityState === 'visible') kick(); };
     document.addEventListener('visibilitychange', onVisible);

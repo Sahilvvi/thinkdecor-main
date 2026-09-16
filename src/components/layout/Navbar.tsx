@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/Logo';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PHASE1_PLAN, pence } from '@/lib/billing';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
@@ -18,15 +19,34 @@ const navLinks = [
   { href: '/contact', label: 'Contact' },
 ];
 
-export function Navbar() {
+/** `floating` keeps the glass pill on from the top — for pages that open on a dark hero. */
+export function Navbar({ floating = false }: { floating?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user } = useAuthStore();
   const account = user ? { to: '/app', label: 'Dashboard' } : { to: '/login', label: 'Sign in' };
+  const [scrolled, setScrolled] = useState(false);
+
+  // Full-width and transparent at the top; a floating glass pill once the page moves.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const raised = floating || scrolled || mobileOpen;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="flex h-16 items-center justify-between">
+    <nav className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
+      <div
+        className={cn(
+          'mx-auto rounded-[22px] border px-4 transition-all duration-500 sm:px-6',
+          raised
+            ? 'max-w-[1160px] border-border/70 bg-white/80 shadow-[0_12px_40px_-18px_hsl(168_30%_15%/0.28)] backdrop-blur-xl'
+            : 'max-w-[1400px] border-transparent bg-white/0',
+        )}
+      >
+        <div className="flex h-14 items-center justify-between">
           <Logo />
 
           {/* Desktop Navigation */}

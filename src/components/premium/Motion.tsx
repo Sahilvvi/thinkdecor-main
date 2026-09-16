@@ -65,7 +65,8 @@ export function RevealWords({ text, className = '', delay = 0 }: { text: string;
   return (
     <span ref={ref} className={className}>
       {text.split(' ').map((w, i) => (
-        <span key={i} className="inline-block overflow-hidden align-bottom">
+        // Extra bottom room (cancelled by the negative margin) keeps descenders like "g" from being clipped.
+        <span key={i} className="-mb-[0.14em] inline-block overflow-hidden pb-[0.14em] align-bottom">
           <motion.span
             className="inline-block"
             initial={{ y: '110%', opacity: 0 }}

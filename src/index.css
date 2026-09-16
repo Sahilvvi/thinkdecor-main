@@ -42,6 +42,11 @@
     --input: 168 12% 90%;
     --ring: 168 100% 17%;
 
+    /* Deep brand teal-green for dark bands (same hue as --primary, just
+       darker) — not a desaturated near-black — and a bright mint that reads on it */
+    --ink: 168 78% 7%;
+    --mint: 162 72% 46%;
+
     --radius: 0.75rem;
 
     /* Gradients */
@@ -74,15 +79,17 @@
     @apply border-border;
   }
 
+  /* `clip`, not `hidden`: hidden turns body into a scroll container,
+     which silently breaks every `position: sticky` on the site. */
   html {
     scroll-behavior: smooth;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "cv11", "ss01";
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* Custom scrollbar */
@@ -299,6 +306,21 @@
     animation-play-state: paused;
   }
 
+  /* Same loop, but never pauses on hover — for a strip that should read as
+     always-on, ambient motion (e.g. the style/room ticker), rather than
+     content people stop to read (the testimonial marquees above). */
+  .animate-marquee-left-live {
+    display: flex;
+    width: max-content;
+    animation: marqueeLeft 35s linear infinite;
+  }
+
+  .animate-marquee-right-live {
+    display: flex;
+    width: max-content;
+    animation: marqueeRight 35s linear infinite;
+  }
+
   @keyframes marqueeLeft {
     0% {
       transform: translateX(0);
@@ -314,6 +336,66 @@
     }
     100% {
       transform: translateX(0);
+    }
+  }
+
+  /* Fade a horizontally scrolling row out at both edges */
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  /* Soft light band gliding across a row, on a slow loop with a long rest */
+  .shine-sweep {
+    animation: shineSweep 6s ease-in-out infinite;
+  }
+
+  @keyframes shineSweep {
+    0% { transform: translateX(0); }
+    28%, 100% { transform: translateX(700%); }
+  }
+
+  /* Ruler ticks that light up in sequence */
+  .tick-anim {
+    animation: tick 2.4s ease-in-out infinite;
+  }
+
+  @keyframes tick {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; background-color: hsl(var(--mint)); }
+  }
+
+  /* Slow sweep of a gradient across clipped text */
+  .text-shimmer {
+    background-size: 220% 100%;
+    animation: textShimmer 7s ease-in-out infinite;
+  }
+
+  @keyframes textShimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Grid lines drifting toward the viewer on a perspective floor */
+  .grid-flow {
+    animation: gridFlow 5s linear infinite;
+  }
+
+  @keyframes gridFlow {
+    to { background-position: 0 64px; }
+  }
+
+  /* The -live ticker and its shine deliberately keep running under
+     reduced-motion: it's a simple, constant-speed linear scroll (no
+     parallax, no zoom, no spin), the same category as a stock ticker or
+     a "trusted by" logo strip that stays exempt on most accessible sites. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee-left,
+    .animate-marquee-right,
+    .tick-anim,
+    .text-shimmer,
+    .grid-flow {
+      animation: none;
     }
   }
 }

@@ -27,6 +27,7 @@ dist-ssr
 # Local env files
 .env
 .env.*
+!.env.example
 
 # Deploy and temporary files
 deploy_temp/
@@ -34,6 +35,9 @@ _archive/
 *.zip
 vite.config.ts.timestamp-*
 testfile_in_root
+
+# Vercel CLI local project link
+.vercel
 
 # Source video kept locally; the served copy lives in public/
 MAIN-TOP.mp4

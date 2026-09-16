@@ -1,5 +1,6 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { SEO } from '@/components/shared/SEO';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { Scale, FileText } from 'lucide-react';
 
@@ -42,10 +43,24 @@ const sections = [
   {
     title: 'Subscriptions and Payments',
     content: [
-      'Some features require a paid subscription as described on our Pricing page.',
-      'Payments are processed securely through our payment partners.',
-      'You may cancel your subscription at any time, with access continuing until the end of the billing period.',
-      'Refunds are handled in accordance with our refund policy and applicable law.',
+      'Paid plans are billed in advance, monthly or yearly, at the prices shown on our Pricing page. All prices are in GBP.',
+      'Payments are processed by Stripe. We never see or store your full card details.',
+      'Each plan includes a monthly allowance of room scans. Plan allowances reset at the start of each billing period and do not roll over.',
+      'Top-up credit packs are one-off purchases. Top-up credits do not expire and are used only once your plan allowance is spent.',
+      'Subscriptions renew automatically until cancelled. You may cancel at any time and keep access until the end of the period you have already paid for.',
+      'We may change prices with at least 30 days notice. Price changes never apply to a period you have already paid for.',
+      'If a payment fails we will retry it. Persistent failure may result in the plan being suspended until payment succeeds.',
+    ],
+  },
+  {
+    title: 'Cancellations and Refunds',
+    content: [
+      'You can cancel a subscription at any time from your account, or by emailing info@thinkdecor.app.',
+      'Cancelling stops future renewals. It does not refund the current period, which remains active until it ends.',
+      'New customers may request a full refund of their first payment within 14 days of that payment.',
+      'Unused top-up credit packs may be refunded within 14 days of purchase. Packs that have been partly used are refunded pro rata.',
+      'Refunds are returned to the original payment method and typically take 5 to 10 business days to appear.',
+      'Full details are on our Refund Policy page.',
     ],
   },
   {
@@ -69,8 +84,8 @@ const sections = [
   {
     title: 'Governing Law',
     content: [
-      'These terms are governed by the laws of India, without regard to conflict of law principles.',
-      'Any disputes shall be resolved in the courts of Bangalore, Karnataka.',
+      'These terms are governed by the laws of England and Wales, without regard to conflict of law principles.',
+      'Any disputes shall be resolved in the courts of England and Wales.',
       'If any provision is found invalid, the remaining provisions continue in full effect.',
     ],
   },
@@ -88,6 +103,11 @@ export default function Terms() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Terms of Service | ThinkDecor"
+        description="The terms that govern your use of ThinkDecor — accounts, billing, acceptable use and your rights."
+        canonical="https://thinkdecor.app/terms"
+      />
       <Navbar />
       <main className="pt-24">
         {/* Hero */}

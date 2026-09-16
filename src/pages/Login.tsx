@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/brand/Logo';
+import { SEO } from '@/components/shared/SEO';
+import { Captcha } from '@/components/auth/Captcha';
 import { useAuthStore } from '@/stores/authStore';
+import { safeReturnPath } from '@/lib/returnPath';
+import { CAPTCHA_ENABLED } from '@/lib/captcha';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
@@ -12,58 +16,63 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const { signIn } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ProtectedRoute (and the pricing page) pass where the visitor was headed —
+  // send them back there instead of always dumping them on the overview.
+  const destination = safeReturnPath(location.state);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email, password, captchaToken ?? undefined);
 
     if (error) {
       toast.error(error.message || 'Failed to sign in');
+      setCaptchaKey((k) => k + 1); // tokens are single-use
       setIsLoading(false);
     } else {
       toast.success('Welcome back!');
-      navigate('/app');
+      navigate(destination, { replace: true });
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Left Panel - Form */}
-      <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-24">
-        <div className="max-w-md w-full mx-auto">
-          {/* Back Link */}
+    <div className="flex min-h-screen bg-background">
+      <SEO title="Sign in | ThinkDecor" description="Sign in to your ThinkDecor account." />
+
+      {/* Left panel — the form */}
+      <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-8 md:px-16 lg:px-24">
+        <div className="mx-auto w-full max-w-md">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
 
-          {/* Logo */}
           <div className="mb-8">
             <Logo size="lg" />
           </div>
 
-          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
-            <p className="text-muted-foreground">
-              Sign in to your account to continue creating
-            </p>
+            <h1 className="mb-2 text-3xl font-bold tracking-[-0.02em]">Welcome back</h1>
+            <p className="text-muted-foreground">Sign in to pick up where you left off.</p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -74,13 +83,14 @@ export default function Login() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <a href="#" className="text-sm text-primary hover:underline">
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -88,42 +98,53 @@ export default function Login() {
               />
             </div>
 
-            <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
+            <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
+
+            <Button
+              type="submit"
+              variant="hero"
+              className="w-full"
+              size="lg"
+              disabled={isLoading || (CAPTCHA_ENABLED && !captchaToken)}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
-                'Sign In'
+                'Sign in'
               )}
             </Button>
           </form>
 
-          {/* Sign Up Link */}
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-medium hover:underline">
+            <Link to="/signup" state={location.state} className="font-medium text-primary hover:underline">
               Create one free
             </Link>
           </p>
         </div>
       </div>
 
-      {/* Right Panel - Visual */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-gradient-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-20" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-glow opacity-50" />
-        
-        <div className="relative z-10 text-center p-12">
-          <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-primary flex items-center justify-center mb-8 shadow-glow">
-            <svg className="w-16 h-16 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+      {/* Right panel — the product */}
+      <div className="relative hidden flex-1 items-center justify-center overflow-hidden bg-primary lg:flex">
+        <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-white/[0.09] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-[hsl(160_84%_45%)]/20 blur-3xl" />
+
+        <div className="relative z-10 max-w-md p-12">
+          <div className="overflow-hidden rounded-[22px] border border-white/15 shadow-[0_30px_80px_-24px_rgba(0,0,0,0.45)]">
+            <img
+              src="/assets/samples/styled_room.png"
+              alt="A living room redesigned with ThinkDecor"
+              className="aspect-[4/3] w-full object-cover"
+            />
           </div>
-          <h2 className="text-3xl font-bold mb-4">Layer your creativity</h2>
-          <p className="text-muted-foreground max-w-sm">
-            Create stunning texture compositions with our powerful layer-based editor.
+          <h2 className="mt-9 text-[clamp(1.8rem,3vw,2.4rem)] font-bold leading-[1.1] tracking-[-0.03em] text-primary-foreground">
+            Your rooms, redesigned.
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-primary-foreground/70">
+            Upload a photo, pick a style, and Mantha AI does the rest. Every design lands in your library.
           </p>
         </div>
       </div>

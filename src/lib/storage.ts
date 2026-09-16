@@ -1,7 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 
+export type StorageBucket = 'uploads' | 'textures' | 'exports' | 'thumbnails' | 'generations';
+
 export async function uploadFile(
-  bucket: 'uploads' | 'textures' | 'exports' | 'thumbnails',
+  bucket: StorageBucket,
   userId: string,
   file: File,
   fileName?: string
@@ -21,7 +23,7 @@ export async function uploadFile(
 }
 
 export async function deleteFile(
-  bucket: 'uploads' | 'textures' | 'exports' | 'thumbnails',
+  bucket: StorageBucket,
   userId: string,
   fileName: string
 ): Promise<void> {
@@ -35,7 +37,7 @@ export async function deleteFile(
 }
 
 export function getPublicUrl(
-  bucket: 'uploads' | 'textures' | 'exports' | 'thumbnails',
+  bucket: StorageBucket,
   path: string
 ): string {
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);

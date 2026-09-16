@@ -1,43 +1,78 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/Logo';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { PHASE1_PLAN, pence } from '@/lib/billing';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
+
+const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 
 const navLinks = [
-  { href: '/for-homes', label: 'For Homes' },
-  { href: '/for-brands', label: 'For Brands' },
-  { href: '/about', label: 'About' },
+  { href: '/#get-started', label: 'How it works' },
+  { href: '/#comparison', label: 'Compare' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
 ];
 
-export function Navbar() {
+/** `floating` keeps the glass pill on from the top — for pages that open on a dark hero. */
+export function Navbar({ floating = false }: { floating?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuthStore();
+  const account = user ? { to: '/app', label: 'Dashboard' } : { to: '/login', label: 'Sign in' };
+  const [scrolled, setScrolled] = useState(false);
+
+  // Full-width and transparent at the top; a floating glass pill once the page moves.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const raised = floating || scrolled || mobileOpen;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="flex h-16 items-center justify-between">
+    <nav className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
+      <div
+        className={cn(
+          'mx-auto rounded-[22px] border px-4 transition-all duration-500 sm:px-6',
+          raised
+            ? 'max-w-[1160px] border-border/70 bg-white/80 shadow-[0_12px_40px_-18px_hsl(168_30%_15%/0.28)] backdrop-blur-xl'
+            : 'max-w-[1400px] border-transparent bg-white/0',
+        )}
+      >
+        <div className="flex h-14 items-center justify-between">
           <Logo />
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link
+              <a
                 key={link.href}
-                to={link.href}
+                href={link.href}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
           </div>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link to="/demo">
+          {/* Desktop CTAs */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              to={account.to}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {account.label}
+            </Link>
+            <Link to="/pricing">
               <Button variant="hero" size="sm">
-                Get Started Free
+                Start for {INTRO}
               </Button>
             </Link>
           </div>
@@ -56,19 +91,24 @@ export function Navbar() {
           <div className="md:hidden py-4 border-t border-border/30">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <Link
+                <a
                   key={link.href}
-                  to={link.href}
+                  href={link.href}
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border/30">
-                <Link to="/demo" onClick={() => setMobileOpen(false)}>
+                <Link to={account.to} onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    {account.label}
+                  </Button>
+                </Link>
+                <Link to="/pricing" onClick={() => setMobileOpen(false)}>
                   <Button variant="hero" className="w-full">
-                    Get Started Free
+                    Start for {INTRO}
                   </Button>
                 </Link>
               </div>

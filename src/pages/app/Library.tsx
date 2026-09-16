@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Download, Images, Plus, RefreshCw, Trash2 } from 'lucide-react';
 
@@ -11,6 +12,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
+import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
+import { Tilt } from '@/components/motion/primitives';
 import {
   type Generation, downloadStoredImage, formatDate, isSetupError, useDeleteGeneration, useGenerations,
 } from '@/lib/generation';
@@ -62,9 +65,16 @@ export default function Library() {
     <>
       <SEO title="Library | ThinkDecor" description="Every room you've redesigned." />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <Reveal className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Library</h1>
+          <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            Library
+          </p>
+          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Library</h1>
           <p className="mt-1 text-[15px] text-foreground/55">
             {generations && generations.length > 0
               ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`
@@ -73,11 +83,15 @@ export default function Library() {
         </div>
         <Link
           to="/app/create"
-          className="inline-flex items-center gap-2 self-start rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03] sm:self-auto"
+          className="group relative inline-flex items-center gap-2 self-start overflow-hidden rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03] sm:self-auto"
         >
-          <Plus className="h-4 w-4" /> New design
+          <span
+            aria-hidden
+            className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.25),transparent)] transition-transform duration-700 group-hover:translate-x-full"
+          />
+          <Plus className="relative h-4 w-4" /> <span className="relative">New design</span>
         </Link>
-      </div>
+      </Reveal>
 
       {isLoading ? (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,42 +122,47 @@ export default function Library() {
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" gap={0.05}>
           {generations.map((g) => (
-            <article key={g.id} className="group overflow-hidden rounded-[22px] border border-border/70 bg-card">
-              <button
-                type="button"
-                onClick={() => setViewing(g)}
-                className="block aspect-[4/3] w-full overflow-hidden bg-secondary"
-                aria-label={`Open ${titleFor(g)}`}
-              >
-                <StoredImage
-                  src={g.output_image_url ?? g.input_image_url}
-                  alt={titleFor(g)}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </button>
-              <div className="flex items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-semibold text-foreground">{titleFor(g)}</p>
-                  <p className="text-[12.5px] text-foreground/50">{formatDate(g.created_at)}</p>
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-1">
-                  <IconButton label="Download" onClick={() => download(g)}>
-                    <Download className="h-4 w-4" />
-                  </IconButton>
-                  <IconButton label="Regenerate" onClick={() => regenerate(g)}>
-                    <RefreshCw className="h-4 w-4" />
-                  </IconButton>
-                  <IconButton label="Delete" onClick={() => setConfirming(g)} danger>
-                    <Trash2 className="h-4 w-4" />
-                  </IconButton>
-                </div>
-              </div>
-            </article>
+            <motion.div key={g.id} variants={staggerItem}>
+              <Tilt max={4} innerClassName="rounded-[22px]">
+                <article className="group overflow-hidden rounded-[22px] border border-border/70 bg-card transition-all duration-300 hover:border-primary/25 hover:shadow-[0_20px_48px_-28px_hsl(168_30%_15%/0.4)]">
+                  <button
+                    type="button"
+                    onClick={() => setViewing(g)}
+                    className="relative block aspect-[4/3] w-full overflow-hidden bg-secondary"
+                    aria-label={`Open ${titleFor(g)}`}
+                  >
+                    <StoredImage
+                      src={g.output_image_url ?? g.input_image_url}
+                      alt={titleFor(g)}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  </button>
+                  <div className="flex items-center justify-between gap-3 p-4">
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold text-foreground">{titleFor(g)}</p>
+                      <p className="text-[12.5px] text-foreground/50">{formatDate(g.created_at)}</p>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      <IconButton label="Download" onClick={() => download(g)}>
+                        <Download className="h-4 w-4" />
+                      </IconButton>
+                      <IconButton label="Regenerate" onClick={() => regenerate(g)}>
+                        <RefreshCw className="h-4 w-4" />
+                      </IconButton>
+                      <IconButton label="Delete" onClick={() => setConfirming(g)} danger>
+                        <Trash2 className="h-4 w-4" />
+                      </IconButton>
+                    </div>
+                  </div>
+                </article>
+              </Tilt>
+            </motion.div>
           ))}
-        </div>
+        </Stagger>
       )}
 
       {/* Detail view */}

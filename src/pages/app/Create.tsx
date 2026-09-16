@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
-  ArrowUp, Check, Download, ImagePlus, Loader2, RefreshCw, Sparkles, X,
+  ArrowUp, Check, Download, ImagePlus, Loader2, RefreshCw, Wand2, X,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
+import { Tilt } from '@/components/motion/primitives';
 import { useAuthStore } from '@/stores/authStore';
 import {
   FREE_SIGNUP_CREDITS, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
@@ -180,14 +182,21 @@ export default function Create() {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Create</h1>
+          <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            Create
+          </p>
+          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Create</h1>
           <p className="mt-1 text-[15px] text-foreground/55">
             Upload a room, choose a style, and tell Mantha what to change.
           </p>
         </div>
         {credits !== undefined && (
           <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1.5 text-[12.5px] font-semibold text-primary sm:self-auto">
-            <Sparkles className="h-3.5 w-3.5" />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             {credits} {credits === 1 ? 'credit' : 'credits'} left · 1 per design
           </span>
         )}
@@ -211,8 +220,15 @@ export default function Create() {
         {turns.length === 0 ? (
           <EmptyThread credits={credits} onPickTemplate={setTemplateKey} activeTemplate={templateKey} />
         ) : (
-          turns.map((turn) => (
-            <div key={turn.id} className="space-y-4">
+          <AnimatePresence initial={false}>
+          {turns.map((turn) => (
+            <motion.div
+              key={turn.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="space-y-4"
+            >
               {/* The request */}
               <div className="flex justify-end">
                 <div className="max-w-[min(100%,440px)] rounded-[20px] rounded-br-md bg-primary p-3 text-primary-foreground">
@@ -237,7 +253,7 @@ export default function Create() {
               {/* The response */}
               <div className="flex gap-3">
                 <span className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[hsl(160_84%_38%)]">
-                  <Sparkles className="h-4 w-4 text-primary-foreground" />
+                  <Wand2 className="h-4 w-4 text-primary-foreground" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-foreground">Mantha AI</p>
@@ -301,8 +317,9 @@ export default function Create() {
                   )}
                 </div>
               </div>
-            </div>
-          ))
+            </motion.div>
+          ))}
+          </AnimatePresence>
         )}
         <div ref={threadEndRef} />
       </div>
@@ -329,8 +346,10 @@ export default function Create() {
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
-            className={`rounded-[24px] border bg-background/95 p-3 shadow-[0_24px_60px_-30px_hsl(168_40%_15%/0.45)] backdrop-blur-xl transition-colors ${
-              dragging ? 'border-primary' : 'border-border/80'
+            className={`rounded-[24px] border bg-background/95 p-3 backdrop-blur-xl transition-all duration-300 ${
+              dragging
+                ? 'border-primary shadow-[0_0_0_4px_hsl(168_100%_17%/0.1),0_24px_60px_-30px_hsl(168_100%_17%/0.5)]'
+                : 'border-border/80 shadow-[0_24px_60px_-30px_hsl(168_40%_15%/0.45)]'
             }`}
           >
             {/* Style + room */}
@@ -422,7 +441,9 @@ export default function Create() {
                 onClick={send}
                 disabled={!canSend}
                 aria-label="Generate design"
-                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${
+                  canSend ? 'shadow-[0_8px_24px_-6px_hsl(168_100%_17%/0.55)]' : ''
+                }`}
               >
                 {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
               </button>
@@ -443,29 +464,40 @@ function EmptyThread({
 }) {
   const featured = TEMPLATES.filter((t) => t.featured);
   return (
-    <div className="rounded-[26px] border border-border/70 bg-card px-6 py-10 text-center sm:px-10">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-        <Sparkles className="h-5 w-5 text-primary" />
+    <div className="relative overflow-hidden rounded-[26px] border border-border/70 bg-card px-6 py-10 text-center sm:px-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(hsl(168_30%_20%/0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(168_30%_20%/0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000,transparent)]"
+      />
+      <span className="relative mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        <Wand2 className="h-5 w-5 text-primary" />
       </span>
-      <h2 className="mt-4 text-[20px] font-bold tracking-[-0.02em] text-foreground">What are we redesigning today?</h2>
-      <p className="mx-auto mt-2 max-w-[48ch] text-[14.5px] text-foreground/55">
+      <h2 className="relative mt-4 text-[20px] font-bold tracking-[-0.02em] text-foreground">What are we redesigning today?</h2>
+      <p className="relative mx-auto mt-2 max-w-[48ch] text-[14.5px] text-foreground/55">
         Add a photo below — straight-on, in daylight works best. Pick a style to start from, then describe anything
         you want changed.
         {credits !== undefined && credits > 0 && ` You have ${credits} ${credits === 1 ? 'credit' : 'credits'}.`}
       </p>
-      <div className="mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
+      <div className="relative mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
         {featured.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => onPickTemplate(t.key)}
-            className={`overflow-hidden rounded-2xl border text-left transition-colors ${
-              activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
-            }`}
-          >
-            <img src={t.image} alt={`${t.label} style`} className="aspect-[4/3] w-full object-cover" />
-            <p className="px-3 py-2.5 text-[13.5px] font-semibold text-foreground">{t.label}</p>
-          </button>
+          <Tilt key={t.key} max={6} innerClassName="rounded-2xl">
+            <button
+              type="button"
+              onClick={() => onPickTemplate(t.key)}
+              className={`group block w-full overflow-hidden rounded-2xl border text-left transition-colors ${
+                activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
+              }`}
+            >
+              <div className="overflow-hidden">
+                <img
+                  src={t.image}
+                  alt={`${t.label} style`}
+                  className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <p className="px-3 py-2.5 text-[13.5px] font-semibold text-foreground">{t.label}</p>
+            </button>
+          </Tilt>
         ))}
       </div>
     </div>

@@ -6,6 +6,9 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SEO } from '@/components/shared/SEO';
 import { Reveal } from '@/components/premium/Motion';
+import { Comparison } from '@/components/premium/Comparison';
+import { Testimonials } from '@/components/premium/Testimonials';
+import { NewsletterBand } from '@/components/motion/NewsletterBand';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { startCheckout, CheckoutError } from '@/lib/checkout';
 import { useAuthStore } from '@/stores/authStore';
@@ -184,6 +187,10 @@ export default function Pricing() {
           </div>
         </section>
 
+        <Comparison />
+
+        <Testimonials />
+
         {/* ---------------- FAQ ---------------- */}
         <section className="pb-24 lg:pb-32">
           <div className="container mx-auto max-w-[820px] px-6 sm:px-8">
@@ -204,6 +211,8 @@ export default function Pricing() {
             </div>
           </div>
         </section>
+
+        <NewsletterBand />
       </main>
 
       <Footer />

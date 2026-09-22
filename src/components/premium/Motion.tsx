@@ -1,5 +1,6 @@
 import { ReactNode, useRef, useState, useEffect } from 'react';
 import { motion, useInView, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion';
+import { useInViewOrStacked } from '@/components/motion/StackPanels';
 
 /* ------------------------------------------------------------------ */
 /* Reveal — blur + mask + rise. The house entrance animation.          */
@@ -20,7 +21,11 @@ export function Reveal({
   once?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once, margin: '-12% 0px -12% 0px' });
+  // useInViewOrStacked: inside a <StackPanel>, Framer's useInView never
+  // reports true this deep in a sticky ancestor (confirmed against a plain
+  // IntersectionObserver on the same node, which does), so treat it as
+  // always visible there — the panel's own stacking motion is the entrance.
+  const inView = useInViewOrStacked(ref, { once, margin: '-12% 0px -12% 0px' });
   return (
     <motion.div
       ref={ref}
@@ -37,7 +42,7 @@ export function Reveal({
 /* Stagger container + item */
 export function Stagger({ children, className = '', gap = 0.09 }: { children: ReactNode; className?: string; gap?: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-10% 0px' });
+  const inView = useInViewOrStacked(ref, { once: true, margin: '-10% 0px' });
   return (
     <motion.div
       ref={ref}
@@ -61,7 +66,7 @@ export const staggerItem = {
 /* ------------------------------------------------------------------ */
 export function RevealWords({ text, className = '', delay = 0 }: { text: string; className?: string; delay?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-10% 0px' });
+  const inView = useInViewOrStacked(ref, { once: true, margin: '-10% 0px' });
   return (
     <span ref={ref} className={className}>
       {text.split(' ').map((w, i) => (
@@ -128,7 +133,7 @@ export function Counter({
   className?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-20% 0px' });
+  const inView = useInViewOrStacked(ref, { once: true, margin: '-20% 0px' });
   const [val, setVal] = useState(0);
 
   useEffect(() => {

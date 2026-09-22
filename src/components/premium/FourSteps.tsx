@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useInViewOrStacked } from '../motion/StackPanels';
 import {
   ArrowRight, Clock, UserPlus, Download, ScanLine, FileDown, Check, Sparkles,
 } from 'lucide-react';
@@ -156,7 +157,7 @@ function Stage({ n }: { n: number }) {
 /* ------------------------------------------------------------------ */
 export function FourSteps() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { margin: '-15% 0px' });
+  const inView = useInViewOrStacked(ref, { margin: '-15% 0px' });
   const [active, setActive] = useState(0);
   const paused = useRef(false);
 

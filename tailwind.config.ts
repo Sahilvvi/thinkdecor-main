@@ -14,7 +14,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
+        // Newsreader carries the headline voice — the italic <em> accent in
+        // headings is the brand's signature, so it needs a real serif.
+        display: ["Newsreader", "Georgia", "Times New Roman", "serif"],
+        // Kickers, buttons and small caps labels.
+        label: ["Urbanist", "Plus Jakarta Sans", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {

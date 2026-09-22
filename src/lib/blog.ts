@@ -1,5 +1,17 @@
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Per-article layout overrides — deliberately just a few named presets, not
+ * a full block editor. Existing posts default to '{}' (today's fixed look)
+ * so nothing already published needs migrating; an editor can dial in one
+ * article's width/rhythm without touching markdown at all.
+ */
+export interface BlogPostLayout {
+  proseWidth?: 'normal' | 'wide';
+  rhythm?: 'compact' | 'normal' | 'relaxed';
+  imageStyle?: 'inline' | 'full';
+}
+
 export interface BlogPost {
   id: string;
   slug: string;
@@ -14,6 +26,7 @@ export interface BlogPost {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  layout: BlogPostLayout;
 }
 
 const TABLE = 'blog_posts' as never;
@@ -78,6 +91,18 @@ export async function deletePost(id: string) {
   if (error) throw error;
 }
 
+/** Wrapper classes for `.post-body`, driven by a post's `layout` column. */
+export function postBodyClassName(layout: BlogPostLayout | null | undefined) {
+  const l = layout ?? {};
+  return [
+    'post-body',
+    l.proseWidth === 'wide' && 'post-body--wide',
+    l.rhythm === 'compact' && 'post-body--compact',
+    l.rhythm === 'relaxed' && 'post-body--relaxed',
+    l.imageStyle === 'full' && 'post-body--images-full',
+  ].filter(Boolean).join(' ');
+}
+
 /** Minimal, safe markdown → HTML for post bodies. */
 export function renderMarkdown(md: string) {
   const esc = (s: string) =>
@@ -109,7 +134,12 @@ export function renderMarkdown(md: string) {
     if (/^!\[.*?\]\((.+?)\)$/.test(l)) {
       closeBlocks();
       const m = l.match(/^!\[(.*?)\]\((.+?)\)$/)!;
-      out.push(`<figure><img src="${m[2]}" alt="${m[1]}" loading="lazy" /></figure>`);
+      // `![alt|wide](url)` or `![alt|full](url)` — a per-image size override
+      // on top of the article's own default (see postBodyClassName above),
+      // without needing a block editor for the one photo that runs big.
+      const [altText, sizeMod] = m[1].split('|').map((s) => s.trim());
+      const sizeClass = sizeMod === 'wide' ? ' post-img-wide' : sizeMod === 'full' ? ' post-img-full' : '';
+      out.push(`<figure class="${sizeClass.trim()}"><img src="${m[2]}" alt="${altText}" loading="lazy" /></figure>`);
       continue;
     }
     if (/^>\s?/.test(l)) {

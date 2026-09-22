@@ -84,7 +84,7 @@ export default function Overview() {
           icon={Images}
           label="Designs created"
           value={all === undefined ? '—' : String(all.length)}
-          hint={<Link to="/app/library" className="font-semibold text-primary hover:underline">Open library</Link>}
+          hint={<Link to="/app/library" className="font-semibold text-primary hover:underline">Open projects</Link>}
         />
         <StatCard
           icon={LayoutGrid}

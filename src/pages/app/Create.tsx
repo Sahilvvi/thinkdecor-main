@@ -205,7 +205,7 @@ export default function Create() {
       {IS_PLACEHOLDER_GENERATOR && (
         <p className="mt-4 rounded-xl border border-border/70 bg-secondary/60 px-4 py-2.5 text-[12.5px] text-foreground/60">
           Preview mode: results are sample designs while Mantha's live generation is being connected. Credits,
-          history and your library all work as they will at launch.
+          history and your projects all work as they will at launch.
         </p>
       )}
 
@@ -289,7 +289,7 @@ export default function Create() {
                           <Check className="h-3.5 w-3.5 text-primary" />
                           Saved to your{' '}
                           <Link to="/app/library" className="font-semibold text-primary hover:underline">
-                            library
+                            projects
                           </Link>
                         </span>
                         <div className="flex gap-2">

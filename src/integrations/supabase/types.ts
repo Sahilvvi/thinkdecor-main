@@ -43,6 +43,7 @@ export type Database = {
           created_at: string
           excerpt: string | null
           id: string
+          layout: Json
           published: boolean
           published_at: string | null
           read_minutes: number | null
@@ -58,6 +59,7 @@ export type Database = {
           created_at?: string
           excerpt?: string | null
           id?: string
+          layout?: Json
           published?: boolean
           published_at?: string | null
           read_minutes?: number | null
@@ -73,6 +75,7 @@ export type Database = {
           created_at?: string
           excerpt?: string | null
           id?: string
+          layout?: Json
           published?: boolean
           published_at?: string | null
           read_minutes?: number | null
@@ -368,6 +371,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           id: string
@@ -378,6 +382,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -388,6 +393,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone, Scan, Ruler, Sparkles } from 'lucide-react';
+import { useInViewOrStacked } from '../motion/StackPanels';
 
 const STAGES = [
   { id: 0, label: 'Scanning room', icon: Smartphone },
@@ -23,7 +24,7 @@ const POINTS = Array.from({ length: 76 }, (_, i) => ({
 /** Hero: phone scan → point cloud → floor plan → measurements → AI redesign. */
 export function ScanSequence() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { margin: '-10% 0px' });
+  const inView = useInViewOrStacked(ref, { margin: '-10% 0px' });
   const [stage, setStage] = useState(0);
 
   useEffect(() => {

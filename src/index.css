@@ -465,4 +465,57 @@
     border-radius: 18px;
     border: 1px solid hsl(168 12% 88%);
   }
+
+  /* Per-article overrides driven by blog_posts.layout — see postBodyClassName() in src/lib/blog.ts */
+  .post-body.post-body--wide { max-width: 900px; }
+  .post-body.post-body--compact > * + * { margin-top: 1rem; }
+  .post-body.post-body--relaxed > * + * { margin-top: 2.25rem; }
+
+  /* Default image treatment when an article sets imageStyle: 'full' — every
+     figure bleeds to the article's full (already-wide) column instead of
+     staying inline at prose width. */
+  .post-body--images-full figure { margin-inline: 0; }
+
+  /* Per-image override via `![alt|wide](url)` / `![alt|full](url)` in the
+     markdown itself — breaks out of the prose column for one photo without
+     changing the whole article's layout preset. Standard "full bleed inside
+     a narrower parent" pattern: `left:50%` shifts by half the PARENT's
+     width, the matching negative margin shifts back by half the VIEWPORT
+     (capped) — net result is centered on the viewport regardless of how
+     narrow the prose column is, at any screen size. */
+  .post-body figure.post-img-wide,
+  .post-body figure.post-img-full {
+    position: relative;
+    left: 50%;
+    right: 50%;
+  }
+  .post-body figure.post-img-wide {
+    width: min(100vw, 900px);
+    margin-left: max(-50vw, -450px);
+    margin-right: max(-50vw, -450px);
+  }
+  .post-body figure.post-img-full {
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  .post-body figure.post-img-full img { border-radius: 0; }
+}
+
+/* ================= STACK PANELS (landing page scroll mechanic) ================= */
+/* See src/components/motion/StackPanels.tsx for the JS half — this just
+   makes each panel sticky and lets --cov (written per scroll frame) drive
+   the dimming veil declared inline on the panel's own overlay span. */
+.stack-panel {
+  position: sticky;
+  top: 0;
+  will-change: transform;
+}
+.stack-panel + .stack-panel {
+  margin-top: var(--stack-gap, 16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stack-panel {
+    transform: none !important;
+  }
 }

@@ -84,9 +84,9 @@ export function Footer() {
             <ul className="space-y-3">
               {exploreLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-muted-foreground hover:text-primary hover:translate-x-1 inline-block transition-all duration-300">
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary hover:translate-x-1 inline-block transition-all duration-300">
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -98,9 +98,9 @@ export function Footer() {
             <ul className="space-y-3">
               {companyLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-muted-foreground hover:text-primary hover:translate-x-1 inline-block transition-all duration-300">
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary hover:translate-x-1 inline-block transition-all duration-300">
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

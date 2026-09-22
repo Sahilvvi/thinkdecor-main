@@ -63,7 +63,7 @@ export default function Library() {
 
   return (
     <>
-      <SEO title="Library | ThinkDecor" description="Every room you've redesigned." />
+      <SEO title="Projects | ThinkDecor" description="Every room you've redesigned." />
 
       <Reveal className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -72,9 +72,9 @@ export default function Library() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
-            Library
+            Projects
           </p>
-          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Library</h1>
+          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Projects</h1>
           <p className="mt-1 text-[15px] text-foreground/55">
             {generations && generations.length > 0
               ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`
@@ -102,15 +102,15 @@ export default function Library() {
       ) : error ? (
         <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">
           {isSetupError(error)
-            ? 'Your library switches on once the latest database update is applied.'
-            : "We couldn't load your library. Refresh to try again."}
+            ? 'Your projects switch on once the latest database update is applied.'
+            : "We couldn't load your projects. Refresh to try again."}
         </div>
       ) : !generations || generations.length === 0 ? (
         <div className="mt-8 flex flex-col items-center rounded-[22px] border border-dashed border-border px-6 py-16 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
             <Images className="h-5 w-5 text-primary" />
           </span>
-          <p className="mt-4 text-[16px] font-semibold text-foreground">Your library is empty</p>
+          <p className="mt-4 text-[16px] font-semibold text-foreground">No projects yet</p>
           <p className="mt-1 max-w-[40ch] text-[14px] text-foreground/55">
             Redesign a room and it will appear here, ready to compare, download or refine.
           </p>
@@ -217,7 +217,7 @@ export default function Library() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this design?</AlertDialogTitle>
             <AlertDialogDescription>
-              It will be removed from your library, along with its stored image. This can't be undone, and the
+              It will be removed from your projects, along with its stored image. This can't be undone, and the
               credit isn't refunded.
             </AlertDialogDescription>
           </AlertDialogHeader>

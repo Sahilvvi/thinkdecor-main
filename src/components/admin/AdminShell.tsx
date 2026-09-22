@@ -1,13 +1,16 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, ExternalLink, FileText, Inbox } from 'lucide-react';
+import { LogOut, ExternalLink, FileText, Inbox, LayoutDashboard, Users, MessageSquare } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
 import { useAuthStore } from '@/stores/authStore';
 
 const TABS = [
+  { to: '/admin/overview', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/blog', label: 'Articles', icon: FileText },
   { to: '/admin/leads', label: 'Leads', icon: Inbox },
+  { to: '/admin/accounts', label: 'Accounts', icon: Users },
+  { to: '/admin/support', label: 'Support', icon: MessageSquare },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {

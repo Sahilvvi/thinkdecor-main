@@ -1,4 +1,14 @@
-// Redesigns a room photo with OpenAI's image edit model.
+// Redesigns, cleans up or replaces something in a room photo with OpenAI's
+// image edit model — one shared endpoint, three `mode`s:
+//   - "redesign" (default): a full-room restyle from a template/prompt.
+//   - "cleanup": erase whatever's under a painted red mask.
+//   - "replace": swap whatever's under a painted red mask for something else.
+// Cleanup/Replace mirror the Android app's proven approach exactly (see
+// CleanupViewModel.kt's REMOVE_PROMPT and ReplaceViewModel.kt's
+// buildPrompt()): the model has no separate mask input, so the mask is
+// baked into the photo itself as a solid red overlay client-side (see
+// src/components/app/MaskCanvas.tsx), and the prompt just tells the model
+// red means "edit here," not "paint it red."
 //
 // Deploy:  supabase functions deploy generate-redesign
 // Secrets: supabase secrets set OPENAI_API_KEY=sk-...
@@ -31,6 +41,30 @@ const MODEL = Deno.env.get("OPENAI_IMAGE_MODEL") ?? "gpt-image-1";
 const BUCKET = "generations";
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+type Mode = "redesign" | "cleanup" | "replace";
+
+// Fixed prompt, word-for-word from CleanupViewModel.kt's REMOVE_PROMPT —
+// Cleanup only ever removes, so this isn't user-editable.
+const CLEANUP_PROMPT =
+  "This photo has one or more areas marked with a solid red highlight. Treat the red " +
+  "highlight strictly as a location marker for editing, not as a color or design " +
+  "element: remove everything under each marked area completely and fill it back in " +
+  "naturally so it blends with the surrounding lighting, perspective, and materials. " +
+  "Make sure no red tint remains anywhere in the final image, and keep every other " +
+  "part of the photo exactly as it was.";
+
+// Mirrors ReplaceViewModel.kt's buildPrompt().
+function replacePrompt(userPrompt: string | undefined): string {
+  const instruction = userPrompt?.trim()
+    ? `replace it with: ${userPrompt.trim()}`
+    : "replace it with a single object that fits naturally with the rest of the room's style";
+  return "This photo has an area marked with a solid red highlight. Treat the red highlight " +
+    `strictly as a location marker for editing, not as a color or design element: ${instruction}. ` +
+    "Match the surrounding lighting, perspective, and materials so the edit blends in, make sure " +
+    "no red tint remains anywhere in the final image, and keep every other part of the photo " +
+    "exactly as it was.";
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -70,14 +104,16 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request.", code: "bad_request" }, 400);
   }
 
-  const { inputPath, templateKey, roomType, roomLabel, stylePrompt, prompt } = body as {
+  const { inputPath, templateKey, roomType, roomLabel, stylePrompt, prompt, mode: rawMode } = body as {
     inputPath?: string;
     templateKey?: string;
     roomType?: string;
     roomLabel?: string;
     stylePrompt?: string;
     prompt?: string;
+    mode?: string;
   };
+  const mode: Mode = rawMode === "cleanup" || rawMode === "replace" ? rawMode : "redesign";
 
   // ---- 1. check the photo before any credit is spent ------------------------
   // Only ever read the caller's own uploads.
@@ -105,6 +141,9 @@ Deno.serve(async (req) => {
     if (/rate limited/i.test(spendError.message)) {
       return json({ error: "Too many designs this hour — try again shortly.", code: "rate_limited" }, 429);
     }
+    if (/suspended/i.test(spendError.message)) {
+      return json({ error: "This account has been suspended.", code: "account_suspended" }, 403);
+    }
     console.error("spend_credit failed:", spendError);
     return json({ error: "Couldn't reserve a credit. Please try again.", code: "spend_failed" }, 500);
   }
@@ -113,12 +152,16 @@ Deno.serve(async (req) => {
     // ---- 3. generate ------------------------------------------------------
     const ext = (sourceBlob.type.split("/")[1] ?? "png").replace("jpeg", "jpg");
 
-    const fullPrompt = [
-      `Redesign this ${roomLabel ?? "room"} as a photorealistic interior photograph.`,
-      stylePrompt ? `Style: ${stylePrompt}.` : "",
-      prompt ? `Requested changes: ${prompt}.` : "",
-      "Keep the room's architecture, walls, windows, doors, camera angle and perspective exactly the same.",
-    ].filter(Boolean).join(" ");
+    const fullPrompt = mode === "cleanup"
+      ? CLEANUP_PROMPT
+      : mode === "replace"
+        ? replacePrompt(prompt)
+        : [
+          `Redesign this ${roomLabel ?? "room"} as a photorealistic interior photograph.`,
+          stylePrompt ? `Style: ${stylePrompt}.` : "",
+          prompt ? `Requested changes: ${prompt}.` : "",
+          "Keep the room's architecture, walls, windows, doors, camera angle and perspective exactly the same.",
+        ].filter(Boolean).join(" ");
 
     const form = new FormData();
     form.append("model", MODEL);
@@ -152,10 +195,11 @@ Deno.serve(async (req) => {
         user_id: user.id,
         input_image_url: inputPath,
         output_image_url: outputPath,
-        template_key: templateKey ?? null,
-        room_type: roomType ?? null,
-        prompt: prompt ?? null,
+        template_key: mode === "redesign" ? (templateKey ?? null) : null,
+        room_type: mode === "redesign" ? (roomType ?? null) : null,
+        prompt: mode === "replace" ? (prompt ?? null) : null,
         status: "completed",
+        kind: mode,
       })
       .select()
       .single();

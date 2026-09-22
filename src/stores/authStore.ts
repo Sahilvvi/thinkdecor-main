@@ -25,6 +25,9 @@ interface AuthState {
   resendConfirmation: (email: string, captchaToken?: string) => Promise<AuthResult>;
   requestPasswordReset: (email: string, captchaToken?: string) => Promise<AuthResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
+  /** Supabase emails a confirmation link to the new address (and, if "secure email change"
+   *  is on, the old one too) before the change actually takes effect — nothing flips here. */
+  updateEmail: (email: string) => Promise<AuthResult>;
   initialize: () => Promise<void>;
 }
 
@@ -119,6 +122,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   updatePassword: async (password) => {
     const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  },
+
+  updateEmail: async (email) => {
+    const { error } = await supabase.auth.updateUser({ email });
     return { error };
   },
 }));

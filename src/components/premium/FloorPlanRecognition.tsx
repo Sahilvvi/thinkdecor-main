@@ -1,7 +1,8 @@
 import { useRef, useState, useCallback } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowRight, FileImage, Upload, Boxes } from 'lucide-react';
 import { Reveal } from './Motion';
+import { useInViewOrStacked } from '../motion/StackPanels';
 
 /**
  * AI Floor Plan Recognition — 2D blueprint morphs into a furnished 3D render
@@ -9,7 +10,7 @@ import { Reveal } from './Motion';
  */
 export function FloorPlanRecognition() {
   const boxRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(boxRef, { once: true, margin: '-12% 0px' });
+  const inView = useInViewOrStacked(boxRef, { once: true, margin: '-12% 0px' });
   const [split, setSplit] = useState(52);
   const dragging = useRef(false);
 

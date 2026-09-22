@@ -78,7 +78,7 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (changes: { name: string; phone: string | null }) => {
+    mutationFn: async (changes: { name?: string; phone?: string | null; avatar_url?: string | null }) => {
       if (!user) throw new Error('Not signed in');
       const { error } = await db.from('profiles').update(changes).eq('user_id', user.id);
       if (error) throw error;

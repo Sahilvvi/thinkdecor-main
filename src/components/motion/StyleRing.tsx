@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  animate, motion, type MotionValue, type PanInfo, useAnimationFrame, useInView, useMotionTemplate,
+  animate, motion, type MotionValue, type PanInfo, useAnimationFrame, useMotionTemplate,
   useMotionValue, useMotionValueEvent, useReducedMotion, useTransform,
 } from 'framer-motion';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { TEMPLATES, type Template } from '@/lib/templates';
 import { cn } from '@/lib/utils';
 import { Reveal } from '@/components/premium/Motion';
+import { useInViewOrStacked } from './StackPanels';
 import { pad } from './hooks';
 
 const COUNT = TEMPLATES.length;
@@ -75,7 +76,7 @@ function Crosshair({ className }: { className?: string }) {
  * ------------------------------------------------------------------ */
 export function StyleRing() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { margin: '-20% 0px' });
+  const inView = useInViewOrStacked(sectionRef, { margin: '-20% 0px' });
   const reduce = useReducedMotion();
   const { radius, w, perspective } = useRingSize();
 

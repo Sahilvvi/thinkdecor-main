@@ -6,10 +6,25 @@ import { ArrowLeft, Loader2, Save, Eye, Send, Image as ImageIcon, Upload, Trash2
 import { SEO } from '@/components/shared/SEO';
 import { useAuthStore } from '@/stores/authStore';
 import {
-  createPost, updatePost, listAll, slugify, readingTime, renderMarkdown, type BlogPost,
+  createPost, updatePost, listAll, slugify, readingTime, renderMarkdown, postBodyClassName,
+  type BlogPost, type BlogPostLayout,
 } from '@/lib/blog';
 
 const TAGS = ['Product', 'Engineering', 'Design', 'Company', 'Guides'];
+
+const PROSE_WIDTHS: { value: NonNullable<BlogPostLayout['proseWidth']>; label: string }[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'wide', label: 'Wide' },
+];
+const RHYTHMS: { value: NonNullable<BlogPostLayout['rhythm']>; label: string }[] = [
+  { value: 'compact', label: 'Compact' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'relaxed', label: 'Relaxed' },
+];
+const IMAGE_STYLES: { value: NonNullable<BlogPostLayout['imageStyle']>; label: string }[] = [
+  { value: 'inline', label: 'Inline' },
+  { value: 'full', label: 'Full-bleed' },
+];
 
 const STARTER = `Write your article here.
 
@@ -76,6 +91,7 @@ export default function BlogEditor() {
   const [tag, setTag] = useState('Product');
   const [content, setContent] = useState(STARTER);
   const [published, setPublished] = useState(false);
+  const [layout, setLayout] = useState<BlogPostLayout>({});
 
   useEffect(() => {
     if (isNew) return;
@@ -87,6 +103,7 @@ export default function BlogEditor() {
         setTitle(p.title); setSlug(p.slug); setSlugTouched(true);
         setExcerpt(p.excerpt ?? ''); setCover(p.cover_url ?? '');
         setTag(p.tag ?? 'Product'); setContent(p.content || ''); setPublished(p.published);
+        setLayout(p.layout ?? {});
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
@@ -110,6 +127,7 @@ export default function BlogEditor() {
       read_minutes: readingTime(content),
       author_name: user?.user_metadata?.name || 'ThinkDecor',
       published: willPublish,
+      layout,
     };
     try {
       if (isNew) {
@@ -177,14 +195,14 @@ export default function BlogEditor() {
 
       <main className="container mx-auto max-w-[1100px] px-6 py-9">
         {preview ? (
-          <article className="mx-auto max-w-[720px]">
+          <article className={`mx-auto ${layout.proseWidth === 'wide' ? 'max-w-[900px]' : 'max-w-[720px]'}`}>
             {cover && <img src={cover} alt="" className="mb-8 aspect-[16/9] w-full rounded-2xl border border-foreground/[0.10] object-cover" />}
             <p className="text-[11px] uppercase tracking-[0.18em] text-primary">{tag}</p>
             <h1 className="mt-4 text-[clamp(1.9rem,4vw,2.8rem)] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
               {title || 'Untitled article'}
             </h1>
             {excerpt && <p className="mt-5 text-[17px] font-light leading-relaxed text-foreground/60">{excerpt}</p>}
-            <div className="post-body mt-10" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+            <div className={`${postBodyClassName(layout)} mt-10`} dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
           </article>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -242,7 +260,8 @@ export default function BlogEditor() {
               <p className="text-[12px] text-foreground/42">
                 Markdown: <code className="text-primary">## heading</code> · <code className="text-primary">**bold**</code> ·
                 <code className="text-primary"> - list</code> · <code className="text-primary"> &gt; quote</code> ·
-                <code className="text-primary"> ![alt](url)</code> — about {readingTime(content)} min read
+                <code className="text-primary"> ![alt](url)</code> · <code className="text-primary"> ![alt|wide](url)</code> ·
+                <code className="text-primary"> ![alt|full](url)</code> — about {readingTime(content)} min read
               </p>
             </div>
 
@@ -304,6 +323,68 @@ export default function BlogEditor() {
                       }`}
                     >
                       {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-foreground/[0.10] bg-foreground/[0.025] p-5">
+                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/50">Layout</p>
+                <p className="mt-1 text-[11.5px] text-foreground/40">
+                  Fixes for this article only — a bigger heading image, roomier
+                  spacing, that sort of thing. Doesn't touch other posts.
+                </p>
+
+                <p className="mt-4 text-[11px] font-medium text-foreground/50">Prose width</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {PROSE_WIDTHS.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setLayout((l) => ({ ...l, proseWidth: o.value }))}
+                      className={`rounded-full px-3 py-1.5 text-[12px] transition-colors ${
+                        (layout.proseWidth ?? 'normal') === o.value
+                          ? 'bg-primary font-medium text-primary-foreground'
+                          : 'border border-foreground/[0.12] text-foreground/58 hover:text-foreground'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-[11px] font-medium text-foreground/50">Paragraph rhythm</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {RHYTHMS.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setLayout((l) => ({ ...l, rhythm: o.value }))}
+                      className={`rounded-full px-3 py-1.5 text-[12px] transition-colors ${
+                        (layout.rhythm ?? 'normal') === o.value
+                          ? 'bg-primary font-medium text-primary-foreground'
+                          : 'border border-foreground/[0.12] text-foreground/58 hover:text-foreground'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-[11px] font-medium text-foreground/50">Default image size</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {IMAGE_STYLES.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setLayout((l) => ({ ...l, imageStyle: o.value }))}
+                      className={`rounded-full px-3 py-1.5 text-[12px] transition-colors ${
+                        (layout.imageStyle ?? 'inline') === o.value
+                          ? 'bg-primary font-medium text-primary-foreground'
+                          : 'border border-foreground/[0.12] text-foreground/58 hover:text-foreground'
+                      }`}
+                    >
+                      {o.label}
                     </button>
                   ))}
                 </div>

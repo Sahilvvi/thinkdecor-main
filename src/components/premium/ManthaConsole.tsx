@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Send, Check, Wallet, Palette, Sofa } from 'lucide-react';
+import { useInViewOrStacked } from '../motion/StackPanels';
 
 const PROMPT = 'Design my bedroom in Scandinavian style under £2,000.';
 
@@ -25,7 +26,7 @@ type Phase = 'idle' | 'typing' | 'thinking' | 'done';
 
 export function ManthaConsole() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-20% 0px' });
+  const inView = useInViewOrStacked(ref, { once: true, margin: '-20% 0px' });
   const started = useRef(false);
 
   const [phase, setPhase] = useState<Phase>('idle');

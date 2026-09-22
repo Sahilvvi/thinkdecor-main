@@ -3,16 +3,15 @@ import {
 } from '@/components/ui/accordion';
 import {
   FileDown, Clock, Smartphone, Gift, Mail,
-  Home as HomeIcon, Palette, Compass, Building2, HardHat, Wrench,
-  LayoutGrid, Sofa,
 } from 'lucide-react';
 
+import { useRef, useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SEO } from '@/components/shared/SEO';
 import { motion } from 'framer-motion';
+import { IntroTakeover } from '@/components/motion/IntroTakeover';
 import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
-import { Tilt } from '@/components/motion/primitives';
 import { FloorPlanStage } from '@/components/premium/FloorPlanStage';
 import { FloorPlanRecognition } from '@/components/premium/FloorPlanRecognition';
 import { DesignGenerator } from '@/components/premium/DesignGenerator';
@@ -23,17 +22,12 @@ import { AboutBlurb } from '@/components/premium/AboutBlurb';
 import { Testimonials } from '@/components/premium/Testimonials';
 import { CursorAura, ScrollProgress } from '@/components/motion/primitives';
 import type { TrustItem } from '@/components/motion/hooks';
+import { StackPanel, StackPanelGroup } from '@/components/motion/StackPanels';
 import { HeroStage } from '@/components/motion/HeroStage';
-import { StyleMarquee } from '@/components/motion/StyleMarquee';
-import { ProcessStory } from '@/components/motion/ProcessStory';
-import { StyleRing } from '@/components/motion/StyleRing';
-import { RoomAnatomy } from '@/components/motion/RoomAnatomy';
-import { RoadmapTimeline } from '@/components/motion/RoadmapTimeline';
-import { WhoItsFor } from '@/components/motion/WhoItsFor';
+import { HowItWorks } from '@/components/motion/HowItWorks';
 import { HangingCta } from '@/components/motion/HangingCta';
 import { NewsletterBand } from '@/components/motion/NewsletterBand';
 import { FREE_SIGNUP_CREDITS } from '@/lib/generation';
-import { TEMPLATES } from '@/lib/templates';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 
 /* ---------------------------------------------------------------- *
@@ -46,34 +40,10 @@ import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
 
-const HERO_TRUST: TrustItem[] = [
-  { icon: Smartphone, t: 'Any phone photo' },
-  { icon: Gift, t: `${FREE_SIGNUP_CREDITS} free redesigns` },
-  { icon: Clock, t: 'Results in seconds' },
-];
-
 const CTA_TRUST: TrustItem[] = [
   { icon: Smartphone, t: 'No hardware needed' },
   { icon: Gift, t: `${FREE_SIGNUP_CREDITS} free redesigns` },
   { icon: FileDown, t: 'Download every design' },
-];
-
-const MANTHA_FEATURES = [
-  `${TEMPLATES.length} interior styles to start from`,
-  'Describe changes in plain words',
-  'Regenerate for new variations',
-  'Every design saved to your library',
-];
-
-const WHO_ITS_FOR = [
-  { icon: HomeIcon, t: 'Homeowners', d: 'Plan before you spend', image: '/assets/samples/1.jpg' },
-  { icon: Palette, t: 'Interior designers', d: 'Concepts in minutes', image: '/assets/samples/2.jpg' },
-  { icon: Compass, t: 'Architects', d: 'Survey-grade plans', image: '/assets/samples/3.jpg' },
-  { icon: Building2, t: 'Real estate', d: 'Listings that convert', image: '/assets/samples/4.jpg' },
-  { icon: HardHat, t: 'Builders', d: 'Fewer site visits', image: '/assets/samples/5.jpg' },
-  { icon: Wrench, t: 'Contractors', d: 'Quote from real data', image: '/assets/samples/6.jpg' },
-  { icon: LayoutGrid, t: 'Modular kitchens', d: 'Exact fit, first time', image: '/assets/samples/7.jpg' },
-  { icon: Sofa, t: 'Furniture brands', d: 'Sell in the room', image: '/assets/samples/8.jpg' },
 ];
 
 const FAQS = [
@@ -105,7 +75,31 @@ const FAQS = [
 
 /* ================================================================ */
 
+// Plain in-memory flag — NOT sessionStorage/localStorage, which would
+// survive a real refresh too. This only lives as long as the current JS
+// execution context does: a genuine browser reload re-runs the whole
+// module from scratch (flag back to false, intro plays), while React
+// Router swapping back to "/" from another route (e.g. /signup, /contact)
+// keeps this module alive (flag stays true, intro is skipped). That's the
+// exact "only on a real refresh, never on in-app navigation" distinction
+// this needs — the intro is unskippable and plays on every full load by
+// product decision, but it was never meant to replay on every route change.
+let introPlayedThisSession = false;
+
 export default function Home() {
+  // Page content stays invisible until the intro's video starts shrinking,
+  // so it "arrives" alongside the video settling into the hero rather than
+  // popping in only once the whole takeover finishes. Skipped entirely if
+  // the intro already played earlier in this same browser session (see
+  // `introPlayedThisSession` above).
+  const [pageVisible, setPageVisible] = useState(introPlayedThisSession);
+  const [introDone, setIntroDone] = useState(introPlayedThisSession);
+  // The hero's own room photo, mounted underneath the intro the whole time
+  // (just invisible) — its real on-screen box is what the video shrinks
+  // into, measured live rather than guessed, so the handoff lines up on
+  // any viewport.
+  const heroStageBoxRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <div className="min-h-screen bg-background">
       <SEO
@@ -113,83 +107,82 @@ export default function Home() {
         description={`Upload a photo of any room and Mantha AI redesigns it in the style you choose. Start with ${FREE_SIGNUP_CREDITS} free redesigns, then ${INTRO} for your first month.`}
         canonical="https://thinkdecor.app/"
       />
-      <ScrollProgress />
-      <CursorAura />
-      <Navbar />
 
-      <main className="relative z-10 overflow-clip">
+      {!introDone && (
+        <IntroTakeover
+          onShrinkStart={() => setPageVisible(true)}
+          onDone={() => { introPlayedThisSession = true; setIntroDone(true); }}
+          getTargetRect={() => heroStageBoxRef.current?.getBoundingClientRect() ?? null}
+        />
+      )}
 
-        {/* ============================ HERO ============================ */}
-        <HeroStage trust={HERO_TRUST} />
+      <motion.div
+        initial={false}
+        animate={{ opacity: pageVisible ? 1 : 0 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <ScrollProgress />
+        <CursorAura />
+        <Navbar />
 
-        {/* ================= STYLE MARQUEE ================= */}
-        <StyleMarquee />
+        <main className="relative z-10 overflow-clip">
 
-        {/* ================= HOW IT WORKS — PINNED STORY ================= */}
-        <ProcessStory />
+        {/*
+          Stacking panels: the landing page's signature scroll mechanic
+          (ported from the design prototype). Each panel below sticks and
+          the next one slides up over it, scaling and dimming as it's
+          covered — a deck of cards, not a flat scroll. See StackPanels.tsx.
 
-        {/* ================= EARLY-BIRD OFFER ================= */}
-        <div className="pt-8">
-          <EarlyBirdStrip />
-        </div>
+          Order matches the design prototype (Hero → How it works → offer
+          strip → Mantha/templates → Testimonials → About → Comparison →
+          Pricing → FAQ) exactly — every prototype section, in the
+          prototype's own sequence, nothing from outside that list allowed
+          to interrupt it. Everything below FAQ (Room Anatomy, Roadmap, AI
+          Measurement, Floor Plan Recognition, Who it's for, final CTA,
+          Newsletter) has no equivalent in the prototype — kept for now, to
+          be arranged later.
+        */}
+        <StackPanelGroup className="px-3 sm:px-4">
+          <StackPanel>
+            <HeroStage onStageBoxMount={(el) => { heroStageBoxRef.current = el; }} />
+          </StackPanel>
 
-        {/* ================= DESIGN GENERATOR ================= */}
-        <DesignGenerator />
+          <StackPanel className="bg-gradient-to-b from-white to-[#EEF8F6]">
+            <HowItWorks />
+          </StackPanel>
 
-        {/* ================= STYLES IN THE ROUND ================= */}
-        <StyleRing />
+          <StackPanel>
+            <EarlyBirdStrip />
+          </StackPanel>
 
-        {/* ================= MANTHA AI — ROOM ANATOMY ================= */}
-        <RoomAnatomy features={MANTHA_FEATURES} />
+          <StackPanel>
+            <DesignGenerator />
+          </StackPanel>
 
-        {/* ================= COMPARISON ================= */}
-        <Comparison />
+          {/* StyleRing hidden — doesn't match the site's vibe (wrong/placeholder
+              photos, e.g. an empty garage under "Warm Natural"). Needs a proper
+              rebuild before it goes back in; tracked in the pending changes list. */}
 
-        {/* ================= PRICING ================= */}
-        <PricingTeaser />
+          {/* ================= TESTIMONIALS ================= */}
+          <StackPanel className="bg-gradient-to-b from-[#E6F4F1] to-white">
+            <Testimonials />
+          </StackPanel>
 
-        {/* ================= ROADMAP ================= */}
-        <RoadmapTimeline />
+          {/* ================= ABOUT ================= */}
+          <StackPanel>
+            <AboutBlurb />
+          </StackPanel>
 
-        {/* ================= MEASUREMENT — PRODUCT 01 ================= */}
-        <section id="measurement" className="scroll-mt-24 py-16 lg:py-20">
-          <div className="container mx-auto max-w-[1200px] px-6 sm:px-8">
-            <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
-              <div>
-                <Reveal>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Coming soon</p>
-                  <h2 className="mt-5 text-[clamp(2rem,4.2vw,3.2rem)] font-bold leading-[1.06] tracking-[-0.025em] text-foreground">
-                    AI Measurement
-                  </h2>
-                  <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
-                    Record a room with your phone and ThinkDecor returns a precise, editable
-                    floor plan — wall lengths, room dimensions, doors, windows and total area.
-                    In minutes, not site visits — arriving with the ThinkDecor scanning app.
-                  </p>
-                </Reveal>
-              </div>
+          <StackPanel>
+            <Comparison />
+          </StackPanel>
 
-              <Reveal y={36} blur={16}>
-                <FloorPlanStage />
-              </Reveal>
-            </div>
-          </div>
-        </section>
+          <StackPanel>
+            <PricingTeaser />
+          </StackPanel>
 
-        {/* ================= AI FLOOR PLAN RECOGNITION ================= */}
-        <FloorPlanRecognition />
-
-        {/* ================= WHO IT'S FOR ================= */}
-        <WhoItsFor personas={WHO_ITS_FOR} />
-
-        {/* ================= ABOUT ================= */}
-        <AboutBlurb />
-
-        {/* ================= TESTIMONIALS ================= */}
-        <Testimonials />
-
-        {/* ============================ FAQ ============================ */}
-        <section id="faq" className="relative scroll-mt-24 overflow-hidden py-16 lg:py-24">
+          {/* ============================ FAQ ============================ */}
+          <StackPanel id="faq" className="relative scroll-mt-24 bg-background py-16 lg:py-24">
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute inset-0 bg-[linear-gradient(hsl(168_30%_20%/0.035)_1px,transparent_1px),linear-gradient(90deg,hsl(168_30%_20%/0.035)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_70%_55%_at_50%_0%,#000,transparent)]" />
           </div>
@@ -241,45 +234,91 @@ export default function Home() {
                 </div>
               </Reveal>
 
-              <Stagger className="space-y-3" gap={0.08}>
-                <Accordion type="single" collapsible className="space-y-3">
+              {/*
+                Prototype-style list: a plain divider list with a serif
+                question and a plus/minus toggle, not a stack of shadowed
+                cards — closer to the prototype's own FAQ typography.
+              */}
+              <Stagger>
+                <Accordion type="single" collapsible className="border-t-[1.5px] border-primary">
                   {FAQS.map((f, i) => (
                     <motion.div key={f.q} variants={staggerItem}>
-                      <Tilt max={1.5} innerClassName="rounded-[18px]">
-                        <AccordionItem
-                          value={`q-${i}`}
-                          className="group overflow-hidden rounded-[18px] border border-foreground/[0.08] bg-card px-0 shadow-[0_6px_20px_-12px_hsl(168_30%_15%/0.14)] transition-all duration-400 hover:border-primary/30 hover:shadow-[0_16px_36px_-20px_hsl(168_30%_15%/0.25)] data-[state=open]:border-primary/35 data-[state=open]:shadow-[0_16px_36px_-20px_hsl(168_30%_15%/0.3)]"
-                        >
-                          <AccordionTrigger className="px-6 py-5 text-left text-[15px] font-medium text-foreground hover:no-underline">
-                            <span className="flex items-center gap-4">
-                              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-foreground/[0.04] font-mono text-[11.5px] text-foreground/45 transition-all duration-400 group-hover:bg-primary/10 group-hover:text-primary group-data-[state=open]:bg-primary group-data-[state=open]:text-primary-foreground">
-                                {String(i + 1).padStart(2, '0')}
-                              </span>
-                              {f.q}
-                            </span>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-6 pb-6 pl-[72px] text-[14.5px] leading-relaxed text-foreground/58">
-                            {f.a}
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Tilt>
+                      <AccordionItem value={`q-${i}`} className="border-b border-border">
+                        <AccordionTrigger className="group py-5 text-left font-display text-[clamp(18px,1.7vw,22px)] font-medium leading-[1.3] text-foreground hover:no-underline [&>span:last-child]:hidden">
+                          {f.q}
+                          <PlusMinusToggle />
+                        </AccordionTrigger>
+                        <AccordionContent className="max-w-[72ch] pb-6 pr-14 text-[14.5px] leading-relaxed text-foreground/68">
+                          {f.a}
+                        </AccordionContent>
+                      </AccordionItem>
                     </motion.div>
                   ))}
                 </Accordion>
               </Stagger>
             </div>
           </div>
-        </section>
+          </StackPanel>
 
-        {/* ========================= FINAL CTA ========================= */}
-        <HangingCta trust={CTA_TRUST} freeCredits={FREE_SIGNUP_CREDITS} />
+          {/*
+            ── Not in the prototype ──
+            Everything below has no equivalent section in the design
+            prototype. Kept in the build for now; order/placement still to
+            be decided.
+          */}
+          <StackPanel id="measurement" className="scroll-mt-24 bg-background py-16 lg:py-20">
+            <div className="container mx-auto max-w-[1200px] px-6 sm:px-8">
+              <div className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+                <div>
+                  <Reveal>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Coming soon</p>
+                    <h2 className="mt-5 text-[clamp(2rem,4.2vw,3.2rem)] font-bold leading-[1.06] tracking-[-0.025em] text-foreground">
+                      AI Measurement
+                    </h2>
+                    <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
+                      Record a room with your phone and ThinkDecor returns a precise, editable
+                      floor plan — wall lengths, room dimensions, doors, windows and total area.
+                      In minutes, not site visits — arriving with the ThinkDecor scanning app.
+                    </p>
+                  </Reveal>
+                </div>
 
-        {/* ========================= NEWSLETTER ========================= */}
-        <NewsletterBand />
+                <Reveal y={36} blur={16}>
+                  <FloorPlanStage />
+                </Reveal>
+              </div>
+            </div>
+          </StackPanel>
+
+          <StackPanel>
+            <FloorPlanRecognition />
+          </StackPanel>
+
+          {/* ========================= FINAL CTA ========================= */}
+          <StackPanel>
+            <HangingCta trust={CTA_TRUST} freeCredits={FREE_SIGNUP_CREDITS} />
+          </StackPanel>
+
+          {/* ========================= NEWSLETTER ========================= */}
+          <StackPanel>
+            <NewsletterBand />
+          </StackPanel>
+        </StackPanelGroup>
 
       </main>
 
-      <Footer />
+        <Footer />
+      </motion.div>
     </div>
+  );
+}
+
+/** The FAQ list's plus/minus toggle — the prototype's own "tog" mark, not a chevron. */
+function PlusMinusToggle() {
+  return (
+    <span className="relative ml-4 h-8 w-8 flex-none rounded-full shadow-[inset_0_0_0_1.5px_hsl(var(--border))] transition-colors duration-300 group-data-[state=open]:bg-primary">
+      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-3 -translate-x-1/2 -translate-y-1/2 bg-primary transition-colors duration-300 group-data-[state=open]:bg-primary-foreground" />
+      <span className="absolute left-1/2 top-1/2 h-[1.5px] w-3 -translate-x-1/2 -translate-y-1/2 rotate-90 bg-primary transition-transform duration-300 group-data-[state=open]:rotate-0 group-data-[state=open]:bg-primary-foreground" />
+    </span>
   );
 }

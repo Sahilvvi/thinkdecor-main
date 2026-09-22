@@ -6,7 +6,9 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SEO } from '@/components/shared/SEO';
 import { Reveal } from '@/components/premium/Motion';
-import { getBySlug, listPublished, renderMarkdown, type BlogPost as Post } from '@/lib/blog';
+import {
+  getBySlug, listPublished, postBodyClassName, renderMarkdown, type BlogPost as Post,
+} from '@/lib/blog';
 
 const FALLBACK_COVER = '/assets/samples/styled_room.png';
 
@@ -120,10 +122,11 @@ export default function BlogPostPage() {
                 </div>
               </Reveal>
 
-              {/* body */}
-              <div className="container mx-auto max-w-[720px] px-6 pb-20 pt-14 sm:px-8">
+              {/* body — the container itself has to widen for post-body--wide too,
+                  or the inner max-width just gets clipped by this narrower parent */}
+              <div className={`container mx-auto px-6 pb-20 pt-14 sm:px-8 ${post.layout?.proseWidth === 'wide' ? 'max-w-[900px]' : 'max-w-[720px]'}`}>
                 <div
-                  className="post-body"
+                  className={postBodyClassName(post.layout)}
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
                 />
               </div>

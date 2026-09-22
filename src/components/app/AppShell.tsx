@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, LayoutGrid, Images, Wand2, Plus, Menu, LogOut, CreditCard,
-  Settings as SettingsIcon,
+  Settings as SettingsIcon, PaintBucket, Eraser, Replace as ReplaceIcon, Compass,
 } from 'lucide-react';
 
 import { Logo } from '@/components/brand/Logo';
@@ -15,21 +15,29 @@ import {
 import { Magnetic } from '@/components/premium/Motion';
 import { useAuthStore } from '@/stores/authStore';
 import { useDisplayName } from '@/hooks/useProfile';
-import { useCreditBalance } from '@/lib/generation';
+import { useCreditBalance, useGenerationsRealtime } from '@/lib/generation';
 import { PHASE1_PLAN, pence } from '@/lib/billing';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 
 const NAV = [
   { to: '/app', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/app/explore', label: 'Explore', icon: Compass },
   { to: '/app/templates', label: 'Templates', icon: LayoutGrid },
-  { to: '/app/library', label: 'Library', icon: Images },
+  { to: '/app/library', label: 'Projects', icon: Images },
   { to: '/app/create', label: 'Create', icon: Wand2 },
+  { to: '/app/repaint', label: 'Repaint', icon: PaintBucket },
+  { to: '/app/cleanup', label: 'Cleanup', icon: Eraser },
+  { to: '/app/replace', label: 'Replace', icon: ReplaceIcon },
 ];
 
 /** Shared layout for every signed-in page: logo left, credits + profile right, section nav. */
 export function AppShell({ children }: { children: ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
+  // Mounted once here (not per-page) so a generation finishing — in this tab
+  // or another — updates Overview/Projects live, for as long as the visitor
+  // is anywhere under /app.
+  useGenerationsRealtime();
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -245,7 +253,7 @@ function ProfileMenu() {
           <LayoutDashboard className="mr-2 h-4 w-4" /> Overview
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate('/app/library')}>
-          <Images className="mr-2 h-4 w-4" /> Library
+          <Images className="mr-2 h-4 w-4" /> Projects
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate('/app/settings')}>
           <SettingsIcon className="mr-2 h-4 w-4" /> Settings

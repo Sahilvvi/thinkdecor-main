@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useInViewOrStacked } from './StackPanels';
 import { Magnetic, Reveal } from '@/components/premium/Motion';
 import { Tilt } from './primitives';
 
@@ -46,7 +47,7 @@ function useBoxSize<T extends HTMLElement>() {
  * ------------------------------------------------------------------ */
 export function RoomAnatomy({ features }: { features: string[] }) {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { margin: '-15% 0px' });
+  const inView = useInViewOrStacked(sectionRef, { margin: '-15% 0px' });
   const reduce = useReducedMotion();
   const [boxRef, box] = useBoxSize<HTMLDivElement>();
   const [sel, setSel] = useState(0);

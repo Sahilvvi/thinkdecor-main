@@ -40,7 +40,7 @@ export default function AdminAuth() {
       );
       return;
     }
-    nav('/admin/blog');
+    nav('/admin/overview');
   };
 
   const field =

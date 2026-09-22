@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +44,12 @@ export interface Generation {
   prompt: string | null;
   status: GenerationStatus;
   created_at: string;
+  /** What produced this row. Absent/undefined on rows from before repaint shipped — treat as 'redesign'. */
+  kind?: 'redesign' | 'repaint_floor' | 'repaint_walls' | 'cleanup' | 'replace';
+  /** Repaint session id, so trying a second texture/color reuses the same room photo. */
+  session_id?: string | null;
+  /** The Repaint microservice's X-Repaint-Meta payload (coverage, timing, etc). Redesign rows leave this null. */
+  meta?: Record<string, unknown> | null;
 }
 
 export class OutOfCreditsError extends Error {
@@ -82,6 +89,7 @@ const retryUnlessSetup = (count: number, err: unknown) => !isSetupError(err) && 
 function spendError(message: string): Error | null {
   if (/no credits remaining/i.test(message)) return new OutOfCreditsError();
   if (/rate limited/i.test(message)) return new RateLimitError();
+  if (/suspended/i.test(message)) return new GenerationError('This account has been suspended.');
   return null;
 }
 
@@ -160,6 +168,37 @@ export function useGenerations(limit?: number) {
   });
 }
 
+/**
+ * Live updates for Overview/Projects — without this, a generation finishing
+ * (in this tab or another) only shows up after something else triggers a
+ * refetch. RLS applies to the realtime changefeed exactly as it does to a
+ * normal read, so the `user_id=eq.` filter here is belt-and-braces, not the
+ * only thing stopping a visitor seeing someone else's rows.
+ *
+ * Mounted once in AppShell so every /app page benefits, not once per page.
+ */
+export function useGenerationsRealtime() {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`generations-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'generations', filter: `user_id=eq.${user.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['generations'] });
+          queryClient.invalidateQueries({ queryKey: ['credits'] });
+        },
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
+}
+
 export function useDeleteGeneration() {
   const queryClient = useQueryClient();
 
@@ -219,13 +258,14 @@ async function runPlaceholderGenerator(templateKey: string, attempt: number): Pr
   return pool[(start + attempt) % pool.length];
 }
 
-function safeFileName(name: string) {
+/** Also used by lib/repaint.ts — any user-uploaded photo needs the same sanitising. */
+export function safeFileName(name: string) {
   const cleaned = name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '');
   return `${Date.now()}-${cleaned || 'room.jpg'}`;
 }
 
-/** supabase.functions.invoke hides a non-2xx JSON body in error.context. */
-async function readFunctionError(error: unknown): Promise<{ error?: string; code?: string } | null> {
+/** supabase.functions.invoke hides a non-2xx JSON body in error.context. Also used by lib/repaint.ts. */
+export async function readFunctionError(error: unknown): Promise<{ error?: string; code?: string } | null> {
   const context = (error as { context?: Response } | null)?.context;
   if (context && typeof context.json === 'function') {
     try {
@@ -312,6 +352,53 @@ export function useGenerate() {
 
   return useMutation({
     mutationFn: generateRedesign,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      queryClient.invalidateQueries({ queryKey: ['generations'] });
+    },
+  });
+}
+
+interface MaskEditRequest {
+  userId: string;
+  /** The photo with the red mask already baked in — see MaskCanvas.exportMasked(). */
+  maskedImage: Blob;
+  mode: 'cleanup' | 'replace';
+  /** Replace only — what to put in the masked area. Empty lets the model pick something fitting. */
+  prompt?: string;
+}
+
+/**
+ * Cleanup and Replace, unlike Create, are always live — there's no sensible
+ * placeholder for "erase what I just painted over," so (like Repaint) this
+ * calls generate-redesign directly rather than branching on
+ * IS_PLACEHOLDER_GENERATOR. Same edge function as a plain redesign, just
+ * with `mode` set — see the comment at the top of that function for why.
+ */
+export async function generateMaskEdit({ userId, maskedImage, mode, prompt }: MaskEditRequest): Promise<Generation> {
+  const inputPath = `${userId}/${safeFileName(`${mode}.png`)}`;
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(inputPath, maskedImage, { contentType: 'image/png' });
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabase.functions.invoke('generate-redesign', {
+    body: { inputPath, mode, prompt: prompt?.trim() || undefined },
+  });
+  if (error) {
+    const payload = await readFunctionError(error);
+    if (payload?.code === 'out_of_credits') throw new OutOfCreditsError();
+    if (payload?.code === 'rate_limited') throw new RateLimitError();
+    throw new GenerationError(payload?.error ?? 'Generation failed. Please try again.');
+  }
+  return (data as { generation: Generation }).generation;
+}
+
+export function useGenerateMaskEdit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: generateMaskEdit,
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['credits'] });
       queryClient.invalidateQueries({ queryKey: ['generations'] });

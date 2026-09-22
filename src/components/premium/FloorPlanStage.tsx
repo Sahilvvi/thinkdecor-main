@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
-import { motion, useMotionValue, useSpring, useTransform, useScroll, useInView } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion';
+import { useInViewOrStacked } from '../motion/StackPanels';
 
 /* Room polygons in plan space (0-560 x 0-360) */
 const rooms = [
@@ -36,7 +37,7 @@ const walls = [
  */
 export function FloorPlanStage() {
   const hostRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(hostRef, { once: true, margin: '-5% 0px' });
+  const inView = useInViewOrStacked(hostRef, { once: true, margin: '-5% 0px' });
   const [hovered, setHovered] = useState<string | null>(null);
 
   /* cursor-driven rotation with spring physics */

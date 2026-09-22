@@ -74,7 +74,7 @@ export default function Library() {
             </span>
             Projects
           </p>
-          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Projects</h1>
+          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Projects</h1>
           <p className="mt-1 text-[15px] text-foreground/55">
             {generations && generations.length > 0
               ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`

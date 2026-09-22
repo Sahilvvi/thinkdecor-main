@@ -59,7 +59,7 @@ export default function ForgotPassword() {
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
               <MailCheck className="h-6 w-6 text-primary" />
             </span>
-            <h1 className="mt-5 text-3xl font-bold tracking-[-0.02em]">Check your inbox</h1>
+            <h1 className="mt-5 font-display text-[32px] font-normal tracking-[-0.01em]">Check your inbox</h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
               If an account exists for <span className="font-semibold text-foreground">{sentTo}</span>, we've sent a link
               to reset your password. It can take a minute to arrive — check spam too.
@@ -75,7 +75,7 @@ export default function ForgotPassword() {
         ) : (
           <>
             <div className="mb-8">
-              <h1 className="mb-2 text-3xl font-bold tracking-[-0.02em]">Forgot your password?</h1>
+              <h1 className="mb-2 font-display text-[32px] font-normal tracking-[-0.01em]">Forgot your password?</h1>
               <p className="text-muted-foreground">Enter your email and we'll send you a link to set a new one.</p>
             </div>
 

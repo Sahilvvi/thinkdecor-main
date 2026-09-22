@@ -126,7 +126,7 @@ export default function Signup() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                 <MailCheck className="h-6 w-6 text-primary" />
               </span>
-              <h1 className="mt-5 text-3xl font-bold tracking-[-0.02em]">Check your inbox</h1>
+              <h1 className="mt-5 font-display text-[32px] font-normal tracking-[-0.01em]">Check your inbox</h1>
               <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
                 We sent a confirmation link to <span className="font-semibold text-foreground">{pendingEmail}</span>.
                 Click it to finish creating your account — your {FREE_SIGNUP_CREDITS} free redesigns are waiting.
@@ -153,7 +153,7 @@ export default function Signup() {
           ) : (
             <>
               <div className="mb-8">
-                <h1 className="mb-2 text-3xl font-bold tracking-[-0.02em]">Create your account</h1>
+                <h1 className="mb-2 font-display text-[32px] font-normal tracking-[-0.01em]">Create your account</h1>
                 <p className="text-muted-foreground">
                   Your first {FREE_SIGNUP_CREDITS} redesigns are free — no card needed.
                 </p>

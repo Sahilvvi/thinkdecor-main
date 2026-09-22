@@ -39,7 +39,7 @@ export default function Overview() {
             </span>
             Your workspace
           </p>
-          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">
+          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">
             Hello, {firstName}
           </h1>
           <p className="mt-1 text-[15px] text-foreground/55">Pick up a design or start a new room.</p>

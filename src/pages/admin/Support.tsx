@@ -76,7 +76,7 @@ export default function Support() {
 
       <main className="container mx-auto max-w-[1180px] px-6 py-10">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.02em] text-foreground">Support</h1>
+          <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Support</h1>
           <p className="mt-1.5 text-[13.5px] text-foreground/50">
             {counts.all} total · {counts.open ?? 0} open
           </p>

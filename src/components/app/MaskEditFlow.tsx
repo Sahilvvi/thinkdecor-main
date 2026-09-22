@@ -128,7 +128,7 @@ export function MaskEditFlow({
             </span>
             {kicker}
           </p>
-          <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">{title}</h1>
+          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">{title}</h1>
           <p className="mt-1 max-w-[54ch] text-[15px] text-foreground/55">{description}</p>
         </div>
         {credits !== undefined && (

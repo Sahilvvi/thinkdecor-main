@@ -71,7 +71,7 @@ export default function ResetPassword() {
           </div>
         ) : !session ? (
           <div>
-            <h1 className="text-3xl font-bold tracking-[-0.02em]">This link has expired</h1>
+            <h1 className="font-display text-[32px] font-normal tracking-[-0.01em]">This link has expired</h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
               Reset links only work once and for a limited time. Request a new one and use it straight away.
             </p>
@@ -82,7 +82,7 @@ export default function ResetPassword() {
         ) : (
           <>
             <div className="mb-8">
-              <h1 className="mb-2 text-3xl font-bold tracking-[-0.02em]">Set a new password</h1>
+              <h1 className="mb-2 font-display text-[32px] font-normal tracking-[-0.01em]">Set a new password</h1>
               <p className="text-muted-foreground">Choose something you haven't used before.</p>
             </div>
 

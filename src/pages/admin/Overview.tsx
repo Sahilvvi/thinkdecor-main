@@ -39,7 +39,7 @@ export default function Overview() {
 
       <main className="container mx-auto max-w-[1180px] px-6 py-10">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.02em] text-foreground">Overview</h1>
+          <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Overview</h1>
           <p className="mt-1.5 text-[13.5px] text-foreground/50">How the product is doing, at a glance.</p>
         </div>
 

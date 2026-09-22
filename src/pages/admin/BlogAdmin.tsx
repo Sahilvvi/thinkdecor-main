@@ -49,7 +49,7 @@ export default function BlogAdmin() {
         {/* heading + stats */}
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
-            <h1 className="text-[28px] font-bold tracking-[-0.02em] text-foreground">Articles</h1>
+            <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Articles</h1>
             <p className="mt-1.5 text-[13.5px] text-foreground/50">
               {posts.length} total · {live} published · {posts.length - live} draft
             </p>

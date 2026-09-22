@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 
 const navLinks = [
-  { href: '/#get-started', label: 'How it works' },
+  { href: '/#how-it-works', label: 'How it works' },
   { href: '/#comparison', label: 'Compare' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/blog', label: 'Blog' },

@@ -70,12 +70,12 @@ export default function AdminAuth() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/[0.09]">
               <Lock className="h-4 w-4 text-primary" />
             </span>
-            <h1 className="text-[21px] font-semibold tracking-[-0.02em] text-foreground">
+            <h1 className="font-display text-[24px] font-normal tracking-[-0.01em] text-foreground">
               Sign in
             </h1>
           </div>
           <p className="mt-2.5 text-[13.5px] leading-relaxed text-foreground/50">
-            Manage journal articles and contact leads.
+            Manage the journal, leads, accounts and support from one place.
           </p>
 
           <form onSubmit={submit} className="mt-7 space-y-3.5">

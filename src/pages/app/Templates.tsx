@@ -34,7 +34,7 @@ export default function Templates() {
           </span>
           {TEMPLATES.length} styles
         </p>
-        <h1 className="mt-2 text-[clamp(1.7rem,3vw,2.3rem)] font-bold tracking-[-0.025em] text-foreground">Templates</h1>
+        <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Templates</h1>
         <p className="mt-1 text-[15px] text-foreground/55">
           Start from a style. You can still describe your own changes on top.
         </p>

@@ -62,7 +62,7 @@ export default function Login() {
           </div>
 
           <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold tracking-[-0.02em]">Welcome back</h1>
+            <h1 className="mb-2 font-display text-[32px] font-normal tracking-[-0.01em]">Welcome back</h1>
             <p className="text-muted-foreground">Sign in to pick up where you left off.</p>
           </div>
 

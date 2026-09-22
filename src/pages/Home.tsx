@@ -20,6 +20,7 @@ import { Comparison } from '@/components/premium/Comparison';
 import { PricingTeaser } from '@/components/premium/PricingTeaser';
 import { AboutBlurb } from '@/components/premium/AboutBlurb';
 import { Testimonials } from '@/components/premium/Testimonials';
+import { BlogTeaser } from '@/components/premium/BlogTeaser';
 import { CursorAura, ScrollProgress } from '@/components/motion/primitives';
 import type { TrustItem } from '@/components/motion/hooks';
 import { StackPanel, StackPanelGroup } from '@/components/motion/StackPanels';
@@ -297,6 +298,11 @@ export default function Home() {
           {/* ========================= FINAL CTA ========================= */}
           <StackPanel>
             <HangingCta trust={CTA_TRUST} freeCredits={FREE_SIGNUP_CREDITS} />
+          </StackPanel>
+
+          {/* ========================= BLOG TEASER ========================= */}
+          <StackPanel>
+            <BlogTeaser />
           </StackPanel>
 
           {/* ========================= NEWSLETTER ========================= */}

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
-import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
+import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
 import { TEMPLATES } from '@/lib/templates';
 
@@ -51,12 +51,14 @@ export default function Explore() {
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               Same architecture, same light — only the surfaces changed.
             </span>
-            <Link
-              to="/app/create"
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03]"
-            >
-              Try it on your room <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <Magnetic strength={0.25}>
+              <Link
+                to="/app/create"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03]"
+              >
+                Try it on your room <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Magnetic>
           </div>
         </div>
       </Reveal>

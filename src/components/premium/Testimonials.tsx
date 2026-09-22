@@ -91,10 +91,13 @@ export function Testimonials() {
   }, []);
 
   useEffect(() => {
-    if (paused) return;
+    // Also gated on trackInView so autoplay can't nudge the track while the
+    // carousel is only partially scrolled into view — on mobile that read
+    // as extra, unsettled motion on top of the page's own scroll.
+    if (paused || !trackInView) return;
     const id = setInterval(() => go(1), 5000);
     return () => clearInterval(id);
-  }, [paused, go]);
+  }, [paused, trackInView, go]);
 
   const dotCount = Math.max(1, SLIDES.length - perView + 1);
 

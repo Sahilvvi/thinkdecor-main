@@ -284,7 +284,7 @@ export default function Settings() {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-              <Button type="submit" disabled={updateProfile.isPending || !hydrated}>
+              <Button type="submit" variant="hero" disabled={updateProfile.isPending || !hydrated}>
                 {updateProfile.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save profile
               </Button>
@@ -365,7 +365,7 @@ export default function Settings() {
                   placeholder="Tell us what happened…"
                 />
               </div>
-              <Button type="submit" disabled={raiseTicket.isPending}>
+              <Button type="submit" variant="glow" disabled={raiseTicket.isPending}>
                 {raiseTicket.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Send query
               </Button>

@@ -21,6 +21,7 @@ interface AuthState {
     captchaToken?: string,
   ) => Promise<AuthResult & { needsConfirmation: boolean }>;
   signIn: (email: string, password: string, captchaToken?: string) => Promise<AuthResult>;
+  signInWithOAuth: (provider: 'google' | 'apple') => Promise<AuthResult>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string, captchaToken?: string) => Promise<AuthResult>;
   requestPasswordReset: (email: string, captchaToken?: string) => Promise<AuthResult>;
@@ -91,6 +92,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: { captchaToken },
     });
     set({ loading: false });
+    return { error };
+  },
+
+  signInWithOAuth: async (provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/app` },
+    });
     return { error };
   },
 

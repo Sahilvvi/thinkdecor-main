@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { Reveal } from '@/components/premium/Motion';
+import { Button } from '@/components/ui/button';
 import {
   listLeads, setLeadStatus, setLeadNotes, deleteLead, downloadCsv,
   STATUSES, type Lead, type LeadStatus,
@@ -118,7 +120,7 @@ export default function Leads() {
 
       <main className="container mx-auto max-w-[1180px] px-6 py-10">
         {/* heading */}
-        <div className="flex flex-wrap items-end justify-between gap-5">
+        <Reveal className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Leads</h1>
             <p className="mt-1.5 text-[13.5px] text-foreground/50">
@@ -132,10 +134,10 @@ export default function Leads() {
           >
             <Download className="h-4 w-4" /> Export CSV
           </button>
-        </div>
+        </Reveal>
 
         {/* filters */}
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Reveal delay={0.08} className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex flex-1 items-center gap-3 rounded-xl border border-foreground/[0.10] bg-foreground/[0.025] px-4 py-3">
             <Search className="h-4 w-4 flex-shrink-0 text-foreground/42" />
             <input
@@ -173,7 +175,7 @@ export default function Leads() {
               );
             })}
           </div>
-        </div>
+        </Reveal>
 
         {/* list */}
         <div className="mt-6 overflow-hidden rounded-2xl border border-foreground/[0.09]">
@@ -214,7 +216,7 @@ export default function Leads() {
               transition={{ delay: Math.min(i * 0.025, 0.4) }}
               className="group flex w-full items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 text-left transition-colors last:border-0 hover:bg-foreground/[0.025]"
             >
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary">
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary transition-transform duration-300 group-hover:scale-110">
                 {l.name?.slice(0, 1).toUpperCase() || '?'}
               </span>
 
@@ -353,7 +355,10 @@ export default function Leads() {
                       .map((r) => {
                         const Icon = r.icon;
                         return (
-                          <div key={r.label} className="rounded-xl border border-foreground/[0.08] bg-card px-4 py-3">
+                          <div
+                            key={r.label}
+                            className="rounded-xl border border-foreground/[0.08] bg-card px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_14px_30px_-22px_hsl(168_30%_15%/0.35)]"
+                          >
                             <dt className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-foreground/40">
                               <Icon className="h-3 w-3" /> {r.label}
                             </dt>
@@ -384,14 +389,15 @@ export default function Leads() {
                     placeholder="Only your team sees this."
                     className="mt-3 w-full resize-none rounded-xl border border-foreground/[0.12] bg-card px-4 py-3 text-[13.5px] leading-relaxed text-foreground outline-none transition-all duration-300 placeholder:text-foreground/35 focus:border-primary/45 focus:ring-4 focus:ring-primary/[0.09]"
                   />
-                  <button
+                  <Button
                     onClick={saveNote}
                     disabled={savingNote || noteDraft === (open.notes ?? '')}
-                    className="mt-2.5 flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03] disabled:opacity-40 disabled:hover:scale-100"
+                    variant="hero"
+                    className="mt-2.5 h-auto rounded-full px-5 py-2.5 text-[13px] disabled:hover:scale-100"
                   >
                     {savingNote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                     Save note
-                  </button>
+                  </Button>
                 </div>
               </div>
 

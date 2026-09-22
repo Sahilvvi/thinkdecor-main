@@ -63,10 +63,42 @@ function AppRoutes() {
     // the site doesn't replay the intro video — see Home.tsx), that native
     // behaviour is gone, so the scroll has to be done by hand here instead.
     const id = location.hash.slice(1);
-    const raf = requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    return () => cancelAnimationFrame(raf);
+    // Two separate races to cover here, both from landing on a page that
+    // hasn't finished settling yet:
+    // 1. Routes are wrapped in <AnimatePresence mode="wait"> with a ~0.3s
+    //    exit transition (PageTransition), so navigating here from another
+    //    route doesn't mount the target page — and its #section element —
+    //    until that exit finishes. A single rAF fires long before that,
+    //    finds nothing, and silently gives up.
+    // 2. Even once found, images further up the page (hero, template
+    //    thumbnails, ...) are often still loading, growing the document and
+    //    pushing the target further down *after* we've already scrolled to
+    //    where it used to be. A one-shot scrollIntoView lands short.
+    // So: poll for the element, then keep re-issuing the scroll while its
+    // absolute document position (not viewport position, which moves for
+    // the boring reason that we're mid-scroll) is still drifting, and stop
+    // once it's held still for a few frames.
+    let rafId: number;
+    const deadline = performance.now() + 3000;
+    let lastAbsTop: number | null = null;
+    let stableFrames = 0;
+    const tryScroll = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        const absTop = el.getBoundingClientRect().top + window.scrollY;
+        if (lastAbsTop === null || Math.abs(absTop - lastAbsTop) > 4) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          lastAbsTop = absTop;
+          stableFrames = 0;
+        } else {
+          stableFrames += 1;
+        }
+        if (stableFrames >= 10) return;
+      }
+      if (performance.now() < deadline) rafId = requestAnimationFrame(tryScroll);
+    };
+    rafId = requestAnimationFrame(tryScroll);
+    return () => cancelAnimationFrame(rafId);
   }, [location.pathname, location.hash]);
 
   return (

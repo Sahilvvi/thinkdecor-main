@@ -9,6 +9,7 @@ import {
 import { SEO } from '@/components/shared/SEO';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import { Tilt } from '@/components/motion/primitives';
+import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { useAuthStore } from '@/stores/authStore';
 import {
   FREE_SIGNUP_CREDITS, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
@@ -180,7 +181,7 @@ export default function Create() {
     <>
       <SEO title="Create | ThinkDecor" description="Redesign a room with Mantha AI." />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <Reveal className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
             <span className="relative flex h-1.5 w-1.5">
@@ -200,7 +201,7 @@ export default function Create() {
             {credits} {credits === 1 ? 'credit' : 'credits'} left · 1 per design
           </span>
         )}
-      </div>
+      </Reveal>
 
       {IS_PLACEHOLDER_GENERATOR && (
         <p className="mt-4 rounded-xl border border-border/70 bg-secondary/60 px-4 py-2.5 text-[12.5px] text-foreground/60">
@@ -334,12 +335,18 @@ export default function Create() {
                 Subscribe for {INTRO} your first month, then {MONTHLY}/month — {PHASE1_PLAN.credits} redesigns every month.
               </p>
             </div>
-            <Link
-              to="/pricing"
-              className="mt-4 inline-flex flex-shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary sm:mt-0"
-            >
-              Start for {INTRO}
-            </Link>
+            <Magnetic className="mt-4 flex-shrink-0 sm:mt-0">
+              <Link
+                to="/pricing"
+                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary transition-transform duration-300 hover:scale-[1.03]"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.12),transparent)] transition-transform duration-700 group-hover:translate-x-full"
+                />
+                <span className="relative">Start for {INTRO}</span>
+              </Link>
+            </Magnetic>
           </div>
         ) : (
           <div
@@ -360,14 +367,21 @@ export default function Create() {
                   type="button"
                   onClick={() => setTemplateKey(t.key)}
                   aria-pressed={templateKey === t.key}
-                  className={`flex flex-shrink-0 items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[12.5px] font-medium transition-colors ${
+                  className={`relative flex flex-shrink-0 items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[12.5px] font-medium transition-colors ${
                     templateKey === t.key
-                      ? 'border-primary bg-primary/10 text-primary'
+                      ? 'border-primary text-primary'
                       : 'border-border/70 text-foreground/65 hover:text-foreground'
                   }`}
                 >
-                  <img src={t.image} alt="" className="h-6 w-6 rounded-full object-cover" />
-                  {t.label}
+                  {templateKey === t.key && (
+                    <motion.span
+                      layoutId="create-template-active"
+                      className="absolute inset-0 rounded-full bg-primary/10"
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <img src={t.image} alt="" className="relative h-6 w-6 rounded-full object-cover" />
+                  <span className="relative">{t.label}</span>
                 </button>
               ))}
             </div>
@@ -464,7 +478,7 @@ function EmptyThread({
 }) {
   const featured = TEMPLATES.filter((t) => t.featured);
   return (
-    <div className="relative overflow-hidden rounded-[26px] border border-border/70 bg-card px-6 py-10 text-center sm:px-10">
+    <Reveal className="relative overflow-hidden rounded-[26px] border border-border/70 bg-card px-6 py-10 text-center sm:px-10">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(hsl(168_30%_20%/0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(168_30%_20%/0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000,transparent)]"
@@ -478,28 +492,30 @@ function EmptyThread({
         you want changed.
         {credits !== undefined && credits > 0 && ` You have ${credits} ${credits === 1 ? 'credit' : 'credits'}.`}
       </p>
-      <div className="relative mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3">
+      <Stagger className="relative mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3" gap={0.06}>
         {featured.map((t) => (
-          <Tilt key={t.key} max={6} innerClassName="rounded-2xl">
-            <button
-              type="button"
-              onClick={() => onPickTemplate(t.key)}
-              className={`group block w-full overflow-hidden rounded-2xl border text-left transition-colors ${
-                activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
-              }`}
-            >
-              <div className="overflow-hidden">
-                <img
-                  src={t.image}
-                  alt={`${t.label} style`}
-                  className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              <p className="px-3 py-2.5 text-[13.5px] font-semibold text-foreground">{t.label}</p>
-            </button>
-          </Tilt>
+          <motion.div key={t.key} variants={staggerItem}>
+            <Tilt max={6} innerClassName="rounded-2xl">
+              <button
+                type="button"
+                onClick={() => onPickTemplate(t.key)}
+                className={`group block w-full overflow-hidden rounded-2xl border text-left transition-colors ${
+                  activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <img
+                    src={t.image}
+                    alt={`${t.label} style`}
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <p className="px-3 py-2.5 text-[13.5px] font-semibold text-foreground">{t.label}</p>
+              </button>
+            </Tilt>
+          </motion.div>
         ))}
-      </div>
-    </div>
+      </Stagger>
+    </Reveal>
   );
 }

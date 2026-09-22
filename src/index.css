@@ -519,3 +519,14 @@
     transform: none !important;
   }
 }
+/* Below this, StackPanels.tsx switches the sticky/scale/dimming mechanic
+   off entirely (see its DESKTOP_QUERY) — match that here so panels actually
+   sit in normal flow instead of staying sticky with no JS driving them. */
+@media (max-width: 1023.98px) {
+  .stack-panel {
+    position: static;
+  }
+  .stack-panel + .stack-panel {
+    margin-top: 28px;
+  }
+}

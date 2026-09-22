@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Loader2, Users, ShieldCheck, ShieldOff, Ban, RotateCcw } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { Reveal } from '@/components/premium/Motion';
 import { useAdminUsers, useAdminUserAction, type AdminUserRow } from '@/lib/admin';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -51,7 +52,7 @@ export default function Accounts() {
       <SEO title="Accounts · Admin" description="Manage customer and admin accounts." />
 
       <main className="container mx-auto max-w-[1180px] px-6 py-10">
-        <div className="flex flex-wrap items-end justify-between gap-5">
+        <Reveal className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Accounts</h1>
             <p className="mt-1.5 text-[13.5px] text-foreground/50">
@@ -59,9 +60,9 @@ export default function Accounts() {
               {users?.filter((u) => u.bannedAt).length ?? 0} suspended
             </p>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="mt-7 flex items-center gap-3 rounded-xl border border-foreground/[0.10] bg-foreground/[0.025] px-4 py-3">
+        <Reveal delay={0.08} className="mt-7 flex items-center gap-3 rounded-xl border border-foreground/[0.10] bg-foreground/[0.025] px-4 py-3">
           <Search className="h-4 w-4 flex-shrink-0 text-foreground/42" />
           <input
             value={q}
@@ -69,7 +70,7 @@ export default function Accounts() {
             placeholder="Search name, email, phone…"
             className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/38"
           />
-        </div>
+        </Reveal>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-foreground/[0.09]">
           {isLoading && (
@@ -95,9 +96,9 @@ export default function Accounts() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.02, 0.4) }}
-              className="flex flex-wrap items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 transition-colors last:border-0 hover:bg-foreground/[0.02]"
+              className="group flex flex-wrap items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 transition-colors last:border-0 hover:bg-foreground/[0.02]"
             >
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary">
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary transition-transform duration-300 group-hover:scale-110">
                 {(u.name || u.email || '?').slice(0, 1).toUpperCase()}
               </span>
 

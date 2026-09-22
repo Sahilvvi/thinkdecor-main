@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Download, ImagePlus, Loader2, RefreshCw, X } from 'lucide-react';
 
@@ -7,6 +8,8 @@ import { SEO } from '@/components/shared/SEO';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
+import { Magnetic, Reveal } from '@/components/premium/Motion';
+import { Tilt } from '@/components/motion/primitives';
 import { useAuthStore } from '@/stores/authStore';
 import {
   GenerationError, OutOfCreditsError, RateLimitError, downloadStoredImage, isSetupError,
@@ -42,22 +45,24 @@ function PhotoPicker({
     <div>
       <p className="mb-1.5 text-[12.5px] font-medium text-foreground/65">{label}</p>
       {source ? (
-        <div className="relative inline-block">
-          <StoredImage src={refOf(source)} alt={label} className="h-24 w-24 rounded-xl object-cover" />
-          <button
-            type="button"
-            onClick={onClear}
-            aria-label={`Remove ${label.toLowerCase()}`}
-            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
+        <Tilt max={5} innerClassName="rounded-xl">
+          <div className="relative inline-block">
+            <StoredImage src={refOf(source)} alt={label} className="h-24 w-24 rounded-xl object-cover" />
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label={`Remove ${label.toLowerCase()}`}
+              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </Tilt>
       ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary/[0.04] text-primary transition-colors hover:bg-primary/[0.08]"
+          className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary/[0.04] text-primary transition-colors duration-300 hover:bg-primary/[0.08]"
         >
           <ImagePlus className="h-5 w-5" />
           <span className="text-[10px] font-semibold">Upload</span>
@@ -95,7 +100,12 @@ function ResultCard({
   onTryAnother: () => void;
 }) {
   return (
-    <div className="mt-6 max-w-[640px] overflow-hidden rounded-[20px] border border-border/70 bg-card">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="mt-6 max-w-[640px] overflow-hidden rounded-[20px] border border-border/70 bg-card"
+    >
       <StoredCompare before={result.input_image_url} after={result.output_image_url} />
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <span className="text-[12.5px] text-foreground/55">
@@ -122,7 +132,7 @@ function ResultCard({
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -166,7 +176,7 @@ function FloorTab({ outOfCredits }: { outOfCredits: boolean }) {
   };
 
   return (
-    <div className="mt-6 space-y-5">
+    <Reveal className="mt-6 space-y-5">
       <div className="flex flex-wrap gap-6">
         <PhotoPicker
           label="Room photo"
@@ -197,15 +207,17 @@ function FloorTab({ outOfCredits }: { outOfCredits: boolean }) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={send}
-        disabled={!canSend}
-        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {repaint.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {repaint.isPending ? 'Repainting floor…' : 'Repaint floor'}
-      </button>
+      <Magnetic strength={0.25}>
+        <button
+          type="button"
+          onClick={send}
+          disabled={!canSend}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-[0_14px_32px_-14px_hsl(168_100%_17%/0.55)] transition-transform duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+        >
+          {repaint.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {repaint.isPending ? 'Repainting floor…' : 'Repaint floor'}
+        </button>
+      </Magnetic>
 
       {outOfCredits && (
         <p className="text-[13px] text-foreground/60">
@@ -214,7 +226,7 @@ function FloorTab({ outOfCredits }: { outOfCredits: boolean }) {
       )}
 
       {result && <ResultCard result={result} onTryAnother={() => setResult(null)} />}
-    </div>
+    </Reveal>
   );
 }
 
@@ -260,7 +272,7 @@ function WallsTab({ outOfCredits }: { outOfCredits: boolean }) {
   };
 
   return (
-    <div className="mt-6 space-y-5">
+    <Reveal className="mt-6 space-y-5">
       <PhotoPicker
         label="Room photo"
         source={room}
@@ -279,11 +291,18 @@ function WallsTab({ outOfCredits }: { outOfCredits: boolean }) {
             type="button"
             onClick={() => setMode(m)}
             aria-pressed={mode === m}
-            className={`rounded-full border px-4 py-1.5 text-[13px] font-medium capitalize transition-colors ${
-              mode === m ? 'border-primary bg-primary/10 text-primary' : 'border-border/70 text-foreground/65 hover:text-foreground'
+            className={`relative rounded-full border px-4 py-1.5 text-[13px] font-medium capitalize transition-colors ${
+              mode === m ? 'border-primary text-primary' : 'border-border/70 text-foreground/65 hover:text-foreground'
             }`}
           >
-            {m}
+            {mode === m && (
+              <motion.span
+                layoutId="repaint-wall-mode-active"
+                className="absolute inset-0 rounded-full bg-primary/10"
+                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+              />
+            )}
+            <span className="relative">{m}</span>
           </button>
         ))}
       </div>
@@ -308,15 +327,17 @@ function WallsTab({ outOfCredits }: { outOfCredits: boolean }) {
         />
       )}
 
-      <button
-        type="button"
-        onClick={send}
-        disabled={!canSend}
-        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {repaint.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {repaint.isPending ? 'Repainting walls…' : 'Repaint walls'}
-      </button>
+      <Magnetic strength={0.25}>
+        <button
+          type="button"
+          onClick={send}
+          disabled={!canSend}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-[0_14px_32px_-14px_hsl(168_100%_17%/0.55)] transition-transform duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+        >
+          {repaint.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {repaint.isPending ? 'Repainting walls…' : 'Repaint walls'}
+        </button>
+      </Magnetic>
 
       {outOfCredits && (
         <p className="text-[13px] text-foreground/60">
@@ -325,7 +346,7 @@ function WallsTab({ outOfCredits }: { outOfCredits: boolean }) {
       )}
 
       {result && <ResultCard result={result} onTryAnother={() => setResult(null)} />}
-    </div>
+    </Reveal>
   );
 }
 
@@ -338,9 +359,16 @@ export default function Repaint() {
     <>
       <SEO title="Repaint | ThinkDecor" description="Preview real floor and wall materials in your own room." />
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <Reveal className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Repaint</h1>
+          <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            Repaint
+          </p>
+          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Repaint</h1>
           <p className="mt-1 text-[15px] text-foreground/55">
             Try a real floor texture or wall color/wallpaper in your own room, to scale.
           </p>
@@ -351,7 +379,7 @@ export default function Repaint() {
             {credits} {credits === 1 ? 'credit' : 'credits'} left · 1 per design
           </span>
         )}
-      </div>
+      </Reveal>
 
       {setupPending && (
         <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">

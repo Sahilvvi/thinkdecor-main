@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Inbox, Loader2, X, Clock, Check, MessageSquare } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { Reveal } from '@/components/premium/Motion';
+import { Button } from '@/components/ui/button';
 import {
   useAllTickets, useReplyToTicket, useSetTicketStatus, useTicketsRealtime,
   type SupportTicket, type TicketStatus,
@@ -75,14 +77,14 @@ export default function Support() {
       <SEO title="Support · Admin" description="Customer queries raised from the dashboard." />
 
       <main className="container mx-auto max-w-[1180px] px-6 py-10">
-        <div>
+        <Reveal>
           <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Support</h1>
           <p className="mt-1.5 text-[13.5px] text-foreground/50">
             {counts.all} total · {counts.open ?? 0} open
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mt-7 flex flex-wrap items-center gap-1 rounded-xl border border-foreground/[0.09] bg-foreground/[0.025] p-1">
+        <Reveal delay={0.08} className="mt-7 flex flex-wrap items-center gap-1 rounded-xl border border-foreground/[0.09] bg-foreground/[0.025] p-1">
           {[{ value: 'all' as const, label: 'All' }, ...STATUSES].map((s) => {
             const active = tab === s.value;
             return (
@@ -106,7 +108,7 @@ export default function Support() {
               </button>
             );
           })}
-        </div>
+        </Reveal>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-foreground/[0.09]">
           {isLoading && (
@@ -139,9 +141,9 @@ export default function Support() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.025, 0.4) }}
-              className="flex w-full items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 text-left transition-colors last:border-0 hover:bg-foreground/[0.025]"
+              className="group flex w-full items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 text-left transition-colors last:border-0 hover:bg-foreground/[0.025]"
             >
-              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-primary">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-primary transition-transform duration-300 group-hover:scale-110">
                 <MessageSquare className="h-4 w-4" />
               </span>
               <span className="min-w-0 flex-1">
@@ -202,14 +204,15 @@ export default function Support() {
                     className="mt-3 w-full resize-none rounded-xl border border-foreground/[0.12] bg-card px-4 py-3 text-[13.5px] leading-relaxed text-foreground outline-none transition-all duration-300 placeholder:text-foreground/35 focus:border-primary/45 focus:ring-4 focus:ring-primary/[0.09]"
                   />
                   <div className="mt-3 flex gap-2.5">
-                    <button
+                    <Button
                       onClick={send}
                       disabled={reply.isPending || !draft.trim()}
-                      className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03] disabled:opacity-40 disabled:hover:scale-100"
+                      variant="hero"
+                      className="h-auto rounded-full px-5 py-2.5 text-[13px] disabled:hover:scale-100"
                     >
                       {reply.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                       Save reply
-                    </button>
+                    </Button>
                     {open.status !== 'resolved' && (
                       <button
                         onClick={resolve}

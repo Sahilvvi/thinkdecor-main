@@ -5,7 +5,7 @@ import { Check, ArrowRight, Loader2, ShieldCheck, CreditCard, AlertTriangle } fr
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SEO } from '@/components/shared/SEO';
-import { Reveal } from '@/components/premium/Motion';
+import { Magnetic, Reveal, RevealWords } from '@/components/premium/Motion';
 import { Comparison } from '@/components/premium/Comparison';
 import { Testimonials } from '@/components/premium/Testimonials';
 import { NewsletterBand } from '@/components/motion/NewsletterBand';
@@ -83,54 +83,67 @@ export default function Pricing() {
 
       <main className="relative pt-28">
         {/* ---------------- HEADER ---------------- */}
-        <section className="relative overflow-hidden pb-10 pt-8">
-          <div className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-primary/[0.05] blur-[150px]" />
-          <div className="container relative mx-auto max-w-[1120px] px-6 text-center sm:px-8">
-            <Reveal>
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Early access</p>
-              <h1 className="mx-auto mt-5 max-w-[16ch] text-[clamp(2.2rem,5vw,3.7rem)] font-bold leading-[1.04] tracking-[-0.035em] text-foreground">
-                Start for 69p.
-              </h1>
-              <p className="mx-auto mt-5 max-w-[46ch] text-[15.5px] leading-relaxed text-foreground/58">
-                One plan, everything included. Your first month is 69p,
-                then £4.99 a month. Cancel anytime.
-              </p>
-            </Reveal>
-
-            {failure && (
+        <section className="relative overflow-hidden px-3 pb-10 pt-2 sm:px-4">
+          <div className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(170deg,#003B33,#00332C_60%,#002923)] py-14 sm:py-20">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  'radial-gradient(70% 55% at 88% 8%, rgba(0,160,140,.30), transparent 62%), radial-gradient(55% 45% at 0% 100%, rgba(0,89,78,.55), transparent 65%)',
+              }}
+            />
+            <div className="container relative mx-auto max-w-[1120px] px-6 text-center sm:px-8">
               <Reveal>
-                <div className="mx-auto mt-8 max-w-[560px] rounded-2xl border border-destructive/25 bg-destructive/[0.04] px-6 py-5 text-left">
-                  <p className="flex items-center gap-2 text-[14px] font-semibold text-foreground">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-destructive" />
-                    {failure.title}
-                  </p>
-                  {failure.detail && (
-                    <p className="mt-2 pl-6 text-[13px] leading-relaxed text-foreground/60">
-                      {failure.detail}
+                <p className="font-label text-[11px] font-bold uppercase tracking-[0.16em] text-[#8FE3D4]">
+                  Early access
+                </p>
+              </Reveal>
+              <h1 className="mx-auto mt-5 max-w-[16ch] font-display text-[clamp(2.2rem,5vw,3.7rem)] font-medium leading-[1.04] tracking-[-0.035em] text-white">
+                <RevealWords text="Start for 69p." delay={0.12} />
+              </h1>
+              <Reveal delay={0.35}>
+                <p className="mx-auto mt-5 max-w-[46ch] text-[15.5px] leading-relaxed text-white/75">
+                  One plan, everything included. Your first month is 69p,
+                  then £4.99 a month. Cancel anytime.
+                </p>
+              </Reveal>
+
+              {failure && (
+                <Reveal delay={0.42}>
+                  <div className="mx-auto mt-8 max-w-[560px] rounded-2xl border border-red-400/30 bg-red-500/10 px-6 py-5 text-left backdrop-blur-sm">
+                    <p className="flex items-center gap-2 text-[14px] font-semibold text-white">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-300" />
+                      {failure.title}
                     </p>
-                  )}
-                  <p className="mt-2 pl-6 text-[12.5px] text-foreground/45">
-                    Nothing was charged. Full details are in the browser console.
+                    {failure.detail && (
+                      <p className="mt-2 pl-6 text-[13px] leading-relaxed text-white/65">
+                        {failure.detail}
+                      </p>
+                    )}
+                    <p className="mt-2 pl-6 text-[12.5px] text-white/45">
+                      Nothing was charged. Full details are in the browser console.
+                    </p>
+                  </div>
+                </Reveal>
+              )}
+
+              {cancelled && (
+                <Reveal delay={0.42}>
+                  <p className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 text-[13px] text-white/70">
+                    Checkout cancelled — nothing was charged.
                   </p>
-                </div>
-              </Reveal>
-            )}
+                </Reveal>
+              )}
 
-            {cancelled && (
-              <Reveal delay={0.05}>
-                <p className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-foreground/[0.12] bg-card px-5 py-2.5 text-[13px] text-foreground/60">
-                  Checkout cancelled — nothing was charged.
-                </p>
-              </Reveal>
-            )}
-
-            {promoCode && (
-              <Reveal delay={0.05}>
-                <p className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.06] px-5 py-2.5 text-[13px] text-foreground/70">
-                  Promo code <span className="font-semibold text-foreground">{promoCode}</span> will be applied at checkout.
-                </p>
-              </Reveal>
-            )}
+              {promoCode && (
+                <Reveal delay={0.42}>
+                  <p className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-[#8FE3D4]/30 bg-[#00A08C]/10 px-5 py-2.5 text-[13px] text-white/80">
+                    Promo code <span className="font-semibold text-white">{promoCode}</span> will be applied at checkout.
+                  </p>
+                </Reveal>
+              )}
+            </div>
           </div>
         </section>
 
@@ -165,15 +178,17 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <button
-                  onClick={go}
-                  disabled={busy}
-                  className="group mt-9 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-[15px] font-semibold text-primary-foreground transition-all duration-300 hover:shadow-[0_18px_40px_-16px_hsl(168_100%_17%/0.6)] disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {busy ? 'Opening checkout…' : plan.cta}
-                  {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
-                </button>
+                <Magnetic className="!block w-full">
+                  <button
+                    onClick={go}
+                    disabled={busy}
+                    className="group mt-9 flex w-full items-center justify-center gap-2 rounded-full bg-[#00A08C] py-4 text-[15px] font-semibold text-white shadow-[0_20px_46px_-14px_rgba(0,160,140,0.5)] transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {busy ? 'Opening checkout…' : plan.cta}
+                    {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+                  </button>
+                </Magnetic>
               </div>
             </Reveal>
 

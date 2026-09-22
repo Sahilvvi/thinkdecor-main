@@ -21,6 +21,17 @@ import { cn } from '@/lib/utils';
  * Coverage is written to a `--cov` custom property (0 → 1) and read by CSS
  * for the dimming overlay, so the per-frame work stays a single style write
  * per panel.
+ *
+ * The sticky/scale/dimming geometry below is tuned for desktop panel
+ * proportions and assumes a panel is short relative to viewport height.
+ * Below `DESKTOP_QUERY`, most of these sections collapse to a single
+ * stacked column (see their own `lg:grid-cols-...` classes) and get much
+ * taller than the viewport, which pushes this math into ranges it was
+ * never designed for — panels barely stick before the next one starts
+ * covering them, reading as overlapping, half-loaded cards under a
+ * flickering dark veil. Rather than re-derive per-breakpoint geometry, the
+ * whole mechanic is switched off below that width: panels render in plain
+ * document flow with no sticky/scale/dimming at all.
  */
 
 const GAP = 16;
@@ -28,6 +39,8 @@ const GAP = 16;
 const SCALE = 0.045;
 /** Space kept clear at the top for the fixed header. */
 const HEADER_OFFSET = 84;
+/** Matches the `lg` breakpoint these sections already collapse to a single column at. */
+const DESKTOP_QUERY = '(min-width: 1024px)';
 
 /**
  * True for anything rendered inside a <StackPanel>. Framer Motion's
@@ -65,12 +78,28 @@ const Ctx = createContext<StackContext | null>(null);
 export function StackPanelGroup({ children, className }: { children: ReactNode; className?: string }) {
   const panels = useRef<HTMLElement[]>([]);
   const frame = useRef(0);
+  const isDesktopRef = useRef(
+    typeof window !== 'undefined' ? window.matchMedia(DESKTOP_QUERY).matches : true,
+  );
 
   const reduce =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /** Clears any sticky/scale/dimming inline styles so panels sit in plain flow. */
+  const resetPanels = useCallback(() => {
+    panels.current.forEach((p) => {
+      p.style.top = '';
+      p.style.zIndex = '';
+      p.style.transform = '';
+      p.style.transformOrigin = '';
+      p.style.setProperty('--cov', '0');
+      delete p.dataset.stackTop;
+    });
+  }, []);
+
   /** Coverage pass: runs per scroll frame, one style write per panel. */
   const cover = useCallback(() => {
+    if (!isDesktopRef.current) return;
     const H = window.innerHeight;
     panels.current.forEach((p, i) => {
       const next = panels.current[i + 1];
@@ -90,6 +119,7 @@ export function StackPanelGroup({ children, className }: { children: ReactNode; 
 
   /** Layout pass: decides where each panel sticks, then re-runs coverage. */
   const layout = useCallback(() => {
+    if (!isDesktopRef.current) { resetPanels(); return; }
     const H = window.innerHeight;
     panels.current.forEach((p, i) => {
       const h = p.offsetHeight;
@@ -99,7 +129,7 @@ export function StackPanelGroup({ children, className }: { children: ReactNode; 
       p.style.zIndex = String(i + 1);
     });
     cover();
-  }, [cover]);
+  }, [cover, resetPanels]);
 
   const register = useCallback(
     (el: HTMLElement) => {
@@ -131,11 +161,18 @@ export function StackPanelGroup({ children, className }: { children: ReactNode; 
     const ro = new ResizeObserver(() => layout());
     panels.current.forEach((p) => ro.observe(p));
 
+    // Crossing the desktop breakpoint (resize, rotate, devtools) flips the
+    // mechanic on/off — re-layout so panels pick up the right mode.
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    const onMqChange = () => { isDesktopRef.current = mq.matches; layout(); };
+    mq.addEventListener('change', onMqChange);
+
     layout();
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', layout);
       ro.disconnect();
+      mq.removeEventListener('change', onMqChange);
       if (frame.current) cancelAnimationFrame(frame.current);
     };
   }, [cover, layout]);

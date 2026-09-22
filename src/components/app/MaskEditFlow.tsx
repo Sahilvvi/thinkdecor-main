@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { MaskCanvas, type MaskCanvasHandle } from '@/components/app/MaskCanvas';
 import { StoredCompare } from '@/components/app/StoredImage';
+import { Magnetic, Reveal } from '@/components/premium/Motion';
+import { Tilt } from '@/components/motion/primitives';
 import {
   FREE_SIGNUP_CREDITS, GenerationError, OutOfCreditsError, RateLimitError,
   downloadStoredImage, isSetupError, useCreditBalance, useGenerateMaskEdit,
@@ -119,7 +121,7 @@ export function MaskEditFlow({
 
   return (
     <>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <Reveal className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
             <span className="relative flex h-1.5 w-1.5">
@@ -137,7 +139,7 @@ export function MaskEditFlow({
             {credits} {credits === 1 ? 'credit' : 'credits'} left · 1 per design
           </span>
         )}
-      </div>
+      </Reveal>
 
       {setupPending && (
         <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">
@@ -153,12 +155,18 @@ export function MaskEditFlow({
               Subscribe for {INTRO} your first month, then {MONTHLY}/month — {PHASE1_PLAN.credits} redesigns every month.
             </p>
           </div>
-          <Link
-            to="/pricing"
-            className="mt-4 inline-flex flex-shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary sm:mt-0"
-          >
-            Start for {INTRO}
-          </Link>
+          <Magnetic className="mt-4 flex-shrink-0 sm:mt-0">
+            <Link
+              to="/pricing"
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary transition-transform duration-300 hover:scale-[1.03]"
+            >
+              <span
+                aria-hidden
+                className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.12),transparent)] transition-transform duration-700 group-hover:translate-x-full"
+              />
+              <span className="relative">Start for {INTRO}</span>
+            </Link>
+          </Magnetic>
         </div>
       )}
 
@@ -167,30 +175,32 @@ export function MaskEditFlow({
           {/* ---------- 1. no photo yet ---------- */}
           {!source && !result && (
             <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
-                onClick={() => fileInputRef.current?.click()}
-                className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border-2 border-dashed px-8 py-20 text-center transition-colors duration-300 ${
-                  dragging ? 'border-primary bg-primary/[0.04]' : 'border-border/70 hover:border-primary/40'
-                }`}
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/[0.09] text-primary">
-                  <ImagePlus className="h-5 w-5" />
-                </span>
-                <p className="text-[16px] font-semibold text-foreground">Upload a room photo</p>
-                <p className="max-w-[40ch] text-[13.5px] text-foreground/55">
-                  Drop a photo here or tap to choose one — then paint over what you want to {mode === 'cleanup' ? 'remove' : 'replace'}.
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  hidden
-                  onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
-                />
-              </div>
+              <Tilt max={2} innerClassName="rounded-[24px]">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border-2 border-dashed px-8 py-20 text-center transition-colors duration-300 ${
+                    dragging ? 'border-primary bg-primary/[0.04]' : 'border-border/70 hover:border-primary/40'
+                  }`}
+                >
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/[0.09] text-primary">
+                    <ImagePlus className="h-5 w-5" />
+                  </span>
+                  <p className="text-[16px] font-semibold text-foreground">Upload a room photo</p>
+                  <p className="max-w-[40ch] text-[13.5px] text-foreground/55">
+                    Drop a photo here or tap to choose one — then paint over what you want to {mode === 'cleanup' ? 'remove' : 'replace'}.
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
+                  />
+                </div>
+              </Tilt>
             </motion.div>
           )}
 
@@ -236,22 +246,24 @@ export function MaskEditFlow({
                 >
                   <RotateCcw className="h-3.5 w-3.5" /> Different photo
                 </button>
-                <button
-                  type="button"
-                  onClick={generateNow}
-                  disabled={strokeCount === 0 || generate.isPending || outOfCredits || setupPending}
-                  className="ml-auto inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-[0_14px_32px_-14px_hsl(168_100%_17%/0.55)] transition-transform duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {generate.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> {generatingLabel}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" /> Generate <ArrowRight className="h-3.5 w-3.5" />
-                    </>
-                  )}
-                </button>
+                <Magnetic className="ml-auto" strength={0.25}>
+                  <button
+                    type="button"
+                    onClick={generateNow}
+                    disabled={strokeCount === 0 || generate.isPending || outOfCredits || setupPending}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-[0_14px_32px_-14px_hsl(168_100%_17%/0.55)] transition-transform duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    {generate.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> {generatingLabel}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" /> Generate <ArrowRight className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </button>
+                </Magnetic>
               </div>
             </motion.div>
           )}

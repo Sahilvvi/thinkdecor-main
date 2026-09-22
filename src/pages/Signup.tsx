@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/brand/Logo';
 import { SEO } from '@/components/shared/SEO';
 import { Captcha } from '@/components/auth/Captcha';
+import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { useAuthStore } from '@/stores/authStore';
 import { safeReturnPath } from '@/lib/returnPath';
 import { CAPTCHA_ENABLED } from '@/lib/captcha';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, Check, MailCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, MailCheck, Eye, EyeOff } from 'lucide-react';
 import { FREE_SIGNUP_CREDITS } from '@/lib/generation';
 
 const benefits = [
@@ -25,13 +27,15 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   /** Set when Supabase wants the email confirmed before the first sign-in. */
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaKey, setCaptchaKey] = useState(0);
-  const { signUp, resendConfirmation } = useAuthStore();
+  const { signUp, resendConfirmation, signInWithOAuth } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -72,6 +76,16 @@ export default function Signup() {
     else toast.success('Confirmation email sent again');
   };
 
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    setOauthLoading(provider);
+    const { error } = await signInWithOAuth(provider);
+    if (error) {
+      toast.error(error.message || `Couldn't sign up with ${provider === 'google' ? 'Google' : 'Apple'}`);
+      setOauthLoading(null);
+    }
+    // On success Supabase redirects the browser away — nothing left to reset.
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <SEO
@@ -79,50 +93,71 @@ export default function Signup() {
         description="Create a ThinkDecor account and redesign your first room with Mantha AI."
       />
 
-      {/* Left panel — the pitch */}
-      <div className="relative hidden flex-1 items-center justify-center overflow-hidden bg-primary lg:flex">
-        <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-white/[0.09] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-[hsl(160_84%_45%)]/20 blur-3xl" />
+      {/* Left panel — the art */}
+      <div className="relative hidden flex-1 items-end overflow-hidden lg:flex">
+        <img
+          src="/assets/samples/styled_room.png"
+          alt="A living room redesigned with ThinkDecor"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(0,51,44,.15), rgba(0,51,44,.35) 40%, rgba(0,51,44,.93)), radial-gradient(60% 50% at 0% 100%, rgba(0,160,140,.5), transparent 70%)',
+          }}
+        />
 
-        <div className="relative z-10 max-w-md p-12">
-          <h2 className="text-[clamp(2rem,3.4vw,2.8rem)] font-bold leading-[1.1] tracking-[-0.03em] text-primary-foreground">
-            See it redesigned.
+        <Reveal className="relative z-10 max-w-md p-12 pb-16">
+          <span className="font-label text-xs font-bold uppercase tracking-[0.16em] text-[#8FE3D4]">
+            Get started
+          </span>
+          <h2 className="mt-3 font-display text-[clamp(2.2rem,4vw,3.4rem)] font-normal leading-[0.95] text-white">
+            See it <em className="italic text-[#8FE3D4]">redesigned.</em>
           </h2>
-          <p className="mt-5 text-[15.5px] leading-relaxed text-primary-foreground/70">
+          <p className="mt-4 text-[15.5px] leading-relaxed text-white/80">
             Upload a photo of any room and Mantha AI restyles it in seconds — in the
             style you pick, keeping the space you already have.
           </p>
 
-          <ul className="mt-9 space-y-4">
+          <ul className="mt-8 grid gap-2.5">
             {benefits.map((benefit) => (
               <li key={benefit} className="flex items-center gap-3">
-                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/15">
-                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.18] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]">
+                  <Check className="h-3.5 w-3.5 text-white" />
                 </span>
-                <span className="text-[14.5px] text-primary-foreground/90">{benefit}</span>
+                <span className="text-[14.5px] text-white/90">{benefit}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       </div>
 
       {/* Right panel — the form */}
-      <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-8 md:px-16 lg:px-24">
+      <div
+        className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-8 md:px-16 lg:px-24"
+        style={{
+          background:
+            'radial-gradient(70% 50% at 100% 0%, rgba(0,160,140,.16), transparent 60%), linear-gradient(180deg, #FFFFFF, #EEF7F5)',
+        }}
+      >
         <div className="mx-auto w-full max-w-md">
-          <Link
-            to="/"
-            className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
+          <Reveal>
+            <Link
+              to="/"
+              className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to home
+            </Link>
 
-          <div className="mb-8">
-            <Logo size="lg" />
-          </div>
+            <div className="mb-8">
+              <Logo size="lg" />
+            </div>
+          </Reveal>
 
           {pendingEmail ? (
-            <div>
+            <Reveal delay={0.05}>
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                 <MailCheck className="h-6 w-6 text-primary" />
               </span>
@@ -149,98 +184,157 @@ export default function Signup() {
                   Start again
                 </button>
               </p>
-            </div>
+            </Reveal>
           ) : (
             <>
-              <div className="mb-8">
-                <h1 className="mb-2 font-display text-[32px] font-normal tracking-[-0.01em]">Create your account</h1>
-                <p className="text-muted-foreground">
-                  Your first {FREE_SIGNUP_CREDITS} redesigns are free — no card needed.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Alex Morgan"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
+              <Reveal delay={0.05}>
+                <div className="mb-8">
+                  <h1 className="mb-2 font-display text-[clamp(1.9rem,3.2vw,2.6rem)] font-normal tracking-[-0.01em] text-[hsl(var(--primary))]">
+                    Create your account
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Your first {FREE_SIGNUP_CREDITS} redesigns are free — no card needed.
+                  </p>
                 </div>
+              </Reveal>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="+44 7700 900000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                  <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
-                </div>
-
-                <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
-
-                <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading || captchaMissing}>
-                  {isLoading ? (
-                    <>
+              <Stagger className="space-y-5">
+                <motion.div variants={staggerItem} className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOAuth('google')}
+                    disabled={oauthLoading !== null || isLoading}
+                    className="flex items-center justify-center gap-2.5 rounded-2xl border border-border bg-white px-4 py-3.5 font-label text-sm font-bold text-foreground shadow-sm transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {oauthLoading === 'google' ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    'Create account'
-                  )}
-                </Button>
-              </form>
+                    ) : (
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary font-label text-xs font-extrabold text-primary">
+                        G
+                      </span>
+                    )}
+                    Google
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOAuth('apple')}
+                    disabled={oauthLoading !== null || isLoading}
+                    className="flex items-center justify-center gap-2.5 rounded-2xl border border-border bg-white px-4 py-3.5 font-label text-sm font-bold text-foreground shadow-sm transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {oauthLoading === 'apple' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-secondary font-label text-xs font-extrabold text-primary">
+                        A
+                      </span>
+                    )}
+                    Apple
+                  </button>
+                </motion.div>
 
-              <p className="mt-8 text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link to="/login" state={location.state} className="font-medium text-primary hover:underline">
-                  Sign in
-                </Link>
-              </p>
+                <motion.div
+                  variants={staggerItem}
+                  className="flex items-center gap-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground"
+                >
+                  <span className="h-px flex-1 bg-border" />
+                  or with email
+                  <span className="h-px flex-1 bg-border" />
+                </motion.div>
 
-              <p className="mt-6 text-center text-xs text-muted-foreground">
-                By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-                {' '}and{' '}
-                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
-              </p>
+                <motion.form onSubmit={handleSubmit} variants={staggerItem} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Alex Morgan"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="+44 7700 900000"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="pr-11"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+                  </div>
+
+                  <Captcha onToken={setCaptchaToken} resetKey={captchaKey} />
+
+                  <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading || captchaMissing}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      'Create account'
+                    )}
+                  </Button>
+                </motion.form>
+
+                <motion.p variants={staggerItem} className="text-center text-sm text-muted-foreground">
+                  Already have an account?{' '}
+                  <Link to="/login" state={location.state} className="font-medium text-primary hover:underline">
+                    Sign in
+                  </Link>
+                </motion.p>
+
+                <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground">
+                  By creating an account, you agree to our{' '}
+                  <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+                </motion.p>
+              </Stagger>
             </>
           )}
         </div>

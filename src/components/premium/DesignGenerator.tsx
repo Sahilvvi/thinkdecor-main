@@ -438,7 +438,7 @@ export function DesignGenerator() {
                 <img
                   src={t.image}
                   alt={t.alt}
-                  className="h-full w-full object-cover transition-transform duration-600 ease-out group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                 />
                 <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(0,52,45,0.85))]" />
                 <span className="pointer-events-none absolute right-3 top-3 flex gap-1">

@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, FileImage, Upload, Boxes } from 'lucide-react';
-import { Reveal } from './Motion';
+import { Reveal, Stagger, staggerItem } from './Motion';
 import { useInViewOrStacked } from '../motion/StackPanels';
 
 /**
@@ -155,7 +155,7 @@ export function FloorPlanRecognition() {
               </p>
             </Reveal>
 
-            <Reveal delay={0.12} className="mt-9 space-y-3">
+            <Stagger className="mt-9 space-y-3" gap={0.1}>
               {[
                 { icon: Upload, t: 'Upload your plan', d: 'JPEG, JPG, PNG or PDF — a photo works.' },
                 { icon: FileImage, t: 'AI reads the drawing', d: 'Walls, rooms, doors and windows detected automatically.' },
@@ -163,8 +163,9 @@ export function FloorPlanRecognition() {
               ].map((s, i) => {
                 const Icon = s.icon;
                 return (
-                  <div
+                  <motion.div
                     key={s.t}
+                    variants={staggerItem}
                     className="group flex items-start gap-4 rounded-2xl border border-foreground/[0.09] bg-foreground/[0.025] p-4 backdrop-blur-xl transition-all duration-500 hover:border-primary/30 hover:bg-primary/[0.04]"
                   >
                     <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 transition-all duration-500 group-hover:scale-110 group-hover:bg-primary">
@@ -177,10 +178,10 @@ export function FloorPlanRecognition() {
                       </span>
                       <span className="mt-0.5 block text-[13px] text-foreground/55">{s.d}</span>
                     </span>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </Reveal>
+            </Stagger>
 
 
           </div>

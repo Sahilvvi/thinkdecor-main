@@ -95,7 +95,7 @@ export default function Accounts() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.02, 0.4) }}
-              className="flex flex-wrap items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 last:border-0"
+              className="flex flex-wrap items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 transition-colors last:border-0 hover:bg-foreground/[0.02]"
             >
               <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary">
                 {(u.name || u.email || '?').slice(0, 1).toUpperCase()}

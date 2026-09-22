@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
-import { Reveal } from './Motion';
+import { Reveal, staggerItem } from './Motion';
+import { useInViewOrStacked } from '@/components/motion/StackPanels';
 
 /** Sample quotes, not verified reviews — labelled as such, same as elsewhere on the site. */
 const SLIDES = [
@@ -44,6 +46,7 @@ const SLIDES = [
  */
 export function Testimonials() {
   const trackRef = useRef<HTMLDivElement>(null);
+  const trackInView = useInViewOrStacked(trackRef, { once: true, margin: '-10% 0px' });
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const perView = usePerView();
@@ -135,7 +138,7 @@ export function Testimonials() {
         </div>
       </Reveal>
 
-      <div
+      <motion.div
         ref={trackRef}
         tabIndex={0}
         onMouseEnter={() => setPaused(true)}
@@ -146,41 +149,49 @@ export function Testimonials() {
           if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
           if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
         }}
+        initial="hidden"
+        animate={trackInView ? 'show' : 'hidden'}
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
         className="container mx-auto mt-10 grid auto-cols-[calc((100%-40px)/3)] grid-flow-col gap-5 overflow-x-auto px-6 pb-1 [scroll-snap-type:x_mandatory] [scrollbar-width:none] max-[1000px]:auto-cols-[calc((100%-20px)/2)] max-[640px]:auto-cols-[88%] sm:px-8 [&::-webkit-scrollbar]:hidden"
       >
-        {SLIDES.map((s) => (
-          <article
-            key={s.name}
-            className="flex flex-col overflow-hidden rounded-[22px] bg-card shadow-[inset_0_0_0_1px_hsl(var(--border))] [scroll-snap-align:start]"
-          >
-            <figure className="relative m-0 aspect-video overflow-hidden">
-              <img src={s.image} alt="" className="h-full w-full object-cover" />
-              <figcaption className="absolute bottom-3 left-3 rounded-full bg-[hsl(168_100%_17%/0.8)] px-2.5 py-1.5 font-label text-[10.5px] font-medium uppercase tracking-[0.08em] text-white">
-                {s.caption}
-              </figcaption>
-            </figure>
-            <div className="flex flex-1 flex-col gap-3.5 p-6">
-              <p aria-label={`${s.stars} out of 5`} className="flex gap-0.5 text-primary">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5" fill={i < s.stars ? 'currentColor' : 'none'} />
-                ))}
-              </p>
-              <blockquote className="flex-1 font-display text-[20px] leading-[1.35] text-primary">
-                &ldquo;{s.quote}&rdquo;
-              </blockquote>
-              <div className="flex items-center gap-3 border-t border-border pt-3.5">
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-display text-[18px] text-white">
-                  {s.name[0]}
-                </span>
-                <span>
-                  <b className="block font-label text-[15.5px] font-bold text-primary">{s.name}</b>
-                  <span className="text-[13.5px] leading-[1.3] text-muted-foreground">{s.role}</span>
-                </span>
+          {SLIDES.map((s) => (
+            <motion.article
+              key={s.name}
+              variants={staggerItem}
+              className="group flex flex-col overflow-hidden rounded-[22px] bg-card shadow-[inset_0_0_0_1px_hsl(var(--border))] [scroll-snap-align:start] transition-all duration-300 hover:-translate-y-1 hover:shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.35),0_24px_40px_-26px_hsl(168_40%_15%/0.5)]"
+            >
+              <figure className="relative m-0 aspect-video overflow-hidden">
+                <img
+                  src={s.image}
+                  alt=""
+                  className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                />
+                <figcaption className="absolute bottom-3 left-3 rounded-full bg-[hsl(168_100%_17%/0.8)] px-2.5 py-1.5 font-label text-[10.5px] font-medium uppercase tracking-[0.08em] text-white">
+                  {s.caption}
+                </figcaption>
+              </figure>
+              <div className="flex flex-1 flex-col gap-3.5 p-6">
+                <p aria-label={`${s.stars} out of 5`} className="flex gap-0.5 text-primary">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5" fill={i < s.stars ? 'currentColor' : 'none'} />
+                  ))}
+                </p>
+                <blockquote className="flex-1 font-display text-[20px] leading-[1.35] text-primary">
+                  &ldquo;{s.quote}&rdquo;
+                </blockquote>
+                <div className="flex items-center gap-3 border-t border-border pt-3.5">
+                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-display text-[18px] text-white">
+                    {s.name[0]}
+                  </span>
+                  <span>
+                    <b className="block font-label text-[15.5px] font-bold text-primary">{s.name}</b>
+                    <span className="text-[13.5px] leading-[1.3] text-muted-foreground">{s.role}</span>
+                  </span>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </motion.article>
+          ))}
+      </motion.div>
 
       <div className="mt-6 flex justify-center gap-2" aria-hidden="true">
         {Array.from({ length: dotCount }).map((_, i) => (

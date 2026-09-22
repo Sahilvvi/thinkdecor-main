@@ -68,14 +68,14 @@ export default function Overview() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="rounded-2xl border border-foreground/[0.09] bg-card p-5"
+                    className="group rounded-2xl border border-foreground/[0.09] bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_18px_40px_-26px_hsl(168_30%_15%/0.35)]"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/[0.10]">
-                      <Icon className="h-4 w-4 text-primary" />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/[0.10] transition-all duration-400 group-hover:scale-110 group-hover:bg-primary">
+                      <Icon className="h-4 w-4 text-primary transition-colors duration-400 group-hover:text-primary-foreground" />
                     </span>
-                    <p className="mt-3 text-[22px] font-bold tracking-[-0.02em] text-foreground">{c.value}</p>
-                    <p className="mt-0.5 text-[12px] text-foreground/45">{c.label}</p>
-                    <p className="mt-1 text-[11px] text-foreground/35">{c.sub}</p>
+                    <p className="mt-3 text-[28px] font-bold leading-none tracking-[-0.02em] text-foreground">{c.value}</p>
+                    <p className="mt-2 text-[12px] font-medium text-foreground/55">{c.label}</p>
+                    <p className="mt-1 text-[11.5px] text-foreground/40">{c.sub}</p>
                   </motion.div>
                 );
               })}

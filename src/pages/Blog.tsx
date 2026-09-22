@@ -186,7 +186,7 @@ export default function Blog() {
                     <img
                       src={lead.cover_url || FALLBACK_COVER}
                       alt=""
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.04]"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                     />
                   </figure>
                   <div className="relative flex flex-col justify-center gap-4 bg-[radial-gradient(70%_60%_at_100%_0%,rgba(0,160,140,0.4),transparent_60%)] p-[clamp(28px,4vw,56px)]">
@@ -226,7 +226,7 @@ export default function Blog() {
                         src={p.cover_url || FALLBACK_COVER}
                         alt=""
                         loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />
                       {p.tag && (
                         <span className="absolute left-3 top-3 rounded-full bg-white/90 px-[11px] py-1.5 font-label text-[12px] font-bold uppercase tracking-[0.08em] text-foreground backdrop-blur-md">

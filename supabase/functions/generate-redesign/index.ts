@@ -1,5 +1,5 @@
-// Redesigns, cleans up or replaces something in a room photo with OpenAI's
-// image edit model — one shared endpoint, three `mode`s:
+// Redesigns, cleans up or replaces something in a room photo with Google's
+// Gemini image model — one shared endpoint, three `mode`s:
 //   - "redesign" (default): a full-room restyle from a template/prompt.
 //   - "cleanup": erase whatever's under a painted red mask.
 //   - "replace": swap whatever's under a painted red mask for something else.
@@ -11,8 +11,8 @@
 // red means "edit here," not "paint it red."
 //
 // Deploy:  supabase functions deploy generate-redesign
-// Secrets: supabase secrets set OPENAI_API_KEY=sk-...
-//          (optional) supabase secrets set OPENAI_IMAGE_MODEL=gpt-image-1
+// Secrets: supabase secrets set GEMINI_API_KEY=...
+//          (optional) supabase secrets set GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 // Then set VITE_LIVE_GENERATION=true in the site's .env and rebuild.
 //
 // Self-contained (no ../_shared import) so it also deploys from the Supabase
@@ -35,8 +35,19 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
-const MODEL = Deno.env.get("OPENAI_IMAGE_MODEL") ?? "gpt-image-1";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+const MODEL = Deno.env.get("GEMINI_IMAGE_MODEL") ?? "gemini-2.5-flash-image";
+
+/** Chunked to avoid blowing the call stack on a 10MB image (spreading a huge
+ *  array straight into String.fromCharCode's arguments can overflow). */
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
 
 const BUCKET = "generations";
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
@@ -77,7 +88,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  if (!OPENAI_API_KEY) {
+  if (!GEMINI_API_KEY) {
     return json({ error: "Generation isn't switched on yet.", code: "not_configured" }, 503);
   }
 
@@ -150,8 +161,6 @@ Deno.serve(async (req) => {
 
   try {
     // ---- 3. generate ------------------------------------------------------
-    const ext = (sourceBlob.type.split("/")[1] ?? "png").replace("jpeg", "jpg");
-
     const fullPrompt = mode === "cleanup"
       ? CLEANUP_PROMPT
       : mode === "replace"
@@ -163,30 +172,46 @@ Deno.serve(async (req) => {
           "Keep the room's architecture, walls, windows, doors, camera angle and perspective exactly the same.",
         ].filter(Boolean).join(" ");
 
-    const form = new FormData();
-    form.append("model", MODEL);
-    form.append("image", sourceBlob, `room.${ext}`);
-    form.append("prompt", fullPrompt);
-    form.append("size", "1536x1024");
+    const inputMimeType = sourceBlob.type || "image/png";
+    const inputB64 = toBase64(new Uint8Array(await sourceBlob.arrayBuffer()));
 
-    const aiResponse = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: form,
-    });
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: fullPrompt },
+              { inlineData: { mimeType: inputMimeType, data: inputB64 } },
+            ],
+          }],
+          generationConfig: { responseModalities: ["IMAGE"] },
+        }),
+      },
+    );
     const aiResult = await aiResponse.json();
     if (!aiResponse.ok) {
       throw new Error(aiResult?.error?.message ?? `Image model returned ${aiResponse.status}`);
     }
-    const b64 = aiResult?.data?.[0]?.b64_json;
-    if (typeof b64 !== "string") throw new Error("Image model returned no image");
+    const parts: { inlineData?: { data?: string; mimeType?: string } }[] =
+      aiResult?.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = parts.find((p) => p.inlineData?.data);
+    const b64 = imagePart?.inlineData?.data;
+    if (typeof b64 !== "string") {
+      const blockReason = aiResult?.promptFeedback?.blockReason;
+      throw new Error(blockReason ? `Image model blocked the request: ${blockReason}` : "Image model returned no image");
+    }
+    const outputMimeType = imagePart.inlineData?.mimeType || "image/png";
+    const outputExt = outputMimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
 
     // ---- 4. store + record -------------------------------------------------
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const outputPath = `${user.id}/out-${Date.now()}.png`;
+    const outputPath = `${user.id}/out-${Date.now()}.${outputExt}`;
     const { error: uploadError } = await admin.storage
       .from(BUCKET)
-      .upload(outputPath, bytes, { contentType: "image/png" });
+      .upload(outputPath, bytes, { contentType: outputMimeType });
     if (uploadError) throw uploadError;
 
     const { data: generation, error: insertError } = await asUser

@@ -245,7 +245,7 @@ export interface GenerateRequest {
  *  - Live: the `generate-redesign` edge function checks the photo, spends the
  *    credit, calls the image model, stores the result, and refunds the credit
  *    if the model fails. Switched on with VITE_LIVE_GENERATION=true once the
- *    function is deployed with its OPENAI_API_KEY secret.
+ *    function is deployed with its GEMINI_API_KEY secret.
  *  - Placeholder (default): returns a sample design after a short delay, so
  *    credits, history and the library all work before a model is connected.
  */

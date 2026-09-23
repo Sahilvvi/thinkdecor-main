@@ -445,15 +445,63 @@
 .admin-x .status-cell{display:flex;align-items:center;gap:10px}
 .admin-x .foot-note{display:flex;justify-content:space-between;margin-top:14px;font-size:12.5px;color:var(--taupe-2);flex-wrap:wrap;gap:6px}
 
+/* ---------- global search, notifications, mobile chrome ---------- */
+.admin-x .search-wrap{position:relative;margin-left:auto;width:320px;flex:none}
+.admin-x .search-wrap .search{margin-left:0;width:100%;cursor:text}
+.admin-x .search input{flex:1;min-width:0;background:none;border:0;outline:0;font:inherit;color:var(--ink)}
+.admin-x .search input::placeholder{color:var(--taupe-2)}
+.admin-x .search:focus-within{background:#fff;box-shadow:inset 0 0 0 1.5px var(--brass),0 0 0 4px rgba(0,160,140,.12)}
+.admin-x .sresults,.admin-x .bell-pop{position:absolute;z-index:80;top:calc(100% + 8px);max-height:min(70vh,460px);overflow:auto;padding:8px;border-radius:16px;background:#fff;box-shadow:0 30px 60px -20px rgba(0,51,44,.35),inset 0 0 0 1px var(--stone-2);animation:admin-fade .18s ease}
+.admin-x .sresults{left:0;width:max(100%,440px)}
+.admin-x .bell-pop{right:0;width:min(320px,86vw)}
+.admin-x .sgroup{padding:10px 10px 6px;font:700 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--taupe-2)}
+.admin-x .sitem{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:11px;text-align:left;color:var(--ink);cursor:pointer;transition:background .15s}
+.admin-x .sitem.on,.admin-x .sitem:hover{background:var(--linen)}
+.admin-x .sitem .st{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.admin-x .sitem .st b{font:600 13.5px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-x .sitem .st small{font-size:12px;color:var(--taupe-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-x .sitem svg{color:var(--taupe-2);flex:none}
+.admin-x .sempty{padding:16px 12px;font-size:13px;color:var(--taupe)}
+.admin-x .bell-wrap{position:relative}
+.admin-x .pulse.bad{background:#E0A03A}
+.admin-x .scrim,.admin-x .menu-btn,.admin-x .side-close{display:none}
+
 /* ---------- responsive ---------- */
 @media (max-width: 1100px){
   .admin-x .shell{grid-template-columns:1fr}
-  .admin-x .side{display:none}
+  .admin-x .shell{padding:10px;gap:10px}
+  /* the sidebar becomes an off-canvas drawer: it used to just disappear, leaving no way to move between admin pages */
+  .admin-x .side{position:fixed;left:0;top:0;bottom:0;width:min(300px,86vw);height:100dvh;min-height:0;border-radius:0 24px 24px 0;z-index:70;overflow-y:auto;animation:none;transform:translateX(-105%);visibility:hidden;transition:transform .32s var(--ease),visibility 0s .32s}
+  .admin-x .shell.menu-open .side{transform:none;visibility:visible;transition:transform .32s var(--ease),visibility 0s}
+  .admin-x .scrim{display:block;position:fixed;inset:0;z-index:65;background:rgba(0,30,26,.5);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .3s}
+  .admin-x .shell.menu-open .scrim{opacity:1;pointer-events:auto}
+  .admin-x .side-close{display:grid;position:absolute;top:14px;right:12px;width:34px;height:34px;border-radius:10px;place-items:center;color:var(--on-dark-2);background:rgba(255,255,255,.08)}
+  .admin-x .menu-btn{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:var(--linen);color:var(--char);box-shadow:inset 0 0 0 1px var(--stone-2)}
+  .admin-x .top{padding:0 10px;gap:10px}
+  .admin-x .search-wrap{flex:1;width:auto;min-width:0;margin-left:0}
+  .admin-x .sresults{width:100%}
   .admin-x .kpis{grid-template-columns:repeat(2,1fr)}
   .admin-x .row2,.admin-x .row3{grid-template-columns:1fr}
   .admin-x .stats,.admin-x .funnel,.admin-x .strip{grid-template-columns:1fr}
   .admin-x .board{grid-template-columns:1fr}
   .admin-x .wrap{grid-template-columns:1fr}
   .admin-x .inbox{grid-template-columns:1fr}
-  .admin-x .search{display:none}
+  .admin-x .crumb{display:none}
+  .admin-x .search kbd{display:none}
+}
+
+@media (max-width: 700px){
+  /* editor top bar: keep Back / Preview / Save as icons so Publish stays on screen */
+  .admin-x .ebar{gap:8px;height:60px;padding:0 10px}
+  .admin-x .ebar .vr,.admin-x .ebar .doc,.admin-x .ebar .saved,.admin-x .ebar .btn kbd,.admin-x .ebar .lbl{display:none}
+  .admin-x .ebar .back{padding:0 8px}
+  .admin-x .ebar .btn{padding:0 12px}
+  .admin-x .ebar .right{gap:6px}
+  .admin-x .wrap{padding:14px 10px 32px;gap:14px}
+  .admin-x .paper{padding:24px 16px 22px;border-radius:20px;min-height:0}
+  .admin-x .title{font-size:30px}
+  .admin-x .doc-body textarea{min-height:320px}
+  .admin-x .view-site span{display:none}
+  .admin-x .view-site{padding:0 11px}
+  .admin-x .panel{padding:22px 16px 24px;border-radius:20px}
 }

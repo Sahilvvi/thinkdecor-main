@@ -21,7 +21,7 @@ function timeAgo(iso: string) {
 export default function BlogAdmin() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
   const [filter, setFilter] = useState<Filter>('all');
   const [confirm, setConfirm] = useState<BlogPost | null>(null);
 

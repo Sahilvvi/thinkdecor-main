@@ -43,7 +43,7 @@ export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
   const [view, setView] = useState<'board' | 'list'>('board');
   const [open, setOpen] = useState<Lead | null>(null);
   const [confirm, setConfirm] = useState<Lead | null>(null);

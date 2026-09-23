@@ -29,7 +29,7 @@ export default function Accounts() {
   const { data: users, isLoading, error } = useAdminUsers();
   const action = useAdminUserAction();
   const { user: me } = useAuthStore();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
   const [filter, setFilter] = useState<Filter>('all');
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<{ user: AdminUserRow; kind: 'ban' | 'demote' } | null>(null);

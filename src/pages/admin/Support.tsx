@@ -44,7 +44,7 @@ export default function Support() {
   const setStatus = useSetTicketStatus();
 
   const [tab, setTab] = useState<'all' | TicketStatus>('all');
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
 

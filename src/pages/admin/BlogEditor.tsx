@@ -169,7 +169,7 @@ export default function BlogEditor() {
       <SEO title={`${isNew ? 'New article' : 'Edit article'} · ThinkDecor`} description="Write a ThinkDecor journal article." />
 
       <header className="ebar">
-        <Link to="/admin/blog" className="back"><ArrowLeft width={16} height={16} /> Articles</Link>
+        <Link to="/admin/blog" className="back" aria-label="Back to articles"><ArrowLeft width={16} height={16} /> <span className="lbl">Articles</span></Link>
         <span className="vr" />
         <span className="doc">{title || 'Untitled article'}</span>
         <span className={`chip ${published ? 'live' : 'draft'}`}><i />{published ? 'Live' : 'Draft'}</span>
@@ -177,11 +177,11 @@ export default function BlogEditor() {
           <span className="saved"><Check width={14} height={14} /> Saved · {lastSaved.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
         )}
         <div className="right">
-          <button type="button" className="btn btn-line" onClick={() => setPreview((p) => !p)}>
-            <Eye width={15} height={15} /> {preview ? 'Write' : 'Preview'}
+          <button type="button" className="btn btn-line" aria-label={preview ? 'Back to writing' : 'Preview article'} onClick={() => setPreview((p) => !p)}>
+            <Eye width={15} height={15} /> <span className="lbl">{preview ? 'Write' : 'Preview'}</span>
           </button>
-          <button type="button" className="btn btn-line" onClick={() => save(false)} disabled={busy}>
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload width={15} height={15} />} Save <kbd>⌘S</kbd>
+          <button type="button" className="btn btn-line" aria-label="Save draft" onClick={() => save(false)} disabled={busy}>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload width={15} height={15} />} <span className="lbl">Save</span> <kbd>⌘S</kbd>
           </button>
           <button type="button" className="btn btn-dark" onClick={() => save(true)} disabled={busy}>
             <Send width={15} height={15} /> Publish

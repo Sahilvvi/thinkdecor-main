@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Download, MessageSquare, Check, Paperclip, Bookmark, Send } from 'lucide-react';
+import { Download, MessageSquare, Check, Bookmark, Send } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Seg } from '@/components/admin/Seg';
@@ -37,6 +37,16 @@ function exportCsv(tickets: SupportTicket[]) {
   URL.revokeObjectURL(url);
 }
 
+/** One-click starting points for common replies. They drop into the composer, so they're edited before sending. */
+const SAVED_REPLIES = [
+  { label: 'Thanks — looking into it', text: "Thanks for getting in touch — I'm looking into this now and will come back to you shortly." },
+  { label: 'Generation failed (credit refunded)', text: "Sorry about that. When a design fails we automatically refund the credit, so you haven't lost anything. Please try again, ideally with a straight-on, well-lit photo — and if it fails again, let us know and we'll dig in." },
+  { label: 'How credits work', text: 'Every account starts with free redesigns, and each design or regeneration uses one credit. Subscribers get a fresh batch of credits every month. You can see your balance in the sidebar and under Settings → Plan & billing.' },
+  { label: 'How to cancel', text: 'You can cancel any time from Settings → Plan & billing → Manage billing. Your plan stays active until the end of the period you have already paid for.' },
+  { label: 'Cleanup / Replace tips', text: 'For the best result, paint just the object you want to change (a little beyond its edges), and describe the replacement in a few words, for example "a low grey linen sofa". Painting a smaller area usually gives a cleaner edit.' },
+  { label: 'Resolved — anything else?', text: "Glad we could get that sorted. I'll mark this as resolved — just reply here if anything else comes up." },
+];
+
 export default function Support() {
   useTicketsRealtime();
   const { data: tickets, isLoading, error } = useAllTickets();
@@ -47,6 +57,7 @@ export default function Support() {
   const [q, setQ] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [savedOpen, setSavedOpen] = useState(false);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: tickets?.length ?? 0 };
@@ -122,9 +133,6 @@ export default function Support() {
           <div className="actions r" style={{ ['--i' as string]: 1 }}>
             <button type="button" className="btn btn-line" onClick={() => exportCsv(filtered)} disabled={!filtered.length}>
               <Download width={15} height={15} /> Export
-            </button>
-            <button type="button" className="btn btn-dark" disabled title="Coming soon">
-              <Bookmark width={15} height={15} /> Saved replies
             </button>
           </div>
         </div>
@@ -260,8 +268,34 @@ export default function Support() {
                       placeholder="Write a reply…"
                     />
                     <div className="bar">
-                      <button type="button" className="ico-btn" disabled title="Attach — coming soon"><Paperclip width={16} height={16} /></button>
-                      <button type="button" className="ico-btn" disabled title="Saved replies — coming soon"><Bookmark width={16} height={16} /></button>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className="ico-btn"
+                          title="Saved replies"
+                          aria-label="Saved replies"
+                          aria-expanded={savedOpen}
+                          onClick={() => setSavedOpen((o) => !o)}
+                        >
+                          <Bookmark width={16} height={16} />
+                        </button>
+                        {savedOpen && (
+                          <div className="bell-pop" role="menu" style={{ left: 0, right: 'auto', top: 'auto', bottom: 'calc(100% + 8px)', width: 'min(340px, 80vw)' }}>
+                            <div className="sgroup">Saved replies</div>
+                            {SAVED_REPLIES.map((r) => (
+                              <button
+                                key={r.label}
+                                type="button"
+                                role="menuitem"
+                                className="sitem"
+                                onClick={() => { setDraft((d) => (d.trim() ? `${d.trim()}\n\n${r.text}` : r.text)); setSavedOpen(false); }}
+                              >
+                                <span className="st"><b>{r.label}</b><small>{r.text}</small></span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <span className="spacer" />
                       {open.status !== 'resolved' && (
                         <button type="button" className="btn btn-line btn-sm" onClick={resolve} disabled={setStatus.isPending}>Mark resolved</button>

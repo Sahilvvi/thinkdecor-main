@@ -53,6 +53,15 @@ export function useAdminUserAction() {
   });
 }
 
+/** Give someone admin access by email — promotes an existing account, or emails an invite. */
+export function useInviteAdmin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (email: string) => callAdminUsers<{ ok: true; status: 'promoted' | 'invited' }>({ action: 'invite', email }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /* Overview analytics — visitors, signups, generations, revenue         */
 /* ------------------------------------------------------------------ */

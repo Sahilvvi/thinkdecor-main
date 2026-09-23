@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     return json({ error: "This account does not have admin access." }, 403);
   }
 
-  let body: { action?: string; userId?: string };
+  let body: { action?: string; userId?: string; email?: string };
   try {
     body = await req.json();
   } catch {
@@ -92,6 +92,39 @@ Deno.serve(async (req) => {
     });
 
     return json({ users });
+  }
+
+  // Give someone admin access by email. An existing account is promoted on the
+  // spot; anyone else is sent a Supabase invite and gets the role up front, so
+  // it's waiting for them the moment they accept.
+  if (action === "invite") {
+    const email = String(body.email ?? "").trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return json({ error: "Enter a valid email address." }, 400);
+    }
+    const { data: listed, error: listErr } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (listErr) return json({ error: listErr.message }, 500);
+    const existing = listed.users.find((u) => u.email?.toLowerCase() === email);
+
+    let targetId = existing?.id;
+    let status: "promoted" | "invited" = "promoted";
+    if (!targetId) {
+      const site = Deno.env.get("SITE_URL") ?? "";
+      const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
+        email,
+        site ? { redirectTo: `${site.replace(/\/$/, "")}/admin` } : undefined,
+      );
+      if (inviteErr || !invited?.user) {
+        return json({ error: inviteErr?.message ?? "Couldn't send the invitation." }, 400);
+      }
+      targetId = invited.user.id;
+      status = "invited";
+    }
+    const { error: roleErr } = await admin
+      .from("user_roles")
+      .upsert({ user_id: targetId, role: "admin" }, { onConflict: "user_id,role" });
+    if (roleErr) return json({ error: roleErr.message }, 500);
+    return json({ ok: true, status });
   }
 
   if (!userId) return json({ error: "userId is required." }, 400);

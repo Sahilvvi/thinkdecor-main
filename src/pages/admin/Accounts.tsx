@@ -6,7 +6,7 @@ import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Seg } from '@/components/admin/Seg';
 import { CountUp } from '@/components/admin/CountUp';
-import { useAdminUsers, useAdminUserAction, type AdminUserRow } from '@/lib/admin';
+import { useAdminUsers, useAdminUserAction, useInviteAdmin, type AdminUserRow } from '@/lib/admin';
 import { useAuthStore } from '@/stores/authStore';
 
 function when(iso: string | null) {
@@ -28,6 +28,23 @@ type Filter = 'all' | 'admins' | 'members' | 'suspended';
 export default function Accounts() {
   const { data: users, isLoading, error } = useAdminUsers();
   const action = useAdminUserAction();
+  const invite = useInviteAdmin();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+
+  const sendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = inviteEmail.trim();
+    if (!email) return;
+    try {
+      const res = await invite.mutateAsync(email);
+      toast.success(res.status === 'promoted' ? `${email} is now an admin.` : `Invitation sent to ${email}.`);
+      setInviteOpen(false);
+      setInviteEmail('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't add that admin.");
+    }
+  };
   const { user: me } = useAuthStore();
   const [q, setQ] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
   const [filter, setFilter] = useState<Filter>('all');
@@ -101,7 +118,7 @@ export default function Accounts() {
             <button type="button" className="btn btn-line" onClick={() => exportCsv(filtered)} disabled={!filtered.length}>
               <Download width={15} height={15} /> Export
             </button>
-            <button type="button" className="btn btn-dark" disabled title="Coming soon">
+            <button type="button" className="btn btn-dark" onClick={() => setInviteOpen(true)}>
               <UserPlus width={15} height={15} /> Invite admin
             </button>
           </div>
@@ -269,6 +286,44 @@ export default function Accounts() {
       </section>
 
       <AnimatePresence>
+        {inviteOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 px-6 backdrop-blur-sm"
+            onClick={() => !invite.isPending && setInviteOpen(false)}
+          >
+            <motion.form
+              onSubmit={sendInvite}
+              initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="admin-x w-full max-w-[420px] rounded-2xl bg-white p-7 shadow-2xl"
+            >
+              <h3 className="font-display text-[20px] text-[--char]">Invite an admin</h3>
+              <p className="mt-2.5 text-[14px] leading-relaxed" style={{ color: 'var(--taupe)' }}>
+                Someone who already has an account is made an admin straight away. Anyone else is emailed an invitation
+                and gets admin access as soon as they accept it.
+              </p>
+              <input
+                type="email"
+                required
+                autoFocus
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="name@company.com"
+                aria-label="Email address"
+                className="mt-5 h-11 w-full rounded-xl px-3.5 text-[14.5px] outline-none"
+                style={{ boxShadow: 'inset 0 0 0 1px var(--stone)', color: 'var(--ink)' }}
+              />
+              <div className="mt-6 flex gap-3">
+                <button type="button" onClick={() => setInviteOpen(false)} disabled={invite.isPending} className="btn btn-line flex-1 justify-center">Cancel</button>
+                <button type="submit" disabled={invite.isPending || !inviteEmail.trim()} className="btn btn-dark flex-1 justify-center">
+                  {invite.isPending && <Loader2 width={15} height={15} className="animate-spin" />} Add admin
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+
         {confirm && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

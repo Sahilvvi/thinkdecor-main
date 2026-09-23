@@ -10,7 +10,8 @@ import { SEO } from '@/components/shared/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Reveal } from '@/components/premium/Motion';
+import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
+import { Tilt } from '@/components/motion/primitives';
 import { useAuthStore } from '@/stores/authStore';
 import {
   isActiveSubscription, useProfile, useSubscription, useUpdateProfile,
@@ -187,13 +188,14 @@ export default function Settings() {
       </Reveal>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
-        <Reveal delay={0.06} className="space-y-6">
+        <Stagger className="space-y-6" gap={0.08}>
           {/* Profile */}
-          <section className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]">
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
+          >
             <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <User className="h-4 w-4 text-primary" />
-              </span>
+              <SectionIcon icon={User} />
               Profile
             </h2>
 
@@ -284,19 +286,22 @@ export default function Settings() {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-              <Button type="submit" variant="hero" disabled={updateProfile.isPending || !hydrated}>
-                {updateProfile.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Save profile
-              </Button>
+              <Magnetic strength={0.2}>
+                <Button type="submit" variant="hero" disabled={updateProfile.isPending || !hydrated}>
+                  {updateProfile.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Save profile
+                </Button>
+              </Magnetic>
             </form>
-          </section>
+          </motion.section>
 
           {/* Password */}
-          <section className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]">
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
+          >
             <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <Lock className="h-4 w-4 text-primary" />
-              </span>
+              <SectionIcon icon={Lock} />
               Password
             </h2>
             <form onSubmit={savePassword} className="mt-5 space-y-4">
@@ -329,14 +334,15 @@ export default function Settings() {
                 Update password
               </Button>
             </form>
-          </section>
+          </motion.section>
 
           {/* Support */}
-          <section className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]">
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
+          >
             <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <LifeBuoy className="h-4 w-4 text-primary" />
-              </span>
+              <SectionIcon icon={LifeBuoy} />
               Raise a query
             </h2>
             <p className="mt-1.5 text-[13px] text-foreground/50">
@@ -391,11 +397,13 @@ export default function Settings() {
                 ))}
               </div>
             )}
-          </section>
-        </Reveal>
+          </motion.section>
+        </Stagger>
 
-        <Reveal delay={0.12} className="space-y-6">
+        <Stagger className="space-y-6" gap={0.08}>
           {/* Plan & credits */}
+          <motion.div variants={staggerItem}>
+          <Tilt max={2.5} innerClassName="rounded-[22px]">
           <section className="relative overflow-hidden rounded-[22px] bg-[linear-gradient(150deg,hsl(168_100%_14%),hsl(168_85%_20%)_60%,hsl(166_70%_27%))] p-6 text-white shadow-[0_24px_60px_-32px_hsl(168_100%_17%/0.55)]">
             <div
               aria-hidden
@@ -482,21 +490,38 @@ export default function Settings() {
               </div>
             )}
           </section>
+          </Tilt>
+          </motion.div>
 
-          <section className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]">
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
+          >
             <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <Monitor className="h-4 w-4 text-primary" />
-              </span>
+              <SectionIcon icon={Monitor} />
               Session
             </h2>
             <p className="mt-2 text-[13.5px] text-foreground/55">Signed in as {user?.email}</p>
-            <Button variant="outline" className="mt-4" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4" /> Sign out
-            </Button>
-          </section>
-        </Reveal>
+            <Magnetic strength={0.2} className="mt-4 inline-block">
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" /> Sign out
+              </Button>
+            </Magnetic>
+          </motion.section>
+        </Stagger>
       </div>
     </>
+  );
+}
+
+/** Glowing circular icon badge — the same treatment used on every other
+ *  premium card in the app (empty states, mask-edit flow), so Settings'
+ *  section headers stop reading as a plainer, older style of card. */
+function SectionIcon({ icon: Icon }: { icon: React.ComponentType<{ className?: string }> }) {
+  return (
+    <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+      <span aria-hidden className="absolute inset-0 rounded-full bg-primary/20 blur-md" />
+      <Icon className="relative h-4 w-4 text-primary" />
+    </span>
   );
 }

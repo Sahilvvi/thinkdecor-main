@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Download, Images, Plus, RefreshCw, Trash2 } from 'lucide-react';
@@ -15,29 +15,50 @@ import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { Tilt } from '@/components/motion/primitives';
 import {
-  type Generation, downloadStoredImage, formatDate, isSetupError, useDeleteGeneration, useGenerations,
+  type Generation, downloadStoredImage, fileNameFor, formatDate, isSetupError, titleFor, useDeleteGeneration,
+  useGenerations,
 } from '@/lib/generation';
-import { roomLabel, templateByKey } from '@/lib/templates';
-
-function titleFor(g: Generation) {
-  const style = templateByKey(g.template_key)?.label ?? 'Custom';
-  const room = roomLabel(g.room_type);
-  return room ? `${style} · ${room}` : style;
-}
 
 function download(g: Generation) {
-  if (g.output_image_url) downloadStoredImage(g.output_image_url, `thinkdecor-${g.id.slice(0, 8)}.jpg`);
+  if (g.output_image_url) downloadStoredImage(g.output_image_url, fileNameFor(g.output_image_url, `thinkdecor-${g.id.slice(0, 8)}`));
 }
+
+/** Cleanup/Replace rows are edited again in their own tool, not redesigned in Create. */
+const isMaskEdit = (g: Generation) => g.kind === 'cleanup' || g.kind === 'replace';
+
+/** Everything the search box matches against: the title, the prompt and the tool name. */
+const searchTextFor = (g: Generation) => [titleFor(g), g.prompt ?? '', g.kind ?? 'redesign'].join(' ').toLowerCase();
 
 export default function Library() {
   const { data: generations, isLoading, error } = useGenerations();
   const deleteGeneration = useDeleteGeneration();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewing, setViewing] = useState<Generation | null>(null);
   const [confirming, setConfirming] = useState<Generation | null>(null);
 
+  const query = (searchParams.get('q') ?? '').trim().toLowerCase();
+  const visible = query
+    ? generations?.filter((g) => searchTextFor(g).includes(query))
+    : generations;
+
+  // Overview links straight to one design with ?open=<id>.
+  const openId = searchParams.get('open');
+  useEffect(() => {
+    if (!openId || !generations) return;
+    const match = generations.find((g) => g.id === openId);
+    if (match) setViewing(match);
+    const next = new URLSearchParams(searchParams);
+    next.delete('open');
+    setSearchParams(next, { replace: true });
+  }, [openId, generations, searchParams, setSearchParams]);
+
   const regenerate = (g: Generation) => {
+    if (isMaskEdit(g)) {
+      navigate(`/app/${g.kind}`, { state: { inputPath: g.input_image_url } });
+      return;
+    }
     navigate('/app/create', {
       state: {
         inputPath: g.input_image_url,
@@ -76,9 +97,11 @@ export default function Library() {
           </p>
           <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Projects</h1>
           <p className="mt-1 text-[15px] text-foreground/55">
-            {generations && generations.length > 0
-              ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`
-              : 'Every design you create is saved here.'}
+            {query
+              ? `${visible?.length ?? 0} ${visible?.length === 1 ? 'result' : 'results'} for "${searchParams.get('q')}"`
+              : generations && generations.length > 0
+                ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`
+                : 'Every design you create is saved here.'}
           </p>
         </div>
         <Link
@@ -107,8 +130,9 @@ export default function Library() {
         </div>
       ) : !generations || generations.length === 0 ? (
         <div className="mt-8 flex flex-col items-center rounded-[22px] border border-dashed border-border px-6 py-16 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-            <Images className="h-5 w-5 text-primary" />
+          <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <span aria-hidden className="absolute inset-0 rounded-full bg-primary/25 blur-xl" />
+            <Images className="relative h-6 w-6 text-primary" />
           </span>
           <p className="mt-4 text-[16px] font-semibold text-foreground">No projects yet</p>
           <p className="mt-1 max-w-[40ch] text-[14px] text-foreground/55">
@@ -121,9 +145,23 @@ export default function Library() {
             <Plus className="h-4 w-4" /> Create a design
           </Link>
         </div>
+      ) : !visible || visible.length === 0 ? (
+        <div className="mt-8 flex flex-col items-center rounded-[22px] border border-dashed border-border px-6 py-16 text-center">
+          <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <span aria-hidden className="absolute inset-0 rounded-full bg-primary/25 blur-xl" />
+            <Images className="relative h-6 w-6 text-primary" />
+          </span>
+          <p className="mt-4 text-[16px] font-semibold text-foreground">No matching projects</p>
+          <p className="mt-1 max-w-[40ch] text-[14px] text-foreground/55">
+            Nothing saved matches "{searchParams.get('q')}" — try a different search.
+          </p>
+          <Link to="/app/library" className="mt-5 text-[14px] font-semibold text-primary hover:underline">
+            Clear search
+          </Link>
+        </div>
       ) : (
         <Stagger className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" gap={0.05}>
-          {generations.map((g) => (
+          {visible.map((g) => (
             <motion.div key={g.id} variants={staggerItem}>
               <Tilt max={4} innerClassName="rounded-[22px]">
                 <article className="group overflow-hidden rounded-[22px] border border-border/70 bg-card transition-all duration-300 hover:border-primary/25 hover:shadow-[0_20px_48px_-28px_hsl(168_30%_15%/0.4)]">
@@ -150,7 +188,7 @@ export default function Library() {
                       <IconButton label="Download" onClick={() => download(g)}>
                         <Download className="h-4 w-4" />
                       </IconButton>
-                      <IconButton label="Regenerate" onClick={() => regenerate(g)}>
+                      <IconButton label={isMaskEdit(g) ? 'Edit again' : 'Regenerate'} onClick={() => regenerate(g)}>
                         <RefreshCw className="h-4 w-4" />
                       </IconButton>
                       <IconButton label="Delete" onClick={() => setConfirming(g)} danger>
@@ -172,7 +210,7 @@ export default function Library() {
             <>
               <DialogTitle>{titleFor(viewing)}</DialogTitle>
               <DialogDescription>
-                Created {formatDate(viewing.created_at)} — drag to compare your photo with the redesign.
+                Created {formatDate(viewing.created_at)} — drag to compare your photo with the result.
               </DialogDescription>
               <div className="overflow-hidden rounded-2xl border border-border/70">
                 <StoredCompare before={viewing.input_image_url} after={viewing.output_image_url} />
@@ -196,7 +234,7 @@ export default function Library() {
                   onClick={() => regenerate(viewing)}
                   className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-foreground hover:bg-secondary"
                 >
-                  <RefreshCw className="h-4 w-4" /> Regenerate
+                  <RefreshCw className="h-4 w-4" /> {isMaskEdit(viewing) ? 'Edit again' : 'Regenerate'}
                 </button>
                 <button
                   type="button"

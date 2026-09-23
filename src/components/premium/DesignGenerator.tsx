@@ -10,6 +10,37 @@ import {
 } from 'lucide-react';
 import { Reveal, Stagger, staggerItem } from './Motion';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+
+/** Persisted across visits so the free homepage try is one-per-device, not one-per-tab. */
+const DEVICE_ID_KEY = 'thinkdecor_demo_device_id';
+function getDeviceId(): string {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, id);
+    return id;
+  } catch {
+    // Private browsing or blocked storage — still works, just re-prompts each visit.
+    return crypto.randomUUID();
+  }
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Cycled while a real generation is in flight, so the wait still feels alive. */
+const STATUS_LINES = ['Reading your room…', 'Applying the style…', 'Finishing details…'];
 
 const CAPABILITIES = ['Wall paint & wallpaper', 'Flooring swaps', 'Keeps real light & shadow'];
 
@@ -64,71 +95,116 @@ const TEMPLATE_GRID = [
   },
 ];
 
-/** How long the "Mantha is redesigning…" beat plays before the result reveals. */
-const GENERATE_MS = 1500;
-
-// A real before/after pair — the same room, empty vs. fully redesigned —
-// not a stock photo pretending to be one. Doubles as the "you'll get an
-// image like this" example and as the illustrative demo result: whatever
-// room a visitor drops in, the redesign shown is this sample, clearly
-// labelled "Sample result" so it never implies their own photo was
-// actually processed (there's no backend call from this teaser).
+// The room shown before a visitor uploads their own — real generation now
+// runs against whichever photo is in the box (this sample or their upload).
 const SAMPLE_BEFORE = '/assets/samples/empty_room.png';
-const SAMPLE_AFTER = '/assets/samples/styled_room.png';
+/** Same rules as the signed-in app (and demo-redesign): anything else can't be generated from. */
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-type Phase = 'idle' | 'generating' | 'result';
+type Phase = 'idle' | 'generating' | 'result' | 'used';
 
 /**
- * Design Generator — the design prototype's Mantha section, made to
- * actually do something: drop in a photo (or don't — a sample room is
- * already loaded), tap "Start recreating", watch Mantha "think" for a
- * beat, then drag the seam to compare before and after. Nothing here
- * calls the API — same "illustrative, not live" convention the hero's
- * room demo uses — but the interaction itself is real, not a mockup.
+ * Design Generator — the homepage's Mantha section. A visitor gets one real,
+ * free redesign per device: drop in a photo (or don't — a sample room is
+ * already loaded), optionally describe a style, tap "Start recreating," and
+ * Mantha actually generates it via the demo-redesign edge function. A second
+ * attempt from the same device/IP is turned away with a sign-up nudge
+ * instead of a second free generation.
  */
 export function DesignGenerator() {
   const reduce = useReducedMotion();
-  const [uploaded, setUploaded] = useState<{ url: string; name: string } | null>(null);
+  const [uploaded, setUploaded] = useState<{ url: string; name: string; file: File } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [split, setSplit] = useState(50);
   const [hinted, setHinted] = useState(false);
+  const [prompt, setPrompt] = useState('');
+  const [resultImage, setResultImage] = useState<string | null>(null);
+  const [statusIndex, setStatusIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const objectUrl = useRef<string | null>(null);
-  const genTimer = useRef<number | null>(null);
   const hintTimer = useRef<number | null>(null);
+  const statusTimer = useRef<number | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const draggingSeam = useRef(false);
+  const deviceId = useRef<string>();
+  if (!deviceId.current) deviceId.current = getDeviceId();
 
   useEffect(() => () => {
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
-    if (genTimer.current) window.clearTimeout(genTimer.current);
     if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    if (statusTimer.current) window.clearInterval(statusTimer.current);
   }, []);
 
   const beforeImage = uploaded?.url ?? SAMPLE_BEFORE;
 
   const showFile = (file: File | undefined) => {
-    if (!file || !file.type.startsWith('image/') || phase !== 'idle') return;
+    if (!file || phase !== 'idle') return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Please choose a JPG, PNG or WebP photo.');
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError('That photo is over 10MB — please use a smaller one.');
+      return;
+    }
+    setError(null);
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
     const url = URL.createObjectURL(file);
     objectUrl.current = url;
-    setUploaded({ url, name: file.name });
+    setUploaded({ url, name: file.name, file });
   };
 
-  const start = () => {
+  const start = async () => {
     if (phase !== 'idle') return;
+    setError(null);
     setPhase('generating');
-    genTimer.current = window.setTimeout(() => {
+    setStatusIndex(0);
+    statusTimer.current = window.setInterval(() => {
+      setStatusIndex((i) => (i + 1) % STATUS_LINES.length);
+    }, 2200);
+
+    try {
+      const imageBase64 = uploaded
+        ? await fileToBase64(uploaded.file)
+        : await fetch(SAMPLE_BEFORE)
+          .then((r) => r.blob())
+          .then((blob) => fileToBase64(new File([blob], 'sample.png', { type: blob.type || 'image/png' })));
+      const imageMimeType = uploaded?.file.type || 'image/png';
+
+      const { data, error: fnError } = await supabase.functions.invoke('demo-redesign', {
+        body: { deviceId: deviceId.current, imageBase64, imageMimeType, prompt: prompt.trim() || undefined },
+      });
+      if (fnError) {
+        const context = (fnError as { context?: Response }).context;
+        const payload = context && typeof context.json === 'function' ? await context.json().catch(() => null) : null;
+        if (payload?.code === 'demo_used') {
+          setPhase('used');
+          return;
+        }
+        throw new Error(payload?.error ?? 'Something went wrong. Please try again.');
+      }
+
+      const { imageBase64: outB64, mimeType } = data as { imageBase64: string; mimeType: string };
+      setResultImage(`data:${mimeType};base64,${outB64}`);
       setPhase('result');
       setSplit(50);
       setHinted(true);
       hintTimer.current = window.setTimeout(() => setHinted(false), 1600);
-    }, GENERATE_MS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setPhase('idle');
+    } finally {
+      if (statusTimer.current) { window.clearInterval(statusTimer.current); statusTimer.current = null; }
+    }
   };
 
   const reset = () => {
-    if (genTimer.current) window.clearTimeout(genTimer.current);
     if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    if (statusTimer.current) window.clearInterval(statusTimer.current);
+    setError(null);
+    setResultImage(null);
     setPhase('idle');
   };
 
@@ -235,7 +311,7 @@ export function DesignGenerator() {
                     >
                       <input
                         type="file"
-                        accept="image/png,image/jpeg"
+                        accept="image/jpeg,image/png,image/webp"
                         className="absolute inset-0 z-10 cursor-pointer opacity-0"
                         onChange={(e) => showFile(e.target.files?.[0])}
                       />
@@ -257,7 +333,7 @@ export function DesignGenerator() {
                   )}
                 </AnimatePresence>
 
-                {/* ---------- generating: Mantha "thinking" ---------- */}
+                {/* ---------- generating: Mantha "thinking" (real request in flight — duration unknown, so the bar loops rather than timing to a fixed length) ---------- */}
                 <AnimatePresence>
                   {phase === 'generating' && (
                     <motion.div
@@ -270,9 +346,8 @@ export function DesignGenerator() {
                     >
                       <motion.div
                         aria-hidden
-                        initial={{ y: '-100%' }}
-                        animate={{ y: '420%' }}
-                        transition={{ duration: GENERATE_MS / 1000, ease: 'linear' }}
+                        animate={{ y: ['-100%', '420%'] }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
                         className="pointer-events-none absolute inset-x-0 h-1/4 bg-[linear-gradient(180deg,transparent,rgba(143,227,212,0.4),transparent)]"
                       />
                       <motion.div
@@ -280,24 +355,46 @@ export function DesignGenerator() {
                         transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
                         className="h-12 w-12 rounded-full border-2 border-white/20 border-t-[#8FE3D4]"
                       />
-                      <span className="flex items-center gap-1.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-[#8FE3D4]">
-                        <Sparkles className="h-3 w-3" />
-                        Mantha is redesigning
-                      </span>
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={statusIndex}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.25 }}
+                          className="flex items-center gap-1.5 font-label text-[11px] font-bold uppercase tracking-[0.16em] text-[#8FE3D4]"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          {STATUS_LINES[statusIndex]}
+                        </motion.span>
+                      </AnimatePresence>
                       <div className="h-1 w-32 overflow-hidden rounded-full bg-white/15">
                         <motion.div
-                          initial={{ width: '0%' }}
-                          animate={{ width: '100%' }}
-                          transition={{ duration: GENERATE_MS / 1000, ease: 'linear' }}
-                          className="h-full rounded-full bg-[#8FE3D4]"
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                          className="h-full w-1/2 rounded-full bg-[#8FE3D4]"
                         />
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                {/* ---------- result: before / after slider ---------- */}
-                {phase === 'result' && (
+                {/* ---------- used: free try already spent on this device ---------- */}
+                {phase === 'used' && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.4 }}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#00231D]/75 px-6 text-center backdrop-blur-[3px]"
+                  >
+                    <Sparkles className="h-6 w-6 text-[#8FE3D4]" />
+                    <p className="font-display text-[19px] font-medium text-white">You've used your free preview</p>
+                    <p className="max-w-[30ch] text-[13px] text-white/70">Sign up for unlimited redesigns of your own rooms.</p>
+                  </motion.div>
+                )}
+
+                {/* ---------- result: before / after slider on the real generated image ---------- */}
+                {phase === 'result' && resultImage && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -309,8 +406,8 @@ export function DesignGenerator() {
                       className="absolute inset-0"
                     >
                       <img
-                        src={SAMPLE_AFTER}
-                        alt="Sample Mantha redesign"
+                        src={resultImage}
+                        alt="Your Mantha redesign"
                         draggable={false}
                         className="absolute inset-0 h-full w-full object-cover"
                       />
@@ -340,15 +437,33 @@ export function DesignGenerator() {
                       {uploaded ? 'Your photo' : 'Before'}
                     </span>
                     <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-primary/90 px-3 py-1.5 font-label text-[10.5px] font-medium uppercase tracking-[0.08em] text-primary-foreground">
-                      Sample result
+                      Your redesign
                     </span>
                   </motion.div>
                 )}
               </div>
 
+              {phase === 'idle' && uploaded && (
+                <div className="mt-3">
+                  <label htmlFor="demo-prompt" className="sr-only">Describe the style you want</label>
+                  <textarea
+                    id="demo-prompt"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={1}
+                    placeholder="Optional — describe the style (e.g. 'warm Scandinavian, oak floors')"
+                    className="block w-full resize-none rounded-xl border border-foreground/[0.1] bg-[hsl(168_28%_97%)] px-3.5 py-2.5 text-[13.5px] text-foreground outline-none placeholder:text-foreground/40 focus:border-primary/40"
+                  />
+                </div>
+              )}
+
+              {error && (
+                <p className="mt-3 text-center text-[12.5px] text-destructive">{error}</p>
+              )}
+
               {/* ---------- footer control ---------- */}
               <AnimatePresence mode="wait" initial={false}>
-                {phase !== 'result' ? (
+                {phase === 'idle' || phase === 'generating' ? (
                   <motion.div
                     key="start"
                     initial={{ opacity: 0, y: 6 }}
@@ -387,14 +502,16 @@ export function DesignGenerator() {
                     transition={{ duration: 0.25 }}
                     className="mt-3.5 flex items-center gap-2"
                   >
-                    <button
-                      type="button"
-                      onClick={reset}
-                      className="flex items-center gap-2 rounded-full px-4 py-2.5 font-label text-[13.5px] font-bold text-foreground shadow-[inset_0_0_0_1.5px_hsl(168_20%_85%)] transition-colors hover:bg-[hsl(168_28%_96%)]"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Try another photo
-                    </button>
+                    {phase === 'result' && (
+                      <button
+                        type="button"
+                        onClick={reset}
+                        className="flex items-center gap-2 rounded-full px-4 py-2.5 font-label text-[13.5px] font-bold text-foreground shadow-[inset_0_0_0_1.5px_hsl(168_20%_85%)] transition-colors hover:bg-[hsl(168_28%_96%)]"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Try another photo
+                      </button>
+                    )}
                     <Link
                       to="/signup"
                       className="group flex flex-1 items-center justify-between rounded-full bg-primary py-2 pl-5 pr-2 text-primary-foreground transition-colors hover:bg-primary/90"
@@ -410,7 +527,7 @@ export function DesignGenerator() {
               </AnimatePresence>
 
               <p className="mt-3 text-center font-label text-[11.5px] text-muted-foreground">
-                Example shown on a sample room · sign up to redesign your own, free
+                One free redesign per visitor · sign up for unlimited redesigns
               </p>
             </div>
           </Reveal>

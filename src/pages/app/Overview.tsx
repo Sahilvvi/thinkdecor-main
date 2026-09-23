@@ -9,9 +9,9 @@ import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Mot
 import { Tilt } from '@/components/motion/primitives';
 import { useDisplayName } from '@/hooks/useProfile';
 import {
-  FREE_SIGNUP_CREDITS, formatDate, isSetupError, useCreditBalance, useGenerations,
+  FREE_SIGNUP_CREDITS, formatDate, isSetupError, titleFor, useCreditBalance, useGenerations,
 } from '@/lib/generation';
-import { TEMPLATES, roomLabel, templateByKey } from '@/lib/templates';
+import { TEMPLATES } from '@/lib/templates';
 import { PHASE1_PLAN, pence } from '@/lib/billing';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
@@ -94,31 +94,39 @@ export default function Overview() {
         />
       </Stagger>
 
-      {/* Create tile */}
+      {/* Create tile — full-bleed photo with a floating card, not a split panel */}
       <Reveal delay={0.08} y={28} className="mt-6">
         <Tilt max={2.5} innerClassName="rounded-[26px]">
           <Link
             to="/app/create"
-            className="group relative grid overflow-hidden rounded-[26px] bg-[linear-gradient(150deg,hsl(168_100%_14%),hsl(168_85%_20%)_60%,hsl(166_70%_27%))] text-primary-foreground shadow-[0_30px_70px_-34px_hsl(168_100%_17%/0.6)] md:grid-cols-[1.1fr_0.9fr]"
+            className="group relative block overflow-hidden rounded-[26px] shadow-[0_30px_70px_-34px_hsl(168_100%_17%/0.6)]"
           >
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_70%_100%_at_0%_0%,#000,transparent)]"
-            />
-            <div
-              aria-hidden
-              className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.18),transparent)] mix-blend-overlay"
-            />
-            <div className="relative p-7 lg:p-9">
-              <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-white/[0.08] blur-3xl" />
-              <span className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 transition-transform duration-400 group-hover:scale-110">
+            <div className="relative aspect-[16/10] sm:aspect-[2.2/1]">
+              <img
+                src="/assets/samples/styled_room.png"
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent sm:bg-gradient-to-r sm:from-black/15 sm:via-transparent sm:to-transparent" />
+            </div>
+
+            <div className="absolute inset-x-4 bottom-4 overflow-hidden rounded-[20px] bg-[linear-gradient(150deg,hsl(168_100%_14%),hsl(168_85%_20%)_60%,hsl(166_70%_27%))] p-5 text-primary-foreground shadow-[0_20px_50px_-18px_rgba(0,0,0,0.55)] sm:inset-x-auto sm:inset-y-6 sm:left-6 sm:w-[min(400px,88%)] sm:p-7">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_100%_100%_at_0%_0%,#000,transparent)]"
+              />
+              <div
+                aria-hidden
+                className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.18),transparent)] mix-blend-overlay"
+              />
+              <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 transition-transform duration-400 group-hover:scale-110">
                 <Wand2 className="h-5 w-5" />
               </span>
-              <h2 className="relative mt-5 text-[clamp(1.4rem,2.4vw,1.9rem)] font-bold tracking-[-0.02em]">Redesign a room</h2>
-              <p className="relative mt-2 max-w-[42ch] text-[15px] leading-relaxed text-primary-foreground/75">
+              <h2 className="relative mt-4 text-[clamp(1.25rem,2.2vw,1.7rem)] font-bold tracking-[-0.02em]">Redesign a room</h2>
+              <p className="relative mt-2 max-w-[38ch] text-[14px] leading-relaxed text-primary-foreground/75">
                 Upload a photo, choose a style, and describe what you want changed. Mantha AI does the rest.
               </p>
-              <span className="group/btn relative mt-6 inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary">
+              <span className="group/btn relative mt-5 inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[13.5px] font-semibold text-primary">
                 <span
                   aria-hidden
                   className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.1),transparent)] transition-transform duration-700 group-hover:translate-x-full"
@@ -126,14 +134,6 @@ export default function Overview() {
                 <span className="relative">Start creating</span>
                 <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>
-            </div>
-            <div className="relative hidden min-h-[220px] md:block">
-              <img
-                src="/assets/samples/styled_room.png"
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/20 to-transparent" />
             </div>
           </Link>
         </Tilt>
@@ -150,24 +150,32 @@ export default function Overview() {
         <Stagger className="mt-4 grid gap-4 sm:grid-cols-3" gap={0.07}>
           {featured.map((t) => (
             <motion.div key={t.key} variants={staggerItem}>
-              <Tilt max={5} innerClassName="rounded-2xl">
-                <Link
-                  to={`/app/create?template=${t.key}`}
-                  className="group block overflow-hidden rounded-2xl border border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_18px_40px_-24px_hsl(168_40%_15%/0.4)]"
-                >
-                  <div className="aspect-[4/3] overflow-hidden">
+              <Tilt max={5} innerClassName="h-full rounded-2xl">
+                <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_18px_40px_-24px_hsl(168_40%_15%/0.4)]">
+                  <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={t.image}
                       alt={`${t.label} style`}
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
+                    {t.tags[0] && (
+                      <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary backdrop-blur-sm">
+                        {t.tags[0]}
+                      </span>
+                    )}
                   </div>
-                  <div className="p-4">
+                  <div className="flex flex-1 flex-col gap-1.5 p-4">
                     <p className="text-[14.5px] font-semibold text-foreground">{t.label}</p>
-                    <p className="mt-0.5 line-clamp-1 text-[13px] text-foreground/55">{t.description}</p>
+                    <p className="line-clamp-1 flex-1 text-[13px] text-foreground/55">{t.description}</p>
+                    <Link
+                      to={`/app/create?template=${t.key}`}
+                      className="mt-2 inline-flex w-max items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[12px] font-semibold text-primary-foreground transition-transform duration-300 group-hover:scale-[1.03]"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Try Style
+                    </Link>
                   </div>
-                </Link>
+                </div>
               </Tilt>
             </motion.div>
           ))}
@@ -197,7 +205,7 @@ export default function Overview() {
               <motion.div key={g.id} variants={staggerItem}>
                 <Tilt max={4} innerClassName="rounded-2xl">
                   <Link
-                    to="/app/library"
+                    to={`/app/library?open=${g.id}`}
                     className="group block overflow-hidden rounded-2xl border border-border/70 bg-card transition-colors hover:border-primary/30"
                   >
                     <div className="aspect-[4/3] overflow-hidden bg-secondary">
@@ -211,8 +219,7 @@ export default function Overview() {
                     <div className="flex items-center justify-between gap-3 p-4">
                       <div className="min-w-0">
                         <p className="truncate text-[14px] font-semibold text-foreground">
-                          {templateByKey(g.template_key)?.label ?? 'Custom'}
-                          {roomLabel(g.room_type) ? ` · ${roomLabel(g.room_type)}` : ''}
+                          {titleFor(g)}
                         </p>
                         <p className="text-[12.5px] text-foreground/50">{formatDate(g.created_at)}</p>
                       </div>

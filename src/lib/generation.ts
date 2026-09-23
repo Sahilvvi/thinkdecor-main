@@ -258,13 +258,13 @@ async function runPlaceholderGenerator(templateKey: string, attempt: number): Pr
   return pool[(start + attempt) % pool.length];
 }
 
-/** Also used by lib/repaint.ts — any user-uploaded photo needs the same sanitising. */
+/** Any user-uploaded photo needs the same sanitising before it becomes a bucket path. */
 export function safeFileName(name: string) {
   const cleaned = name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '');
   return `${Date.now()}-${cleaned || 'room.jpg'}`;
 }
 
-/** supabase.functions.invoke hides a non-2xx JSON body in error.context. Also used by lib/repaint.ts. */
+/** supabase.functions.invoke hides a non-2xx JSON body in error.context. */
 export async function readFunctionError(error: unknown): Promise<{ error?: string; code?: string } | null> {
   const context = (error as { context?: Response } | null)?.context;
   if (context && typeof context.json === 'function') {
@@ -359,13 +359,57 @@ export function useGenerate() {
   });
 }
 
+/** Blob -> base64 (no data: prefix), for sending a painted photo inline instead of via storage. */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Auto-detection step ahead of Cleanup/Replace's actual generation: names
+ * whatever's under the red mask so the user sees what Mantha found before
+ * they commit a credit to editing it. No credit spent, no storage write —
+ * see supabase/functions/label-mask-region.
+ */
+/** Detection is a nicety, never a gate — give up rather than keep the user waiting. */
+const LABEL_TIMEOUT_MS = 10_000;
+
+export async function labelMaskRegion(maskedImage: Blob): Promise<string> {
+  const base64 = await blobToBase64(maskedImage);
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new GenerationError('Detection timed out.')), LABEL_TIMEOUT_MS),
+  );
+  const { data, error } = await Promise.race([
+    supabase.functions.invoke('label-mask-region', {
+      body: { maskedImage: base64, mimeType: maskedImage.type || 'image/png' },
+    }),
+    timeout,
+  ]);
+  if (error) {
+    const payload = await readFunctionError(error);
+    throw new GenerationError(payload?.error ?? "Couldn't detect that.");
+  }
+  return (data as { label: string }).label;
+}
+
 interface MaskEditRequest {
   userId: string;
-  /** The photo with the red mask already baked in — see MaskCanvas.exportMasked(). */
+  /** The clean photo: a fresh upload, or the bucket path of one already stored. Recorded as the "before". */
+  cleanImage: File | Blob | string;
+  /** The photo with the red mask already baked in — see MaskCanvas.exportMasked(). Only the model sees it. */
   maskedImage: Blob;
   mode: 'cleanup' | 'replace';
   /** Replace only — what to put in the masked area. Empty lets the model pick something fitting. */
   prompt?: string;
+  /** Replace only — Gemini's own label for what's under the mask, for a better-grounded server prompt. */
+  detectedLabel?: string;
 }
 
 /**
@@ -375,15 +419,31 @@ interface MaskEditRequest {
  * IS_PLACEHOLDER_GENERATOR. Same edge function as a plain redesign, just
  * with `mode` set — see the comment at the top of that function for why.
  */
-export async function generateMaskEdit({ userId, maskedImage, mode, prompt }: MaskEditRequest): Promise<Generation> {
-  const inputPath = `${userId}/${safeFileName(`${mode}.png`)}`;
+export async function generateMaskEdit({
+  userId, cleanImage, maskedImage, mode, prompt, detectedLabel,
+}: MaskEditRequest): Promise<Generation> {
+  // The clean photo is what Projects shows as "before"; the red-marked copy is
+  // only an instruction for the model and is deleted server-side afterwards.
+  let inputPath: string;
+  if (typeof cleanImage === 'string') {
+    inputPath = cleanImage;
+  } else {
+    const name = cleanImage instanceof File ? cleanImage.name : `${mode}.png`;
+    inputPath = `${userId}/${safeFileName(name)}`;
+    const { error: cleanUploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(inputPath, cleanImage, { contentType: cleanImage.type || undefined });
+    if (cleanUploadError) throw cleanUploadError;
+  }
+
+  const maskedPath = `${userId}/mask-${safeFileName(`${mode}.png`)}`;
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(inputPath, maskedImage, { contentType: 'image/png' });
+    .upload(maskedPath, maskedImage, { contentType: 'image/png' });
   if (uploadError) throw uploadError;
 
   const { data, error } = await supabase.functions.invoke('generate-redesign', {
-    body: { inputPath, mode, prompt: prompt?.trim() || undefined },
+    body: { inputPath, maskedPath, mode, prompt: prompt?.trim() || undefined, detectedLabel: detectedLabel || undefined },
   });
   if (error) {
     const payload = await readFunctionError(error);
@@ -432,6 +492,21 @@ export async function downloadImage(url: string, fileName: string) {
 export async function downloadStoredImage(ref: string, fileName: string) {
   const url = isStoragePath(ref) ? await signedUrlFor(ref) : ref;
   await downloadImage(url, fileName);
+}
+
+/** Download file name with the stored image's real extension (Gemini returns PNG or JPEG). */
+export function fileNameFor(ref: string, base: string) {
+  const ext = /\.(png|jpe?g|webp)(?:$|\?)/i.exec(ref)?.[1]?.toLowerCase().replace('jpeg', 'jpg') ?? 'jpg';
+  return `${base}.${ext}`;
+}
+
+/** Card/dialog title for a saved design — tells redesigns, cleanups and replacements apart. */
+export function titleFor(g: Pick<Generation, 'kind' | 'template_key' | 'room_type' | 'prompt'>) {
+  if (g.kind === 'cleanup') return 'Cleanup';
+  if (g.kind === 'replace') return g.prompt?.trim() ? `Replace · ${g.prompt.trim()}` : 'Replace';
+  const style = templateByKey(g.template_key)?.label ?? 'Custom';
+  const room = roomLabel(g.room_type);
+  return room ? `${style} · ${room}` : style;
 }
 
 export function formatDate(iso: string) {

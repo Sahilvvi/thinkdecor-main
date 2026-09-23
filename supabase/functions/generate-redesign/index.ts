@@ -52,6 +52,74 @@ function toBase64(bytes: Uint8Array): string {
 const BUCKET = "generations";
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+// Big photos regularly take 20s+; with one refusal retry this stays well under the 150s edge limit.
+const GEMINI_TIMEOUT_MS = 45_000;
+
+type GeminiImageResult =
+  | { ok: true; b64: string; mimeType: string }
+  | { ok: false; hardError?: string; refusalReason?: string; textPart?: string };
+
+/**
+ * One call to the image model. Refusals show up two different ways in
+ * Gemini's response — a top-level promptFeedback.blockReason (input
+ * rejected outright) or a per-candidate finishReason like IMAGE_SAFETY/
+ * PROHIBITED_CONTENT/RECITATION (generation started but the output was
+ * filtered) — both are surfaced here so the caller can decide whether to
+ * retry, and everything Google gave us is logged so a refusal is
+ * diagnosable from the Supabase function logs alone.
+ */
+async function callGeminiImage(fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  try {
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: fullPrompt },
+              { inlineData: { mimeType: inputMimeType, data: inputB64 } },
+            ],
+          }],
+          generationConfig: { responseModalities: ["IMAGE"] },
+        }),
+        signal: controller.signal,
+      },
+    );
+    const aiResult = await aiResponse.json();
+    if (!aiResponse.ok) {
+      return { ok: false, hardError: aiResult?.error?.message ?? `Image model returned ${aiResponse.status}` };
+    }
+    const candidate = aiResult?.candidates?.[0];
+    const parts: { inlineData?: { data?: string; mimeType?: string }; text?: string }[] =
+      candidate?.content?.parts ?? [];
+    const imagePart = parts.find((p) => p.inlineData?.data);
+    const b64 = imagePart?.inlineData?.data;
+    if (typeof b64 === "string") {
+      return { ok: true, b64, mimeType: imagePart?.inlineData?.mimeType || "image/png" };
+    }
+    const blockReason = aiResult?.promptFeedback?.blockReason;
+    const finishReason = candidate?.finishReason;
+    const textPart = parts.find((p) => typeof p.text === "string")?.text;
+    console.error("generate-redesign: no image in response", {
+      blockReason,
+      finishReason,
+      safetyRatings: candidate?.safetyRatings ?? aiResult?.promptFeedback?.safetyRatings,
+      textPart,
+    });
+    return { ok: false, refusalReason: blockReason || finishReason, textPart };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return { ok: false, hardError: "Image model timed out" };
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 type Mode = "redesign" | "cleanup" | "replace";
 
@@ -65,11 +133,15 @@ const CLEANUP_PROMPT =
   "Make sure no red tint remains anywhere in the final image, and keep every other " +
   "part of the photo exactly as it was.";
 
-// Mirrors ReplaceViewModel.kt's buildPrompt().
-function replacePrompt(userPrompt: string | undefined): string {
+// Mirrors ReplaceViewModel.kt's buildPrompt(). detectedLabel is Mantha's own
+// label-mask-region guess at what's under the mask (see MaskEditFlow.tsx) —
+// naming it explicitly grounds the edit instead of just pointing at "the
+// area," so the model is less likely to touch anything beyond that object.
+function replacePrompt(userPrompt: string | undefined, detectedLabel: string | undefined): string {
+  const subject = detectedLabel?.trim() ? `the ${detectedLabel.trim()}` : "it";
   const instruction = userPrompt?.trim()
-    ? `replace it with: ${userPrompt.trim()}`
-    : "replace it with a single object that fits naturally with the rest of the room's style";
+    ? `replace ${subject} with: ${userPrompt.trim()}`
+    : `replace ${subject} with a single object that fits naturally with the rest of the room's style`;
   return "This photo has an area marked with a solid red highlight. Treat the red highlight " +
     `strictly as a location marker for editing, not as a color or design element: ${instruction}. ` +
     "Match the surrounding lighting, perspective, and materials so the edit blends in, make sure " +
@@ -115,24 +187,32 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request.", code: "bad_request" }, 400);
   }
 
-  const { inputPath, templateKey, roomType, roomLabel, stylePrompt, prompt, mode: rawMode } = body as {
+  const { inputPath, maskedPath, templateKey, roomType, roomLabel, stylePrompt, prompt, detectedLabel, mode: rawMode } = body as {
     inputPath?: string;
+    /** Cleanup/Replace: the red-marked copy the model edits. inputPath stays the clean "before". */
+    maskedPath?: string;
     templateKey?: string;
     roomType?: string;
     roomLabel?: string;
     stylePrompt?: string;
     prompt?: string;
+    detectedLabel?: string;
     mode?: string;
   };
   const mode: Mode = rawMode === "cleanup" || rawMode === "replace" ? rawMode : "redesign";
 
   // ---- 1. check the photo before any credit is spent ------------------------
   // Only ever read the caller's own uploads.
-  if (typeof inputPath !== "string" || !inputPath.startsWith(`${user.id}/`) || inputPath.includes("..")) {
+  const ownPath = (p: unknown): p is string =>
+    typeof p === "string" && p.startsWith(`${user.id}/`) && !p.includes("..");
+  if (!ownPath(inputPath) || (maskedPath !== undefined && !ownPath(maskedPath))) {
     return json({ error: "That photo couldn't be used. Please upload it again.", code: "bad_image" }, 400);
   }
+  // The model edits the red-marked copy when there is one (older clients sent
+  // only a masked inputPath, which still works).
+  const modelPath = mode !== "redesign" && maskedPath ? maskedPath : inputPath;
 
-  const { data: sourceBlob, error: downloadError } = await admin.storage.from(BUCKET).download(inputPath);
+  const { data: sourceBlob, error: downloadError } = await admin.storage.from(BUCKET).download(modelPath);
   if (downloadError || !sourceBlob) {
     return json({ error: "That photo couldn't be found. Please upload it again.", code: "bad_image" }, 400);
   }
@@ -164,7 +244,7 @@ Deno.serve(async (req) => {
     const fullPrompt = mode === "cleanup"
       ? CLEANUP_PROMPT
       : mode === "replace"
-        ? replacePrompt(prompt)
+        ? replacePrompt(prompt, detectedLabel)
         : [
           `Redesign this ${roomLabel ?? "room"} as a photorealistic interior photograph.`,
           stylePrompt ? `Style: ${stylePrompt}.` : "",
@@ -175,35 +255,30 @@ Deno.serve(async (req) => {
     const inputMimeType = sourceBlob.type || "image/png";
     const inputB64 = toBase64(new Uint8Array(await sourceBlob.arrayBuffer()));
 
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: fullPrompt },
-              { inlineData: { mimeType: inputMimeType, data: inputB64 } },
-            ],
-          }],
-          generationConfig: { responseModalities: ["IMAGE"] },
-        }),
-      },
-    );
-    const aiResult = await aiResponse.json();
-    if (!aiResponse.ok) {
-      throw new Error(aiResult?.error?.message ?? `Image model returned ${aiResponse.status}`);
+    let attempt = await callGeminiImage(fullPrompt, inputB64, inputMimeType);
+    if (!attempt.ok && attempt.refusalReason) {
+      // A meaningful share of Gemini 2.5 Flash Image refusals on ordinary
+      // interior photos are false positives — one retry with a neutral
+      // framing clause recovers most of them without changing what the
+      // user actually asked for.
+      console.error("generate-redesign: refused, retrying with softened framing", {
+        refusalReason: attempt.refusalReason,
+      });
+      const softenedPrompt = `${fullPrompt} This is a professional interior-design photo-editing request for a legitimate home-renovation context.`;
+      attempt = await callGeminiImage(softenedPrompt, inputB64, inputMimeType);
     }
-    const parts: { inlineData?: { data?: string; mimeType?: string } }[] =
-      aiResult?.candidates?.[0]?.content?.parts ?? [];
-    const imagePart = parts.find((p) => p.inlineData?.data);
-    const b64 = imagePart?.inlineData?.data;
-    if (typeof b64 !== "string") {
-      const blockReason = aiResult?.promptFeedback?.blockReason;
-      throw new Error(blockReason ? `Image model blocked the request: ${blockReason}` : "Image model returned no image");
+    if (!attempt.ok) {
+      throw new Error(
+        attempt.hardError ??
+          (attempt.refusalReason
+            ? `Image model refused the request: ${attempt.refusalReason}`
+            : attempt.textPart
+              ? `Image model returned text instead of an image: ${attempt.textPart.slice(0, 200)}`
+              : "Image model returned no image"),
+      );
     }
-    const outputMimeType = imagePart.inlineData?.mimeType || "image/png";
+    const { b64 } = attempt;
+    const outputMimeType = attempt.mimeType;
     const outputExt = outputMimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
 
     // ---- 4. store + record -------------------------------------------------
@@ -230,6 +305,12 @@ Deno.serve(async (req) => {
       .single();
     if (insertError) throw insertError;
 
+    // The red-marked copy was only an instruction for the model. Best effort.
+    if (modelPath !== inputPath) {
+      const { error: removeError } = await admin.storage.from(BUCKET).remove([modelPath]);
+      if (removeError) console.error("generate-redesign: couldn't remove masked copy", removeError);
+    }
+
     return json({ generation });
   } catch (err) {
     console.error("generate-redesign failed:", err);
@@ -238,8 +319,18 @@ Deno.serve(async (req) => {
       .insert({ user_id: user.id, delta: 1, reason: "refund" });
     if (refundError) console.error("REFUND FAILED — credit owed to", user.id, refundError);
 
+    const message = err instanceof Error ? err.message : "";
+    const refused = /refused the request|returned text instead of an image/.test(message);
+    const timedOut = /timed out/.test(message);
     return json(
-      { error: "That design didn't work — your credit has been refunded. Please try again.", code: "generation_failed" },
+      {
+        error: refused
+          ? "Mantha's safety filters blocked that edit — your credit has been refunded. Try painting a smaller area or a different photo."
+          : timedOut
+            ? "That took too long — your credit has been refunded. Please try again."
+            : "That design didn't work — your credit has been refunded. Please try again.",
+        code: refused ? "model_refused" : timedOut ? "model_timeout" : "generation_failed",
+      },
       502,
     );
   }

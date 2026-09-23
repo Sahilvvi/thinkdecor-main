@@ -146,7 +146,7 @@ const TextureSelector = ({
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
 
   const textures = selectedKeywords.length
-    ? config.textures.filter((t: any) =>
+    ? config.textures.filter((t) =>
         selectedKeywords.some((k) => t.keywords.includes(k))
       )
     : config.textures;
@@ -216,7 +216,7 @@ const TextureSelector = ({
               </label>
             )}
 
-            {textures.map((t: any, i: number) => (
+            {textures.map((t, i: number) => (
               <div
                 key={i}
                 className="w-40 h-40 border shadow rounded cursor-pointer"

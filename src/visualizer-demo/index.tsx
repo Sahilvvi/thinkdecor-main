@@ -193,7 +193,7 @@ function Main({ config }: { config: VisualizerConfig }) {
             {/* Sample Grid */}
             <section className="max-w-7xl mx-auto px-6 pb-20">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {config.sampleFiles.map((sample: any, index) => (
+                {config.sampleFiles.map((sample, index) => (
                   <Link
                     key={index}
                     to={pathname + '?fileUrl=' + encodeURIComponent(sample.viz2dFile)}

@@ -32,11 +32,9 @@ import Viz2dDemo from "./visualizer-demo";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Overview from "./pages/app/Overview";
-import Explore from "./pages/app/Explore";
 import Templates from "./pages/app/Templates";
 import Library from "./pages/app/Library";
 import Create from "./pages/app/Create";
-import Repaint from "./pages/app/Repaint";
 import Cleanup from "./pages/app/Cleanup";
 import Replace from "./pages/app/Replace";
 import Settings from "./pages/app/Settings";
@@ -144,11 +142,9 @@ function AppRoutes() {
 
         {/* Signed-in app */}
         <Route path="/app" element={<ProtectedRoute><AppShell><Overview /></AppShell></ProtectedRoute>} />
-        <Route path="/app/explore" element={<ProtectedRoute><AppShell><Explore /></AppShell></ProtectedRoute>} />
         <Route path="/app/templates" element={<ProtectedRoute><AppShell><Templates /></AppShell></ProtectedRoute>} />
         <Route path="/app/library" element={<ProtectedRoute><AppShell><Library /></AppShell></ProtectedRoute>} />
         <Route path="/app/create" element={<ProtectedRoute><AppShell><Create /></AppShell></ProtectedRoute>} />
-        <Route path="/app/repaint" element={<ProtectedRoute><AppShell><Repaint /></AppShell></ProtectedRoute>} />
         <Route path="/app/cleanup" element={<ProtectedRoute><AppShell><Cleanup /></AppShell></ProtectedRoute>} />
         <Route path="/app/replace" element={<ProtectedRoute><AppShell><Replace /></AppShell></ProtectedRoute>} />
         <Route path="/app/settings" element={<ProtectedRoute><AppShell><Settings /></AppShell></ProtectedRoute>} />

@@ -27,6 +27,9 @@ export type SegmentWithTexture = {
 
 type ImageSize = { width: number; height: number };
 
+/** Shapes of what @viz2d/core's renderer returns (its .d.ts only says any[]). */
+type RawSegment = { segment_id: number; class_name: string; mask: Uint32Array };
+
 function createMaskedImage(
   mask: Uint32Array,
   pixels: Uint8Array,
@@ -102,7 +105,7 @@ function createMaskedImage(
   return outCanvas.toDataURL("image/png");
 }
 
-function mapTexture(t: any): TextureInfo {
+function mapTexture(t: TextureInfo): TextureInfo {
   return {
     id: t.id,
     name: t.name,
@@ -141,7 +144,7 @@ export function useVisualizer() {
     setIsBundleLoading(true);
     try {
       await renderer.load(new Uint8Array(await file.arrayBuffer()));
-      const rawSegs = renderer.get_segments() as any[];
+      const rawSegs = renderer.get_segments() as RawSegment[];
       const out = renderer.get_output();
       const segs: SegmentWithTexture[] = rawSegs.map((s) => ({
         segment_id: s.segment_id,
@@ -198,8 +201,8 @@ export function useVisualizer() {
       if (!seg?.texture) return;
       setIsTextureLoading(true);
       try {
-        await renderer.update_texture(seg.texture.id, patch as any);
-        const raw = (renderer.get_textures() as any[]).find((t) => t.id === seg.texture!.id);
+        await renderer.update_texture(seg.texture.id, patch);
+        const raw = (renderer.get_textures() as TextureInfo[]).find((t) => t.id === seg.texture!.id);
         if (!raw) return;
         const updated = mapTexture(raw);
         setSegments((prev) =>

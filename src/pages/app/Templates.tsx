@@ -103,29 +103,22 @@ export default function Templates() {
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                {t.featured && (
-                  <span className="absolute left-3 top-3 overflow-hidden rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-primary backdrop-blur">
+                <span className="absolute left-3 top-3 overflow-hidden rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary backdrop-blur">
+                  {t.featured && (
                     <span
                       aria-hidden
                       className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(168_100%_17%/0.2),transparent)]"
                     />
-                    <span className="relative">Featured</span>
-                  </span>
-                )}
+                  )}
+                  <span className="relative">{t.label}</span>
+                </span>
               </div>
               <div className="flex flex-1 flex-col p-5">
                 <h2 className="text-[16px] font-semibold text-foreground">{t.label}</h2>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-foreground/55">{t.description}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {t.tags.map((tagName) => (
-                    <span key={tagName} className="rounded-full bg-secondary px-2.5 py-1 text-[11.5px] text-foreground/60">
-                      {tagName}
-                    </span>
-                  ))}
-                </div>
+                <p className="mt-1 flex-1 text-[13.5px] leading-relaxed text-foreground/55">{t.description}</p>
                 <Link
                   to={`/app/create?template=${t.key}`}
-                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.02]"
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.02]"
                 >
                   Use this template
                   <ArrowRight className="h-4 w-4" />

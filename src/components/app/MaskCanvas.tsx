@@ -17,14 +17,20 @@ import { cn } from '@/lib/utils';
  * *is* the image to send.
  */
 
+export interface ExportOptions {
+  /** Downscale so the longest edge is at most this (e.g. a small copy for detection). */
+  maxDimension?: number;
+  type?: 'image/png' | 'image/jpeg';
+}
+
 export interface MaskCanvasHandle {
-  exportMasked: () => Promise<Blob | null>;
+  exportMasked: (options?: ExportOptions) => Promise<Blob | null>;
   clear: () => void;
   undo: () => void;
   redo: () => void;
 }
 
-interface Stroke {
+export interface Stroke {
   points: { x: number; y: number }[];
   size: number;
 }
@@ -41,13 +47,17 @@ const MAX_DIMENSION = 1440;
 export const MaskCanvas = forwardRef<MaskCanvasHandle, {
   imageSrc: string;
   onStrokeCountChange?: (count: number) => void;
+  /** Strokes to restore on mount — lets the parent keep the mask across a remount ("Edit mask again"). */
+  initialStrokes?: Stroke[];
+  onStrokesChange?: (strokes: Stroke[]) => void;
   className?: string;
-}>(function MaskCanvas({ imageSrc, onStrokeCountChange, className }, ref) {
+}>(function MaskCanvas({ imageSrc, onStrokeCountChange, initialStrokes, onStrokesChange, className }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [ready, setReady] = useState(false);
   const [brush, setBrush] = useState<(typeof BRUSH_SIZES)[number]>(BRUSH_SIZES[1]);
-  const strokesRef = useRef<Stroke[]>([]);
+  const strokesRef = useRef<Stroke[]>(initialStrokes ?? []);
+  const loadedSrcRef = useRef<string | null>(null);
   const redoRef = useRef<Stroke[]>([]);
   const drawingRef = useRef<Stroke | null>(null);
   const [, forceRender] = useState(0);
@@ -85,7 +95,10 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
   // Load the source photo once and size the canvas to it (capped for upload speed).
   useEffect(() => {
     setReady(false);
-    strokesRef.current = [];
+    // Strokes restored from initialStrokes belong to the first photo; a
+    // different photo starts clean. (Idempotent, so StrictMode's double run is fine.)
+    if (loadedSrcRef.current !== null && loadedSrcRef.current !== imageSrc) strokesRef.current = [];
+    loadedSrcRef.current = imageSrc;
     redoRef.current = [];
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -116,6 +129,7 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
 
   const notify = () => {
     onStrokeCountChange?.(strokesRef.current.length);
+    onStrokesChange?.(strokesRef.current);
     forceRender((n) => n + 1);
   };
 
@@ -168,11 +182,19 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
   }, [redraw]);
 
   useImperativeHandle(ref, () => ({
-    exportMasked: () =>
+    exportMasked: ({ maxDimension, type = 'image/png' }: ExportOptions = {}) =>
       new Promise((resolve) => {
         const canvas = canvasRef.current;
         if (!canvas) { resolve(null); return; }
-        canvas.toBlob((blob) => resolve(blob), 'image/png');
+        const scale = maxDimension ? Math.min(1, maxDimension / Math.max(canvas.width, canvas.height)) : 1;
+        let target = canvas;
+        if (scale < 1) {
+          target = document.createElement('canvas');
+          target.width = Math.round(canvas.width * scale);
+          target.height = Math.round(canvas.height * scale);
+          target.getContext('2d')?.drawImage(canvas, 0, 0, target.width, target.height);
+        }
+        target.toBlob((blob) => resolve(blob), type, type === 'image/jpeg' ? 0.85 : undefined);
       }),
     clear: doClear,
     undo: doUndo,

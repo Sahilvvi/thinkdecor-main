@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, LayoutGrid, Images, Wand2, Plus, Menu, LogOut, CreditCard,
-  Settings as SettingsIcon, PaintBucket, Eraser, Replace as ReplaceIcon, Compass,
+  Settings as SettingsIcon, Eraser, Replace as ReplaceIcon, Search, Bell, FolderOpen,
 } from 'lucide-react';
 
 import { Logo } from '@/components/brand/Logo';
@@ -22,11 +22,9 @@ const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 
 const NAV = [
   { to: '/app', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/app/explore', label: 'Explore', icon: Compass },
   { to: '/app/templates', label: 'Templates', icon: LayoutGrid },
-  { to: '/app/library', label: 'Projects', icon: Images },
+  { to: '/app/library', label: 'Projects', icon: FolderOpen },
   { to: '/app/create', label: 'Create', icon: Wand2 },
-  { to: '/app/repaint', label: 'Repaint', icon: PaintBucket },
   { to: '/app/cleanup', label: 'Cleanup', icon: Eraser },
   { to: '/app/replace', label: 'Replace', icon: ReplaceIcon },
 ];
@@ -46,9 +44,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="absolute -top-24 left-1/2 h-[26rem] w-[50rem] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,hsl(168_100%_17%/0.05),transparent_65%)] blur-3xl" />
       </div>
 
-      <header className="fixed inset-x-0 top-0 z-40 h-16 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+      {/* Desktop sidebar: its own logo row at top, spanning full height. */}
+      <aside className="fixed bottom-0 left-0 top-0 z-30 hidden w-64 flex-col border-r border-border/60 bg-card/40 backdrop-blur-sm lg:flex">
+        <div className="flex h-16 items-center border-b border-border/60 px-5">
+          <Logo to="/app" />
+        </div>
+        <SidebarContent scope="desktop" />
+      </aside>
+
+      {/* Top bar: only spans the content column on desktop (offset past the sidebar), full width on mobile. */}
+      <header className="fixed inset-x-0 top-0 z-40 h-16 border-b border-border/60 bg-background/85 backdrop-blur-xl lg:left-64">
         <div className="flex h-full items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-1 items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => setNavOpen(true)}
@@ -57,19 +64,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Logo to="/app" />
+            <div className="lg:hidden">
+              <Logo to="/app" />
+            </div>
+            <HeaderSearch />
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <CreditsPill />
+            <NotificationsBell />
             <ProfileMenu />
           </div>
         </div>
       </header>
-
-      <aside className="fixed bottom-0 left-0 top-16 z-30 hidden w-64 flex-col border-r border-border/60 bg-card/40 backdrop-blur-sm lg:flex">
-        <SidebarContent scope="desktop" />
-      </aside>
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
         <SheetContent side="left" className="w-72 p-0">
@@ -153,6 +160,51 @@ function SidebarContent({ scope, onNavigate }: { scope: 'desktop' | 'mobile'; on
         <CreditsCard onNavigate={onNavigate} />
       </div>
     </div>
+  );
+}
+
+/** Searches saved projects by title — submits to the Projects page, which reads `?q=`. */
+function HeaderSearch() {
+  const [value, setValue] = useState('');
+  const navigate = useNavigate();
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = value.trim();
+    navigate(q ? `/app/library?q=${encodeURIComponent(q)}` : '/app/library');
+  };
+
+  return (
+    <form onSubmit={submit} className="relative hidden w-full max-w-[280px] sm:block">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Search your projects"
+        className="w-full rounded-full border border-border/70 bg-card py-2 pl-10 pr-4 text-[13.5px] outline-none transition-colors placeholder:text-foreground/40 focus:border-primary"
+      />
+    </form>
+  );
+}
+
+function NotificationsBell() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Notifications"
+        className="relative rounded-full p-2 text-foreground/60 outline-none transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <Bell className="h-[18px] w-[18px]" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel className="font-normal">
+          <p className="text-[13.5px] font-semibold text-foreground">Notifications</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <p className="px-2 py-3 text-center text-[13px] text-muted-foreground">You're all caught up.</p>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

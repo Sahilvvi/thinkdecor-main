@@ -3,17 +3,18 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
-  ArrowUp, Check, Download, ImagePlus, Loader2, RefreshCw, Wand2, X,
+  ArrowUp, Check, ChevronLeft, ChevronRight, Download, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2, X,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import { Tilt } from '@/components/motion/primitives';
 import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { useAuthStore } from '@/stores/authStore';
 import {
   FREE_SIGNUP_CREDITS, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
-  downloadStoredImage, isSetupError, type Generation, useCreditBalance, useGenerate,
+  downloadStoredImage, fileNameFor, isSetupError, type Generation, useCreditBalance, useGenerate,
 } from '@/lib/generation';
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
@@ -72,6 +73,11 @@ export default function Create() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
+  const voice = useVoiceInput({
+    onResult: (text) => setPrompt((prev) => (prev ? `${prev} ${text}` : text)),
+    onError: (message) => toast.error(message),
+  });
+
   const setupPending = isSetupError(creditsError);
   const outOfCredits = credits !== undefined && credits <= 0;
   const busy = turns.some((t) => t.status === 'pending');
@@ -105,6 +111,8 @@ export default function Create() {
     roomType: RoomType;
     prompt: string;
     attempt: number;
+    /** A fresh send cleared the composer — give the text back if it fails. */
+    restorePromptOnError?: boolean;
   }) => {
     if (!user) return;
     const id = crypto.randomUUID();
@@ -147,6 +155,7 @@ export default function Create() {
               ? "Generation isn't switched on yet — the latest database update still needs to be applied."
               : 'Something went wrong generating that design. No worries — try again.';
       setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'error', error: message } : t)));
+      if (args.restorePromptOnError && args.prompt) setPrompt((current) => current || args.prompt);
     }
   };
 
@@ -159,6 +168,7 @@ export default function Create() {
       roomType,
       prompt: prompt.trim(),
       attempt: 0,
+      restorePromptOnError: true,
     });
     setPrompt('');
   };
@@ -306,7 +316,10 @@ export default function Create() {
                             type="button"
                             onClick={() =>
                               turn.result?.output_image_url &&
-                              downloadStoredImage(turn.result.output_image_url, `thinkdecor-${turn.result.id.slice(0, 8)}.jpg`)
+                              downloadStoredImage(
+                                turn.result.output_image_url,
+                                fileNameFor(turn.result.output_image_url, `thinkdecor-${turn.result.id.slice(0, 8)}`),
+                              )
                             }
                             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground"
                           >
@@ -450,6 +463,22 @@ export default function Create() {
                 />
               </div>
 
+              {voice.supported && (
+                <button
+                  type="button"
+                  onClick={() => (voice.listening ? voice.stop() : voice.start())}
+                  aria-label={voice.listening ? 'Stop voice input' : 'Describe changes by voice'}
+                  className={`relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
+                    voice.listening ? 'text-destructive' : 'text-foreground/45 hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
+                  {voice.listening && (
+                    <span aria-hidden className="absolute inset-0.5 animate-ping rounded-full bg-destructive/25" />
+                  )}
+                  {voice.listening ? <MicOff className="relative h-4 w-4" /> : <Mic className="relative h-4 w-4" />}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={send}
@@ -476,7 +505,27 @@ function EmptyThread({
   onPickTemplate: (key: string) => void;
   activeTemplate: string;
 }) {
-  const featured = TEMPLATES.filter((t) => t.featured);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  useEffect(() => {
+    updateArrows();
+    window.addEventListener('resize', updateArrows);
+    return () => window.removeEventListener('resize', updateArrows);
+  }, []);
+
+  const scrollByCard = (dir: 1 | -1) => {
+    scrollRef.current?.scrollBy({ left: dir * 200, behavior: 'smooth' });
+  };
+
   return (
     <Reveal className="relative overflow-hidden rounded-[26px] border border-border/70 bg-card px-6 py-10 text-center sm:px-10">
       <div
@@ -492,30 +541,68 @@ function EmptyThread({
         you want changed.
         {credits !== undefined && credits > 0 && ` You have ${credits} ${credits === 1 ? 'credit' : 'credits'}.`}
       </p>
-      <Stagger className="relative mx-auto mt-7 grid max-w-2xl gap-3 sm:grid-cols-3" gap={0.06}>
-        {featured.map((t) => (
-          <motion.div key={t.key} variants={staggerItem}>
-            <Tilt max={6} innerClassName="rounded-2xl">
-              <button
-                type="button"
-                onClick={() => onPickTemplate(t.key)}
-                className={`group block w-full overflow-hidden rounded-2xl border text-left transition-colors ${
-                  activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <img
-                    src={t.image}
-                    alt={`${t.label} style`}
-                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <p className="px-3 py-2.5 text-[13.5px] font-semibold text-foreground">{t.label}</p>
-              </button>
-            </Tilt>
-          </motion.div>
-        ))}
-      </Stagger>
+      <div className="relative mt-7">
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => scrollByCard(-1)}
+            aria-label="Scroll templates left"
+            className="absolute left-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground/70 shadow-md backdrop-blur transition-colors hover:text-foreground sm:flex"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
+
+        {canScrollLeft && (
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-[5] w-10 bg-gradient-to-r from-card to-transparent" />
+        )}
+        {canScrollRight && (
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-10 bg-gradient-to-l from-card to-transparent" />
+        )}
+
+        <div
+          ref={scrollRef}
+          onScroll={updateArrows}
+          className="overflow-x-auto scroll-smooth px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-8"
+        >
+          <Stagger className="flex snap-x snap-mandatory justify-start gap-3 pb-1" gap={0.05}>
+            {TEMPLATES.map((t) => (
+              <motion.div key={t.key} variants={staggerItem} className="w-[172px] flex-shrink-0 snap-center sm:w-[190px]">
+                <Tilt max={6} innerClassName="rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => onPickTemplate(t.key)}
+                    className={`group relative block aspect-[4/3] w-full overflow-hidden rounded-2xl border text-left transition-colors ${
+                      activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
+                    }`}
+                  >
+                    <img
+                      src={t.image}
+                      alt={`${t.label} style`}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
+                    <p className="absolute inset-x-0 bottom-0 px-3 py-2.5 text-left text-[13.5px] font-semibold text-white">
+                      {t.label}
+                    </p>
+                  </button>
+                </Tilt>
+              </motion.div>
+            ))}
+          </Stagger>
+        </div>
+
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => scrollByCard(1)}
+            aria-label="Scroll templates right"
+            className="absolute right-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground/70 shadow-md backdrop-blur transition-colors hover:text-foreground sm:flex"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </Reveal>
   );
 }

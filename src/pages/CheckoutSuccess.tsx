@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Check, ArrowRight, Mail, Loader2, Clock } from 'lucide-react';
@@ -77,6 +77,10 @@ export default function CheckoutSuccess() {
     phase === 'signed-out'
       ? { to: '/login', label: 'Sign in to start' }
       : { to: '/app/create', label: 'Start designing' };
+
+  // Only Stripe's redirect (which always carries session_id) should land here;
+  // a bare visit would otherwise claim a payment that never happened.
+  if (!sessionId && initialized) return <Navigate to={user ? '/app' : '/pricing'} replace />;
 
   return (
     <div className="min-h-screen bg-background">

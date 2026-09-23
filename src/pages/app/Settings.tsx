@@ -1,17 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  Camera, ExternalLink, Loader2, Lock, LogOut, Mail, Monitor, User, Zap, LifeBuoy,
+  Camera, ExternalLink, Loader2, Lock, LogOut, Mail, User, Zap, LifeBuoy, CreditCard, Check,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
-import { Tilt } from '@/components/motion/primitives';
 import { useAuthStore } from '@/stores/authStore';
 import {
   isActiveSubscription, useProfile, useSubscription, useUpdateProfile,
@@ -20,20 +14,31 @@ import { formatDate, isSetupError, useCreditBalance } from '@/lib/generation';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { CheckoutError, openBillingPortal } from '@/lib/checkout';
 import { uploadAvatar, UploadError } from '@/lib/upload';
-import { useMyTickets, useRaiseTicket, type TicketStatus } from '@/lib/support';
-
-const TICKET_STATUS_STYLE: Record<TicketStatus, string> = {
-  open: 'bg-primary/12 text-primary',
-  answered: 'bg-amber-500/14 text-amber-700',
-  resolved: 'bg-foreground/[0.06] text-foreground/45',
-};
+import { useMyTickets, useRaiseTicket } from '@/lib/support';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
 
+const TABS = [
+  { key: 'profile', label: 'Profile', icon: User, blurb: 'Your name, photo and contact details.' },
+  { key: 'security', label: 'Security', icon: Lock, blurb: 'Change your password and manage this session.' },
+  { key: 'plan', label: 'Plan & billing', icon: CreditCard, blurb: 'Your credits, plan and invoices.' },
+  { key: 'support', label: 'Support', icon: LifeBuoy, blurb: 'Ask us anything — we reply right here.' },
+] as const;
+type TabKey = (typeof TABS)[number]['key'];
+
+function Spinner() {
+  return <Loader2 width={15} height={15} className="spin" />;
+}
+
 export default function Settings() {
   const { user, updatePassword, updateEmail, signOut } = useAuthStore();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('tab');
+  const tab: TabKey = TABS.some((t) => t.key === requested) ? (requested as TabKey) : 'profile';
+  const current = TABS.find((t) => t.key === tab)!;
+  const selectTab = (key: TabKey) => setParams(key === 'profile' ? {} : { tab: key }, { replace: true });
 
   const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
@@ -170,358 +175,252 @@ export default function Settings() {
 
   const active = isActiveSubscription(subscription);
   const periodEnd = subscription?.current_period_end ? formatDate(subscription.current_period_end) : null;
+  const fraction = credits === undefined ? 0 : Math.max(0, Math.min(1, credits / PHASE1_PLAN.credits));
 
   return (
     <>
       <SEO title="Settings | ThinkDecor" description="Manage your ThinkDecor account." />
 
-      <Reveal>
-        <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-          </span>
-          Settings
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Settings</h1>
-        <p className="mt-1 text-[15px] text-foreground/55">Your profile, password and plan.</p>
-      </Reveal>
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">Account</div>
+            <h1>Settings</h1>
+            <p className="sub">Your profile, password and plan.</p>
+          </div>
+        </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
-        <Stagger className="space-y-6" gap={0.08}>
-          {/* Profile */}
-          <motion.section
-            variants={staggerItem}
-            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
-          >
-            <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <SectionIcon icon={User} />
-              Profile
-            </h2>
-
-            {/* Avatar */}
-            <div className="mt-5 flex items-center gap-4">
+        <div className="set">
+          <nav className="set-nav r" style={{ ['--i' as string]: 1 }} aria-label="Settings sections">
+            {TABS.map((t) => (
               <button
+                key={t.key}
                 type="button"
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                aria-label="Change profile photo"
-                className="group relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary transition-opacity disabled:opacity-70"
+                className={tab === t.key ? 'on' : ''}
+                onClick={() => selectTab(t.key)}
+                aria-current={tab === t.key ? 'page' : undefined}
               >
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-[20px] font-semibold">{(name || user?.email || 'T').charAt(0).toUpperCase()}</span>
-                )}
-                <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                  {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Camera className="h-4 w-4 text-white" />}
-                </span>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
-                  hidden
-                  onChange={(e) => { pickAvatar(e.target.files?.[0]); e.target.value = ''; }}
-                />
+                <t.icon />
+                {t.label}
               </button>
-              <div>
-                <p className="text-[13.5px] font-medium text-foreground">Profile photo</p>
-                <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                  className="text-[13px] text-primary hover:underline disabled:opacity-60"
-                >
-                  {uploadingAvatar ? 'Uploading…' : 'Change photo'}
-                </button>
-              </div>
+            ))}
+            <div className="who">
+              <b>Signed in as</b>
+              {user?.email}
             </div>
+          </nav>
 
-            <form onSubmit={saveProfile} className="mt-5 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="settings-name">Full name</Label>
-                <Input id="settings-name" value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="settings-email">Email</Label>
-                <Input id="settings-email" value={user?.email ?? ''} disabled />
-                {!editingEmail ? (
+          <div className="set-pane" key={tab}>
+            {/* ---------------------------------------------------------- Profile */}
+            {tab === 'profile' && (
+              <form className="card" onSubmit={saveProfile}>
+                <h3>{current.label}</h3>
+                <p className="lede">{current.blurb}</p>
+
+                <div className="avrow">
                   <button
                     type="button"
-                    onClick={() => { setNewEmail(''); setEmailSent(false); setEditingEmail(true); }}
-                    className="text-xs text-primary hover:underline"
+                    className="avatar"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    aria-label="Change profile photo"
                   >
-                    Change email
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="" />
+                    ) : (
+                      <span>{(name || user?.email || 'T').charAt(0).toUpperCase()}</span>
+                    )}
+                    <span className="ov">{uploadingAvatar ? <Spinner /> : <Camera width={20} height={20} />}</span>
                   </button>
-                ) : emailSent ? (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Mail className="h-3 w-3 text-primary" /> Check {newEmail} for a confirmation link — it won't change until you click it.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Input
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="new@email.com"
-                      className="h-9 max-w-[240px] text-[13.5px]"
-                    />
-                    <Button type="button" size="sm" disabled={savingEmail || !newEmail.trim()} onClick={sendEmailChange}>
-                      {savingEmail && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                      Send confirmation
-                    </Button>
-                    <button type="button" onClick={() => setEditingEmail(false)} className="text-xs text-muted-foreground hover:text-foreground">
-                      Cancel
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+                    hidden
+                    onChange={(e) => { pickAvatar(e.target.files?.[0]); e.target.value = ''; }}
+                  />
+                  <div>
+                    <b>Profile photo</b>
+                    <p>JPG, PNG or WebP.</p>
+                    <button type="button" className="lnk" onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}>
+                      {uploadingAvatar ? 'Uploading…' : 'Change photo'}
                     </button>
                   </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="settings-phone">Phone number</Label>
-                <Input
-                  id="settings-phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <Magnetic strength={0.2}>
-                <Button type="submit" variant="hero" disabled={updateProfile.isPending || !hydrated}>
-                  {updateProfile.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Save profile
-                </Button>
-              </Magnetic>
-            </form>
-          </motion.section>
+                </div>
 
-          {/* Password */}
-          <motion.section
-            variants={staggerItem}
-            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
-          >
-            <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <SectionIcon icon={Lock} />
-              Password
-            </h2>
-            <form onSubmit={savePassword} className="mt-5 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="settings-password">New password</Label>
-                <Input
-                  id="settings-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  minLength={6}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="settings-confirm">Confirm new password</Label>
-                <Input
-                  id="settings-confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  minLength={6}
-                  required
-                />
-              </div>
-              <Button type="submit" variant="outline" disabled={savingPassword}>
-                {savingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
-                Update password
-              </Button>
-            </form>
-          </motion.section>
-
-          {/* Support */}
-          <motion.section
-            variants={staggerItem}
-            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
-          >
-            <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <SectionIcon icon={LifeBuoy} />
-              Raise a query
-            </h2>
-            <p className="mt-1.5 text-[13px] text-foreground/50">
-              Something not working, or a question about your account? We'll reply right here.
-            </p>
-            <form onSubmit={submitTicket} className="mt-5 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ticket-subject">Subject</Label>
-                <Input
-                  id="ticket-subject"
-                  value={ticketSubject}
-                  onChange={(e) => setTicketSubject(e.target.value)}
-                  placeholder="e.g. My last design didn't generate"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ticket-message">Message</Label>
-                <textarea
-                  id="ticket-message"
-                  value={ticketMessage}
-                  onChange={(e) => setTicketMessage(e.target.value)}
-                  rows={4}
-                  required
-                  className="w-full resize-none rounded-xl border border-input bg-transparent px-3.5 py-2.5 text-[14px] text-foreground outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/[0.08]"
-                  placeholder="Tell us what happened…"
-                />
-              </div>
-              <Button type="submit" variant="glow" disabled={raiseTicket.isPending}>
-                {raiseTicket.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Send query
-              </Button>
-            </form>
-
-            {!!tickets?.length && (
-              <div className="mt-6 space-y-2.5 border-t border-border/60 pt-5">
-                {tickets.map((t) => (
-                  <div key={t.id} className="rounded-xl border border-border/60 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-[13.5px] font-medium text-foreground">{t.subject}</p>
-                      <span className={`flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider ${TICKET_STATUS_STYLE[t.status]}`}>
-                        {t.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[12.5px] text-foreground/55">{t.message}</p>
-                    {t.admin_reply && (
-                      <p className="mt-2 rounded-lg bg-primary/[0.06] px-3 py-2 text-[12.5px] text-foreground/75">
-                        <span className="font-medium text-primary">Reply: </span>{t.admin_reply}
-                      </p>
+                <div className="fgrid">
+                  <div className="fld">
+                    <label htmlFor="settings-name">Full name</label>
+                    <input id="settings-name" className="inp" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
+                  </div>
+                  <div className="fld">
+                    <label htmlFor="settings-phone">Phone number</label>
+                    <input id="settings-phone" className="inp" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
+                  <div className="fld full">
+                    <label htmlFor="settings-email">Email</label>
+                    <input id="settings-email" className="inp" value={user?.email ?? ''} disabled />
+                    {!editingEmail ? (
+                      <div className="fhint">
+                        <button
+                          type="button"
+                          className="lnk"
+                          onClick={() => { setNewEmail(''); setEmailSent(false); setEditingEmail(true); }}
+                        >
+                          Change email
+                        </button>
+                      </div>
+                    ) : emailSent ? (
+                      <p className="fhint"><Mail width={14} height={14} /> Check {newEmail} for a confirmation link — it won't change until you click it.</p>
+                    ) : (
+                      <div className="fhint">
+                        <input
+                          className="inp"
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          placeholder="new@email.com"
+                          aria-label="New email address"
+                        />
+                        <button type="button" className="btn btn-dark btn-sm" disabled={savingEmail || !newEmail.trim()} onClick={sendEmailChange}>
+                          {savingEmail && <Spinner />} Send confirmation
+                        </button>
+                        <button type="button" className="lnk" onClick={() => setEditingEmail(false)}>Cancel</button>
+                      </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-          </motion.section>
-        </Stagger>
-
-        <Stagger className="space-y-6" gap={0.08}>
-          {/* Plan & credits */}
-          <motion.div variants={staggerItem}>
-          <Tilt max={2.5} innerClassName="rounded-[22px]">
-          <section className="relative overflow-hidden rounded-[22px] bg-[linear-gradient(150deg,hsl(168_100%_14%),hsl(168_85%_20%)_60%,hsl(166_70%_27%))] p-6 text-white shadow-[0_24px_60px_-32px_hsl(168_100%_17%/0.55)]">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:36px_36px] [mask-image:radial-gradient(ellipse_80%_100%_at_100%_0%,#000,transparent)]"
-            />
-            <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[hsl(160_84%_45%)]/25 blur-3xl" />
-            <div
-              aria-hidden
-              className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.2),transparent)] mix-blend-overlay"
-              style={{ animationDelay: '1.5s' }}
-            />
-
-            <h2 className="relative flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-white/60">
-              <Zap className="h-3.5 w-3.5 text-mint" /> Plan & credits
-            </h2>
-
-            <p className="relative mt-3 text-[42px] font-bold leading-none tracking-[-0.03em]">
-              {credits ?? '—'}
-            </p>
-            <p className="relative mt-1.5 text-[13px] text-white/55">credits remaining</p>
-
-            <div className="relative mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-mint to-white"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: credits === undefined ? 0 : Math.max(0, Math.min(1, credits / PHASE1_PLAN.credits)) }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                style={{ transformOrigin: 'left' }}
-              />
-            </div>
-
-            <div className="relative mt-5 flex items-center gap-2 rounded-xl bg-white/[0.06] px-4 py-3 text-[14px]">
-              {active && (
-                <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint opacity-70" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint" />
-                </span>
-              )}
-              {active ? (
-                <div>
-                  <p className="font-semibold text-white">ThinkDecor plan · active</p>
-                  {periodEnd && (
-                    <p className="mt-0.5 text-white/55">
-                      {subscription?.cancel_at_period_end ? `Ends ${periodEnd}` : `Renews ${periodEnd}`} ·{' '}
-                      {PHASE1_PLAN.credits} credits each month
-                    </p>
-                  )}
                 </div>
-              ) : (
-                <div>
-                  <p className="font-semibold text-white">Free</p>
-                  <p className="mt-0.5 text-white/55">No active plan.</p>
+
+                <div className="card-foot">
+                  <button type="submit" className="btn btn-dark" disabled={updateProfile.isPending || !hydrated}>
+                    {updateProfile.isPending ? <Spinner /> : <Check width={15} height={15} />} Save profile
+                  </button>
                 </div>
-              )}
-            </div>
-
-            {!active && (
-              <Link
-                to="/pricing"
-                className="group relative mt-4 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-primary transition-transform duration-300 hover:scale-[1.02]"
-              >
-                <span
-                  aria-hidden
-                  className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.1),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-                />
-                <span className="relative">Upgrade — {INTRO} first month, then {MONTHLY}</span>
-              </Link>
+              </form>
             )}
 
-            {subscription && (
-              <div className="relative mt-4">
-                <button
-                  type="button"
-                  onClick={manageBilling}
-                  disabled={openingPortal}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-white/25 px-5 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-60"
-                >
-                  {openingPortal ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-                  Manage billing
-                </button>
-                <p className="mt-2 text-center text-[12.5px] text-white/45">
-                  Cancel, change your card or download invoices.
-                </p>
-              </div>
-            )}
-          </section>
-          </Tilt>
-          </motion.div>
+            {/* ------------------------------------------------------- Security */}
+            {tab === 'security' && (
+              <>
+                <form className="card" onSubmit={savePassword}>
+                  <h3>Password</h3>
+                  <p className="lede">Use at least 6 characters. You'll stay signed in on this device.</p>
+                  <div className="fgrid" style={{ marginTop: 22 }}>
+                    <div className="fld">
+                      <label htmlFor="settings-password">New password</label>
+                      <input id="settings-password" className="inp" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+                    </div>
+                    <div className="fld">
+                      <label htmlFor="settings-confirm">Confirm new password</label>
+                      <input id="settings-confirm" className="inp" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} minLength={6} required />
+                    </div>
+                  </div>
+                  <div className="card-foot">
+                    <button type="submit" className="btn btn-dark" disabled={savingPassword}>
+                      {savingPassword && <Spinner />} Update password
+                    </button>
+                  </div>
+                </form>
 
-          <motion.section
-            variants={staggerItem}
-            className="rounded-[22px] border border-border/70 bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_18px_44px_-30px_hsl(168_30%_15%/0.35)]"
-          >
-            <h2 className="flex items-center gap-2.5 text-[16px] font-semibold text-foreground">
-              <SectionIcon icon={Monitor} />
-              Session
-            </h2>
-            <p className="mt-2 text-[13.5px] text-foreground/55">Signed in as {user?.email}</p>
-            <Magnetic strength={0.2} className="mt-4 inline-block">
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" /> Sign out
-              </Button>
-            </Magnetic>
-          </motion.section>
-        </Stagger>
-      </div>
+                <div className="card danger-zone">
+                  <h3>Session</h3>
+                  <p className="lede">Signed in as {user?.email}.</p>
+                  <div className="card-foot" style={{ justifyContent: 'flex-start' }}>
+                    <button type="button" className="btn btn-line" onClick={handleSignOut}>
+                      <LogOut width={15} height={15} /> Sign out
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ---------------------------------------------------- Plan & billing */}
+            {tab === 'plan' && (
+              <>
+                <section className="plan">
+                  <div className="kicker"><Zap width={14} height={14} /> Plan &amp; credits</div>
+                  <div className="big">
+                    <b>{credits ?? '—'}</b>
+                    <span>credits remaining · 1 per design</span>
+                  </div>
+                  <div className="bar"><i style={{ width: `${fraction * 100}%` }} /></div>
+
+                  <div className="state">
+                    {active && <span className="dot" />}
+                    {active ? (
+                      <div>
+                        <b>ThinkDecor plan · active</b>
+                        {periodEnd && (
+                          <span>
+                            {subscription?.cancel_at_period_end ? `Ends ${periodEnd}` : `Renews ${periodEnd}`} · {PHASE1_PLAN.credits} credits each month
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <b>Free</b>
+                        <span>No active plan.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="acts">
+                    {!active && (
+                      <Link to="/pricing" className="btn btn-w">Upgrade — {INTRO} first month, then {MONTHLY}</Link>
+                    )}
+                    {subscription && (
+                      <button type="button" className="btn btn-g" onClick={manageBilling} disabled={openingPortal}>
+                        {openingPortal ? <Spinner /> : <ExternalLink width={15} height={15} />} Manage billing
+                      </button>
+                    )}
+                  </div>
+                  {subscription && <p className="note2">Cancel, change your card or download invoices.</p>}
+                </section>
+              </>
+            )}
+
+            {/* --------------------------------------------------------- Support */}
+            {tab === 'support' && (
+              <form className="card" onSubmit={submitTicket}>
+                <h3>Raise a query</h3>
+                <p className="lede">Something not working, or a question about your account? We'll reply right here.</p>
+                <div className="fgrid" style={{ marginTop: 22 }}>
+                  <div className="fld full">
+                    <label htmlFor="ticket-subject">Subject</label>
+                    <input id="ticket-subject" className="inp" value={ticketSubject} onChange={(e) => setTicketSubject(e.target.value)} placeholder="e.g. My last design didn't generate" required />
+                  </div>
+                  <div className="fld full">
+                    <label htmlFor="ticket-message">Message</label>
+                    <textarea id="ticket-message" className="inp" value={ticketMessage} onChange={(e) => setTicketMessage(e.target.value)} rows={5} required placeholder="Tell us what happened…" />
+                  </div>
+                </div>
+                <div className="card-foot">
+                  <button type="submit" className="btn btn-dark" disabled={raiseTicket.isPending}>
+                    {raiseTicket.isPending && <Spinner />} Send query
+                  </button>
+                </div>
+
+                {!!tickets?.length && (
+                  <div className="tkts">
+                    {tickets.map((t) => (
+                      <div key={t.id} className="tkt">
+                        <div className="row">
+                          <b>{t.subject}</b>
+                          <span className={`sbadge ${t.status}`}>{t.status}</span>
+                        </div>
+                        <p>{t.message}</p>
+                        {t.admin_reply && (
+                          <div className="reply"><b>Reply: </b>{t.admin_reply}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
     </>
-  );
-}
-
-/** Glowing circular icon badge — the same treatment used on every other
- *  premium card in the app (empty states, mask-edit flow), so Settings'
- *  section headers stop reading as a plainer, older style of card. */
-function SectionIcon({ icon: Icon }: { icon: React.ComponentType<{ className?: string }> }) {
-  return (
-    <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-      <span aria-hidden className="absolute inset-0 rounded-full bg-primary/20 blur-md" />
-      <Icon className="relative h-4 w-4 text-primary" />
-    </span>
   );
 }

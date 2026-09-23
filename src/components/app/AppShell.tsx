@@ -1,8 +1,8 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, LayoutGrid, Wand2, Plus, LogOut,
-  Settings as SettingsIcon, Eraser, Replace as ReplaceIcon, Search, FolderOpen, Zap,
+  Settings as SettingsIcon, Eraser, Replace as ReplaceIcon, Search, FolderOpen, Zap, Menu, X,
 } from 'lucide-react';
 import '@/styles/app-theme.css';
 import { useAuthStore } from '@/stores/authStore';
@@ -31,6 +31,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: credits } = useCreditBalance();
   const { data: designs } = useGenerations();
 
+  // Below 1100px the sidebar is an off-canvas drawer (top-bar button) with a
+  // bottom tab bar for the main destinations, instead of a block stacked above
+  // the page. Any navigation closes it; Escape closes it too.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   // Mounted once here (not per-page) so a generation finishing — in this tab
   // or another — updates Overview/Projects live, for as long as the visitor
   // is anywhere under /app.
@@ -51,8 +63,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-x">
-      <div className="shell">
-        <aside className="side">
+      <div className={`shell${menuOpen ? ' menu-open' : ''}`}>
+        <div className="scrim" onClick={() => setMenuOpen(false)} aria-hidden />
+        <aside className="side" id="app-drawer" aria-label="Main navigation">
+          <button type="button" className="side-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+            <X width={18} height={18} />
+          </button>
           <div className="brand"><b>Think</b><i>Decor</i></div>
 
           <Link to="/app/create" className="newbtn">
@@ -121,6 +137,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main className="main">
           <header className="top">
+            <button
+              type="button"
+              className="menu-btn"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              aria-controls="app-drawer"
+            >
+              <Menu width={20} height={20} />
+            </button>
+            <Link to="/app" className="top-brand"><b>Think</b><i>Decor</i></Link>
             <div className="crumb">
               {crumb[0]}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
@@ -137,11 +164,29 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <b>{credits}</b> credits
               </span>
             )}
-            <Link to="/pricing" className="btn btn-dark">Upgrade · {INTRO}</Link>
+            <Link to="/pricing" className="btn btn-dark upgrade">Upgrade · {INTRO}</Link>
           </header>
 
           {children}
         </main>
+
+        <nav className="tabbar" aria-label="Quick navigation">
+          <NavLink to="/app" end className={({ isActive }) => (isActive ? 'on' : '')}>
+            <LayoutDashboard width={20} height={20} /><span>Home</span>
+          </NavLink>
+          <NavLink to="/app/templates" className={({ isActive }) => (isActive ? 'on' : '')}>
+            <LayoutGrid width={20} height={20} /><span>Styles</span>
+          </NavLink>
+          <NavLink to="/app/create" className={({ isActive }) => `mid${isActive ? ' on' : ''}`}>
+            <Plus width={22} height={22} strokeWidth={2.4} /><span>Create</span>
+          </NavLink>
+          <NavLink to="/app/library" className={({ isActive }) => (isActive ? 'on' : '')}>
+            <FolderOpen width={20} height={20} /><span>Projects</span>
+          </NavLink>
+          <NavLink to="/app/settings" className={({ isActive }) => (isActive ? 'on' : '')}>
+            <SettingsIcon width={20} height={20} /><span>Settings</span>
+          </NavLink>
+        </nav>
       </div>
     </div>
   );

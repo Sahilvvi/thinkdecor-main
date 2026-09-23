@@ -376,7 +376,7 @@ export function DesignGenerator() {
                         </motion.span>
                       </AnimatePresence>
                       <span className="text-[11.5px] text-white/70">
-                        {elapsed}s · usually 15–30 seconds
+                        {elapsed}s · usually about 10 seconds
                       </span>
                       <div className="h-1 w-32 overflow-hidden rounded-full bg-white/15">
                         <motion.div

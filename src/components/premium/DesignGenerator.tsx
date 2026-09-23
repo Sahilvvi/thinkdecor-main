@@ -11,6 +11,7 @@ import {
 import { Reveal, Stagger, staggerItem } from './Motion';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { downscaleImage } from '@/lib/image';
 
 /** Persisted across visits so the free homepage try is one-per-device, not one-per-tab. */
 const DEVICE_ID_KEY = 'thinkdecor_demo_device_id';
@@ -27,7 +28,7 @@ function getDeviceId(): string {
   }
 }
 
-function fileToBase64(file: File): Promise<string> {
+function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -122,6 +123,7 @@ export function DesignGenerator() {
   const [prompt, setPrompt] = useState('');
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [statusIndex, setStatusIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const objectUrl = useRef<string | null>(null);
   const hintTimer = useRef<number | null>(null);
@@ -161,17 +163,22 @@ export function DesignGenerator() {
     setError(null);
     setPhase('generating');
     setStatusIndex(0);
+    setElapsed(0);
+    const startedAt = Date.now();
     statusTimer.current = window.setInterval(() => {
-      setStatusIndex((i) => (i + 1) % STATUS_LINES.length);
-    }, 2200);
+      const secs = Math.floor((Date.now() - startedAt) / 1000);
+      setElapsed(secs);
+      setStatusIndex(Math.min(STATUS_LINES.length - 1, Math.floor(secs / 6)));
+    }, 1000);
 
     try {
-      const imageBase64 = uploaded
-        ? await fileToBase64(uploaded.file)
-        : await fetch(SAMPLE_BEFORE)
-          .then((r) => r.blob())
-          .then((blob) => fileToBase64(new File([blob], 'sample.png', { type: blob.type || 'image/png' })));
-      const imageMimeType = uploaded?.file.type || 'image/png';
+      // Send a ~1.5k-pixel JPEG, not the full phone photo: the upload is many
+      // times smaller and Gemini answers noticeably faster, with no visible
+      // loss (its output is ~1 MP anyway).
+      const source = uploaded ? uploaded.file : await fetch(SAMPLE_BEFORE).then((r) => r.blob());
+      const toSend = await downscaleImage(source);
+      const imageBase64 = await fileToBase64(toSend);
+      const imageMimeType = toSend.type || 'image/png';
 
       const { data, error: fnError } = await supabase.functions.invoke('demo-redesign', {
         body: { deviceId: deviceId.current, imageBase64, imageMimeType, prompt: prompt.trim() || undefined },
@@ -368,6 +375,9 @@ export function DesignGenerator() {
                           {STATUS_LINES[statusIndex]}
                         </motion.span>
                       </AnimatePresence>
+                      <span className="text-[11.5px] text-white/70">
+                        {elapsed}s · usually 15–30 seconds
+                      </span>
                       <div className="h-1 w-32 overflow-hidden rounded-full bg-white/15">
                         <motion.div
                           animate={{ x: ['-100%', '100%'] }}

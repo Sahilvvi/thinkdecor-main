@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { TEMPLATES, roomLabel, templateByKey, type RoomType } from '@/lib/templates';
+import { downscaleFile, downscaleImage } from '@/lib/image';
 
 /**
  * Everything the app needs for credits, generations and room photos.
@@ -291,10 +292,12 @@ export async function generateRedesign({
   if (typeof image === 'string') {
     inputPath = image;
   } else {
-    inputPath = `${userId}/${safeFileName(image.name)}`;
+    // Full-size phone photos only make the upload and the model slower.
+    const upload = await downscaleFile(image);
+    inputPath = `${userId}/${safeFileName(upload.name)}`;
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(inputPath, image, { contentType: image.type || undefined });
+      .upload(inputPath, upload, { contentType: upload.type || undefined });
     if (uploadError) throw uploadError;
   }
 
@@ -428,11 +431,12 @@ export async function generateMaskEdit({
   if (typeof cleanImage === 'string') {
     inputPath = cleanImage;
   } else {
-    const name = cleanImage instanceof File ? cleanImage.name : `${mode}.png`;
-    inputPath = `${userId}/${safeFileName(name)}`;
+    const clean = await downscaleImage(cleanImage);
+    const name = cleanImage instanceof File ? cleanImage.name.replace(/\.[^.]+$/, '') : mode;
+    inputPath = `${userId}/${safeFileName(`${name}.${clean.type === 'image/jpeg' ? 'jpg' : 'png'}`)}`;
     const { error: cleanUploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(inputPath, cleanImage, { contentType: cleanImage.type || undefined });
+      .upload(inputPath, clean, { contentType: clean.type || undefined });
     if (cleanUploadError) throw cleanUploadError;
   }
 

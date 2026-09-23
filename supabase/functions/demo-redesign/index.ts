@@ -31,6 +31,22 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const MODEL = Deno.env.get("GEMINI_IMAGE_MODEL") ?? "gemini-2.5-flash-image";
 const GEMINI_TIMEOUT_MS = 45_000;
 const IP_DAILY_LIMIT = 3;
+
+// Gemini's image model can play it safe on a vague instruction and return
+// something only subtly different from the input (same walls, same layout,
+// barely-changed lighting) — which reads to a visitor as "it didn't do
+// anything." These are concrete enough that the model has no vague middle
+// ground to fall back to when the visitor didn't type their own prompt.
+const FALLBACK_STYLES = [
+  "warm Scandinavian: pale oak flooring, off-white walls, linen and boucle textures",
+  "moody dark academia: deep forest-green walls, brass fixtures, dark walnut furniture",
+  "coastal Japandi: warm greige walls, woven natural textures, light bamboo accents",
+  "modern minimalist: crisp white walls, black matte fixtures, polished concrete flooring",
+  "mid-century modern: warm mustard and burnt-orange accents, teak furniture, terrazzo flooring",
+];
+function pickFallbackStyle(): string {
+  return FALLBACK_STYLES[Math.floor(Math.random() * FALLBACK_STYLES.length)];
+}
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -164,8 +180,11 @@ Deno.serve(async (req) => {
   try {
     const fullPrompt = [
       "Redesign this room as a photorealistic interior photograph.",
-      prompt?.trim() ? `Requested changes: ${prompt.trim()}.` : "Use a tasteful, contemporary style.",
-      "Keep the room's architecture, walls, windows, doors, camera angle and perspective exactly the same.",
+      prompt?.trim() ? `Requested changes: ${prompt.trim()}.` : `Style: ${pickFallbackStyle()}.`,
+      "Keep the room's architecture, windows, doors, camera angle and perspective exactly the same, but the",
+      "redesign itself must be clearly and obviously visible — change the wall color or finish and the",
+      "flooring as part of the style, not just minor styling touches. The result should look like a",
+      "different, real decorating choice, not a lightly retouched version of the original photo.",
     ].join(" ");
 
     let attempt = await callGeminiImage(fullPrompt, imageBase64, mimeType);

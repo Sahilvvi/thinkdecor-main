@@ -249,7 +249,9 @@ Deno.serve(async (req) => {
           `Redesign this ${roomLabel ?? "room"} as a photorealistic interior photograph.`,
           stylePrompt ? `Style: ${stylePrompt}.` : "",
           prompt ? `Requested changes: ${prompt}.` : "",
-          "Keep the room's architecture, walls, windows, doors, camera angle and perspective exactly the same.",
+          "Keep the room's architecture, windows, doors, camera angle and perspective exactly the same, but the",
+          "redesign itself must be clearly and obviously visible — change the wall color or finish and the",
+          "flooring as part of the style, not just minor styling touches.",
         ].filter(Boolean).join(" ");
 
     const inputMimeType = sourceBlob.type || "image/png";

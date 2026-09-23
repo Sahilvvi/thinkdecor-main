@@ -215,42 +215,54 @@ export default function Create() {
         {turns.length > 0 && (
           <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
             {turns.map((turn) => (
-              <div key={turn.id} className="card" style={{ padding: 16 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span className="tagp">{templateByKey(turn.templateKey)?.label}</span>
-                  <span className="tagp">{roomLabel(turn.roomType)}</span>
-                  {turn.attempt > 0 && <span className="tagp">Variation {turn.attempt + 1}</span>}
-                </div>
-                {turn.prompt && <p className="muted" style={{ marginTop: 8, fontSize: 13.5 }}>{turn.prompt}</p>}
-
-                {turn.status === 'pending' && (
-                  <div style={{ marginTop: 12, position: 'relative', borderRadius: 16, overflow: 'hidden', aspectRatio: '4/3', maxWidth: 480 }}>
-                    <StoredImage src={turn.sourceRef} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(6px)', opacity: 0.6 }} />
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                      <Loader2 className="animate-spin" color="var(--brass)" width={28} height={28} />
-                      <span style={{ fontWeight: 600, fontSize: 13.5 }}>Redesigning your room…</span>
+              <div key={turn.id} className="turn-card">
+                <div className="turn-media">
+                  {turn.status === 'pending' && (
+                    <div className="turn-wait">
+                      <StoredImage src={turn.sourceRef} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(6px)', opacity: 0.6 }} />
+                      <div className="turn-wait-in">
+                        <Loader2 className="spin" color="var(--brass)" width={28} height={28} />
+                        <span style={{ fontWeight: 600, fontSize: 13.5 }}>Redesigning your room…</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {turn.status === 'error' && (
-                  <div className="note" style={{ marginTop: 12, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
-                    <div>
-                      {turn.error}
-                      {outOfCredits && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
-                    </div>
-                  </div>
-                )}
-
-                {turn.status === 'done' && turn.result && (
-                  <div style={{ marginTop: 12, maxWidth: 560, borderRadius: 16, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--stone-2)' }}>
+                  )}
+                  {turn.status === 'done' && turn.result && (
                     <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 14px' }}>
+                  )}
+                  {turn.status === 'error' && (
+                    <div className="note" style={{ margin: 0, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
+                      <div>
+                        {turn.error}
+                        {outOfCredits && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="turn-side">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span className="tagp">{templateByKey(turn.templateKey)?.label}</span>
+                    <span className="tagp">{roomLabel(turn.roomType)}</span>
+                    {turn.attempt > 0 && <span className="tagp">Variation {turn.attempt + 1}</span>}
+                  </div>
+                  {turn.prompt && (
+                    <div>
+                      <div className="kicker" style={{ marginBottom: 6 }}>Your brief</div>
+                      <p className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>{turn.prompt}</p>
+                    </div>
+                  )}
+
+                  {turn.status === 'pending' && (
+                    <p className="muted" style={{ fontSize: 13 }}>Usually about ten seconds. You can leave this page open.</p>
+                  )}
+
+                  {turn.status === 'done' && turn.result && (
+                    <div className="turn-acts">
                       <span className="muted" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Check width={14} height={14} color="var(--brass)" />
                         Saved to your <Link to="/app/library" style={{ fontWeight: 700, color: 'var(--brass)' }}>projects</Link>
                       </span>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button type="button" onClick={() => regenerate(turn)} disabled={busy || outOfCredits} className="btn btn-line btn-sm">
                           <RefreshCw width={14} height={14} /> Regenerate
                         </button>
@@ -263,8 +275,8 @@ export default function Create() {
                         </button>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>

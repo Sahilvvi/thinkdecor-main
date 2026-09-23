@@ -213,7 +213,7 @@ export default function Settings() {
           <div className="set-pane" key={tab}>
             {/* ---------------------------------------------------------- Profile */}
             {tab === 'profile' && (
-              <form className="card" onSubmit={saveProfile}>
+              <form className="scard" onSubmit={saveProfile}>
                 <h3>{current.label}</h3>
                 <p className="lede">{current.blurb}</p>
 
@@ -291,7 +291,7 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <div className="card-foot">
+                <div className="scard-foot">
                   <button type="submit" className="btn btn-dark" disabled={updateProfile.isPending || !hydrated}>
                     {updateProfile.isPending ? <Spinner /> : <Check width={15} height={15} />} Save profile
                   </button>
@@ -302,7 +302,7 @@ export default function Settings() {
             {/* ------------------------------------------------------- Security */}
             {tab === 'security' && (
               <>
-                <form className="card" onSubmit={savePassword}>
+                <form className="scard" onSubmit={savePassword}>
                   <h3>Password</h3>
                   <p className="lede">Use at least 6 characters. You'll stay signed in on this device.</p>
                   <div className="fgrid" style={{ marginTop: 22 }}>
@@ -315,17 +315,17 @@ export default function Settings() {
                       <input id="settings-confirm" className="inp" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} minLength={6} required />
                     </div>
                   </div>
-                  <div className="card-foot">
+                  <div className="scard-foot">
                     <button type="submit" className="btn btn-dark" disabled={savingPassword}>
                       {savingPassword && <Spinner />} Update password
                     </button>
                   </div>
                 </form>
 
-                <div className="card danger-zone">
+                <div className="scard danger-zone">
                   <h3>Session</h3>
                   <p className="lede">Signed in as {user?.email}.</p>
-                  <div className="card-foot" style={{ justifyContent: 'flex-start' }}>
+                  <div className="scard-foot" style={{ justifyContent: 'flex-start' }}>
                     <button type="button" className="btn btn-line" onClick={handleSignOut}>
                       <LogOut width={15} height={15} /> Sign out
                     </button>
@@ -381,7 +381,7 @@ export default function Settings() {
 
             {/* --------------------------------------------------------- Support */}
             {tab === 'support' && (
-              <form className="card" onSubmit={submitTicket}>
+              <form className="scard" onSubmit={submitTicket}>
                 <h3>Raise a query</h3>
                 <p className="lede">Something not working, or a question about your account? We'll reply right here.</p>
                 <div className="fgrid" style={{ marginTop: 22 }}>
@@ -394,7 +394,7 @@ export default function Settings() {
                     <textarea id="ticket-message" className="inp" value={ticketMessage} onChange={(e) => setTicketMessage(e.target.value)} rows={5} required placeholder="Tell us what happened…" />
                   </div>
                 </div>
-                <div className="card-foot">
+                <div className="scard-foot">
                   <button type="submit" className="btn btn-dark" disabled={raiseTicket.isPending}>
                     {raiseTicket.isPending && <Spinner />} Send query
                   </button>

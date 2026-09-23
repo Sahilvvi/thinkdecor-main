@@ -70,6 +70,8 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [ready, setReady] = useState(false);
+  // width / height of the loaded photo, so the editor can be capped to the screen's height.
+  const [aspect, setAspect] = useState(4 / 3);
   const [brush, setBrush] = useState<(typeof BRUSH_SIZES)[number]>(BRUSH_SIZES[1]);
   const strokesRef = useRef<Stroke[]>(initialStrokes ?? []);
   const loadedSrcRef = useRef<string | null>(null);
@@ -125,6 +127,7 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
         canvas.height = Math.round(img.naturalHeight * scale);
       }
       imgRef.current = img;
+      setAspect(img.naturalWidth / img.naturalHeight);
       setReady(true);
     };
     img.src = imageSrc;
@@ -268,7 +271,12 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      <div className="relative overflow-hidden rounded-[18px] border border-foreground/[0.1] bg-black/5">
+      {/* Never taller than ~70% of the screen, however wide the panel is: a 1500px-wide
+          canvas is 1100px tall and pushes half the photo below the fold. */}
+      <div
+        className="relative mx-auto w-full overflow-hidden rounded-[18px] border border-foreground/[0.1] bg-black/5"
+        style={{ maxWidth: `min(100%, calc(70vh * ${aspect}))` }}
+      >
         <canvas
           ref={canvasRef}
           onPointerDown={onPointerDown}

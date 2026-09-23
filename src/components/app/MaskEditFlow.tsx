@@ -390,7 +390,9 @@ export function MaskEditFlow({
           </div>
         ) : cleanBeforeRef && (
           <div className="card r" style={{ ['--i' as string]: 3, marginTop: 20, overflow: 'hidden' }}>
-            <StoredCompare before={cleanBeforeRef} after={result.output_image_url} />
+            <div style={{ maxWidth: 'min(100%, calc(70vh * 1.3334))', margin: '0 auto' }}>
+              <StoredCompare before={cleanBeforeRef} after={result.output_image_url} />
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 16 }}>
               <span className="muted" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Check width={14} height={14} color="var(--brass)" />

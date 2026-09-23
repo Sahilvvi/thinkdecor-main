@@ -159,9 +159,9 @@ export default function Library() {
                     <div className="m">{formatDate(g.created_at)}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                    <button type="button" className="ico-btn" title="Download" onClick={() => download(g)}><Download width={16} height={16} /></button>
-                    <button type="button" className="ico-btn" title={isMaskEdit(g) ? 'Edit again' : 'Regenerate'} onClick={() => regenerate(g)}><RefreshCw width={16} height={16} /></button>
-                    <button type="button" className="ico-btn danger" title="Delete" onClick={() => setConfirming(g)}><Trash2 width={16} height={16} /></button>
+                    <button type="button" className="ico-btn" title="Download" aria-label="Download" onClick={() => download(g)}><Download width={16} height={16} /></button>
+                    <button type="button" className="ico-btn" title={isMaskEdit(g) ? 'Edit again' : 'Regenerate'} aria-label={isMaskEdit(g) ? 'Edit again' : 'Regenerate'} onClick={() => regenerate(g)}><RefreshCw width={16} height={16} /></button>
+                    <button type="button" className="ico-btn danger" title="Delete" aria-label="Delete" onClick={() => setConfirming(g)}><Trash2 width={16} height={16} /></button>
                   </div>
                 </div>
               </div>

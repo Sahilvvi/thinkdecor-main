@@ -73,8 +73,6 @@ export const PLANS: Plan[] = [
       'Change flooring',
       'Replace objects',
       'Cleanup, remove clutter',
-      'Paint calculator',
-      'Flooring calculator',
     ],
   },
 

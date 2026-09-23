@@ -250,7 +250,11 @@ export interface GenerateRequest {
  *  - Placeholder (default): returns a sample design after a short delay, so
  *    credits, history and the library all work before a model is connected.
  */
-export const IS_PLACEHOLDER_GENERATOR = import.meta.env.VITE_LIVE_GENERATION !== 'true';
+// Live is the default. This used to be opt-IN (=== 'true'), so a deploy that forgot
+// the env var (Vercel didn't have it) silently shipped the placeholder generator:
+// real credits spent, sample images returned. Set VITE_LIVE_GENERATION=false only
+// to run the placeholder locally without the edge function.
+export const IS_PLACEHOLDER_GENERATOR = import.meta.env.VITE_LIVE_GENERATION === 'false';
 
 async function runPlaceholderGenerator(templateKey: string, attempt: number): Promise<string> {
   await new Promise((resolve) => setTimeout(resolve, 2200));

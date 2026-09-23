@@ -18,6 +18,37 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// PostgREST caps any single response at 1,000 rows and auth.admin.listUsers pages
+// too, so anything that has to see *everyone* has to walk the pages — otherwise
+// accounts past the first page silently vanish from the admin list.
+const PAGE = 1000;
+
+// deno-lint-ignore no-explicit-any
+async function fetchAllRows(admin: any, table: string, columns: string) {
+  // deno-lint-ignore no-explicit-any
+  const rows: any[] = [];
+  for (let from = 0; from < 100 * PAGE; from += PAGE) {
+    const { data, error } = await admin.from(table).select(columns).range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < PAGE) break;
+  }
+  return rows;
+}
+
+// deno-lint-ignore no-explicit-any
+async function listAllAuthUsers(admin: any) {
+  // deno-lint-ignore no-explicit-any
+  const users: any[] = [];
+  for (let page = 1; page <= 100; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: PAGE });
+    if (error) throw new Error(error.message);
+    users.push(...data.users);
+    if (data.users.length < PAGE) break;
+  }
+  return users;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -65,13 +96,21 @@ Deno.serve(async (req) => {
   const { action, userId } = body;
 
   if (action === "list") {
-    const { data: authUsers, error: authErr } = await admin.auth.admin.listUsers({ perPage: 500 });
-    if (authErr) return json({ error: authErr.message }, 500);
-
-    const [{ data: profiles }, { data: roles }] = await Promise.all([
-      admin.from("profiles").select("user_id, name, phone, banned_at, plan"),
-      admin.from("user_roles").select("user_id, role"),
-    ]);
+    let authUsers: { users: Awaited<ReturnType<typeof listAllAuthUsers>> };
+    let profiles: Awaited<ReturnType<typeof fetchAllRows>>;
+    let roles: Awaited<ReturnType<typeof fetchAllRows>>;
+    try {
+      const [users, p, r] = await Promise.all([
+        listAllAuthUsers(admin),
+        fetchAllRows(admin, "profiles", "user_id, name, phone, banned_at, plan"),
+        fetchAllRows(admin, "user_roles", "user_id, role"),
+      ]);
+      authUsers = { users };
+      profiles = p;
+      roles = r;
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : "Couldn't load accounts." }, 500);
+    }
 
     const profileById = new Map((profiles ?? []).map((p) => [p.user_id, p]));
     const adminIds = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.user_id));
@@ -102,9 +141,12 @@ Deno.serve(async (req) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return json({ error: "Enter a valid email address." }, 400);
     }
-    const { data: listed, error: listErr } = await admin.auth.admin.listUsers({ perPage: 1000 });
-    if (listErr) return json({ error: listErr.message }, 500);
-    const existing = listed.users.find((u) => u.email?.toLowerCase() === email);
+    let existing: { id: string; email?: string } | undefined;
+    try {
+      existing = (await listAllAuthUsers(admin)).find((u) => u.email?.toLowerCase() === email);
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : "Couldn't look that account up." }, 500);
+    }
 
     let targetId = existing?.id;
     let status: "promoted" | "invited" = "promoted";

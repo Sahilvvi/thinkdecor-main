@@ -382,16 +382,19 @@ function blobToBase64(blob: Blob): Promise<string> {
  * see supabase/functions/label-mask-region.
  */
 /** Detection is a nicety, never a gate — give up rather than keep the user waiting. */
-const LABEL_TIMEOUT_MS = 10_000;
+const LABEL_TIMEOUT_MS = 15_000;
 
-export async function labelMaskRegion(maskedImage: Blob): Promise<string> {
-  const base64 = await blobToBase64(maskedImage);
+export async function labelMaskRegion(
+  image: Blob,
+  box?: { x0: number; y0: number; x1: number; y1: number },
+): Promise<string> {
+  const base64 = await blobToBase64(image);
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new GenerationError('Detection timed out.')), LABEL_TIMEOUT_MS),
   );
   const { data, error } = await Promise.race([
     supabase.functions.invoke('label-mask-region', {
-      body: { maskedImage: base64, mimeType: maskedImage.type || 'image/png' },
+      body: { maskedImage: base64, mimeType: image.type || 'image/jpeg', box },
     }),
     timeout,
   ]);

@@ -103,9 +103,9 @@ export function MaskEditFlow({
     setLabelFailed(false);
     labelTimer.current = window.setTimeout(async () => {
       try {
-        const maskedImage = await canvasRef.current?.exportMasked({ maxDimension: 768, type: 'image/jpeg' });
-        if (!maskedImage || myId !== labelRequestId.current) return;
-        const detected = await labelMaskRegion(maskedImage);
+        const detection = await canvasRef.current?.exportDetection({ maxDimension: 768 });
+        if (!detection || myId !== labelRequestId.current) return;
+        const detected = await labelMaskRegion(detection.blob, detection.box);
         if (myId === labelRequestId.current) setLabel(detected);
       } catch {
         if (myId === labelRequestId.current) { setLabel(null); setLabelFailed(true); }

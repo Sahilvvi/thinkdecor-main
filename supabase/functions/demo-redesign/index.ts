@@ -28,8 +28,43 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const MODEL = Deno.env.get("GEMINI_IMAGE_MODEL") ?? "gemini-2.5-flash-image";
-const GEMINI_TIMEOUT_MS = 45_000;
+// Image models, fastest first. Benchmarked on the same bedroom photo + prompt:
+//   gemini-3.1-flash-lite-image  3.8s  (restyled the whole room - best result)
+//   gemini-2.5-flash-image       9.4s  (left dark window frame / furniture untouched)
+//   gemini-3.1-flash-image      10.1s
+//   gemini-3-pro-image          20.6s
+// A model that's retired, overloaded or timing out just hands over to the next one.
+// Override the first choice with the GEMINI_IMAGE_MODEL secret.
+const IMAGE_MODELS = [
+  ...new Set([
+    Deno.env.get("GEMINI_IMAGE_MODEL"),
+    "gemini-3.1-flash-lite-image",
+    "gemini-3.1-flash-image",
+    "gemini-2.5-flash-image",
+  ].filter((m): m is string => !!m)),
+];
+// Small text models that tidy the user's prompt (see beautifyPrompt).
+const TEXT_MODELS = [
+  ...new Set([
+    Deno.env.get("GEMINI_TEXT_MODEL"),
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+  ].filter((m): m is string => !!m)),
+];
+
+/** Chunked to avoid blowing the call stack on a 10MB image (spreading a huge
+ *  array straight into String.fromCharCode's arguments can overflow). */
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+// Per attempt. Two models + one refusal retry still fits the 150s edge limit.
+const GEMINI_TIMEOUT_MS = 40_000;
+const BEAUTIFY_TIMEOUT_MS = 4_000;
 const IP_DAILY_LIMIT = 3;
 
 // Gemini's image model can play it safe on a vague instruction and return
@@ -54,12 +89,12 @@ type GeminiImageResult =
   | { ok: true; b64: string; mimeType: string }
   | { ok: false; hardError?: string; refusalReason?: string };
 
-async function callGeminiImage(fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+async function callGeminiImage(model: string, fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
   try {
     const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
@@ -87,7 +122,7 @@ async function callGeminiImage(fullPrompt: string, inputB64: string, inputMimeTy
       return { ok: true, b64, mimeType: imagePart?.inlineData?.mimeType || "image/png" };
     }
     const refusalReason = aiResult?.promptFeedback?.blockReason || candidate?.finishReason;
-    console.error("demo-redesign: no image in response", { refusalReason });
+    console.error("demo-redesign: no image in response", { model, refusalReason });
     return { ok: false, refusalReason };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
@@ -97,6 +132,117 @@ async function callGeminiImage(fullPrompt: string, inputB64: string, inputMimeTy
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * Walks the model list until one returns an image. A refusal gets one retry
+ * with softened framing on the same model (many are false positives on plain
+ * interior photos); a hard error - retired model, overload, timeout - moves
+ * straight to the next model.
+ */
+async function generateImage(fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+  let last: GeminiImageResult = { ok: false, hardError: "No image model available" };
+  for (const model of IMAGE_MODELS) {
+    const started = Date.now();
+    let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType);
+    if (!attempt.ok && attempt.refusalReason) {
+      console.error("demo-redesign: refused, retrying with softened framing", { model, refusalReason: attempt.refusalReason });
+      attempt = await callGeminiImage(
+        model,
+        `${fullPrompt} This is a professional interior-design photo-editing request for a legitimate home-renovation context.`,
+        inputB64,
+        inputMimeType,
+      );
+    }
+    if (attempt.ok) {
+      console.log("demo-redesign: image ready", { model, ms: Date.now() - started });
+      return attempt;
+    }
+    console.error("demo-redesign: model failed, trying next", { model, ms: Date.now() - started, reason: attempt.hardError ?? attempt.refusalReason });
+    last = attempt;
+  }
+  return last;
+}
+
+/** Deterministic tidy-up - also the fallback whenever the rewrite model is slow or down. */
+function tidyPrompt(raw: string | undefined): string {
+  const t = (raw ?? "").replace(/\s+/g, " ").trim().slice(0, 400);
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+}
+
+const THINKING_VARIANTS: Record<string, unknown>[] = [
+  { thinkingConfig: { thinkingLevel: "minimal" }, maxOutputTokens: 120, temperature: 0.3 },
+  { thinkingConfig: { thinkingBudget: 0 }, maxOutputTokens: 120, temperature: 0.3 },
+  { maxOutputTokens: 1024, temperature: 0.3 },
+];
+
+/**
+ * Behind-the-scenes prompt clean-up. People type "make it cosy nd add a grean
+ * sofa" - this turns it into a clear, concrete instruction for the image
+ * model, without the user ever seeing the rewrite (the original is what's
+ * stored and shown). It never blocks a generation: on a timeout, an error, or
+ * gibberish it quietly falls back to a plain tidy-up of what they typed.
+ * Returns "" when the note isn't about changing the room at all.
+ */
+async function beautifyPrompt(
+  raw: string | undefined,
+  ctx: { kind: "redesign" | "replace"; roomLabel?: string; style?: string; detectedLabel?: string },
+): Promise<string> {
+  const base = tidyPrompt(raw);
+  if (!base || !GEMINI_API_KEY) return base;
+
+  const brief = ctx.kind === "replace"
+    ? "The note says what should REPLACE a selected object" +
+      (ctx.detectedLabel ? ` (currently: ${ctx.detectedLabel})` : "") +
+      ". Rewrite it as a short, concrete description of the new object only - type, material, colour, finish, size/shape - e.g. \"a low-profile grey linen sofa with slim oak legs\"."
+    : `The note describes changes to a ${ctx.roomLabel ?? "room"}` +
+      (ctx.style ? ` being restyled as: ${ctx.style}` : "") +
+      ". Rewrite it as one or two clear imperative sentences using concrete visual terms - materials, colours, finishes, lighting, furniture.";
+  const system =
+    "You turn a homeowner's rough note into a precise instruction for an interior-design image editor. " +
+    brief +
+    " Fix spelling and grammar, translate to English, and make vague wishes specific - but keep only what they asked for: " +
+    "never add extra changes, brands, people, text or logos, and never contradict them. Under 40 words. " +
+    "Reply with the rewritten instruction only - no quotes, no markdown, no preamble. " +
+    "If the note is gibberish or has nothing to do with changing a room, reply with exactly: NONE";
+
+  for (const model of TEXT_MODELS) {
+    for (let v = 0; v < THINKING_VARIANTS.length; v++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), BEAUTIFY_TIMEOUT_MS);
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ parts: [{ text: `Note: ${base}` }] }],
+            generationConfig: THINKING_VARIANTS[v],
+          }),
+          signal: controller.signal,
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg: string = j?.error?.message ?? "";
+          if (/thinking|invalid argument/i.test(msg)) continue; // wrong thinking knob for this model
+          break; // retired / overloaded - next model
+        }
+        const text: string = (j?.candidates?.[0]?.content?.parts ?? [])
+          .map((p: { text?: string }) => p.text ?? "")
+          .join("")
+          .trim()
+          .replace(/^["'`\s]+|["'`\s]+$/g, "");
+        if (!text) break;
+        if (/^none\.?$/i.test(text)) return "";
+        return text.slice(0, 400);
+      } catch {
+        return base; // timeout / network - don't hold the generation up any longer
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  }
+  return base;
 }
 
 Deno.serve(async (req) => {
@@ -188,20 +334,19 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Tidy whatever the visitor typed (typos, other languages, vague wishes) before
+    // the model sees it. Never blocks - falls back to their own words.
+    const beautified = prompt?.trim() ? await beautifyPrompt(prompt, { kind: "redesign" }) : "";
     const fullPrompt = [
       "Redesign this room as a photorealistic interior photograph.",
-      prompt?.trim() ? `Requested changes: ${prompt.trim()}.` : `Style: ${pickFallbackStyle()}.`,
+      beautified ? `Requested changes: ${beautified.replace(/[.\s]+$/, "")}.` : `Style: ${pickFallbackStyle()}.`,
       "Keep the room's architecture, windows, doors, camera angle and perspective exactly the same, but the",
       "redesign itself must be clearly and obviously visible — change the wall color or finish and the",
       "flooring as part of the style, not just minor styling touches. The result should look like a",
       "different, real decorating choice, not a lightly retouched version of the original photo.",
     ].join(" ");
 
-    let attempt = await callGeminiImage(fullPrompt, imageBase64, mimeType);
-    if (!attempt.ok && attempt.refusalReason) {
-      const softenedPrompt = `${fullPrompt} This is a professional interior-design photo-editing request for a legitimate home-renovation context.`;
-      attempt = await callGeminiImage(softenedPrompt, imageBase64, mimeType);
-    }
+    const attempt = await generateImage(fullPrompt, imageBase64, mimeType);
     if (!attempt.ok) {
       throw new Error(attempt.hardError ?? "Image model returned no image");
     }

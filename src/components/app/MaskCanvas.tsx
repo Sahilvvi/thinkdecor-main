@@ -23,8 +23,23 @@ export interface ExportOptions {
   type?: 'image/png' | 'image/jpeg';
 }
 
+/** Where the mask sits, as fractions (0-1) of the photo's width/height. */
+export interface MaskBox { x0: number; y0: number; x1: number; y1: number }
+
+export interface DetectionExport {
+  /** The clean photo with the mask drawn see-through, so the object under it stays visible. */
+  blob: Blob;
+  box: MaskBox;
+}
+
 export interface MaskCanvasHandle {
   exportMasked: (options?: ExportOptions) => Promise<Blob | null>;
+  /**
+   * For naming what's under the mask. The generation copy paints the mask
+   * solid red, which hides the very object we want named — so detection gets
+   * its own image: same photo, mask at ~40% opacity, plus the mask's bounds.
+   */
+  exportDetection: (options?: { maxDimension?: number }) => Promise<DetectionExport | null>;
   clear: () => void;
   undo: () => void;
   redo: () => void;
@@ -195,6 +210,56 @@ export const MaskCanvas = forwardRef<MaskCanvasHandle, {
           target.getContext('2d')?.drawImage(canvas, 0, 0, target.width, target.height);
         }
         target.toBlob((blob) => resolve(blob), type, type === 'image/jpeg' ? 0.85 : undefined);
+      }),
+    exportDetection: ({ maxDimension = 768 } = {}) =>
+      new Promise((resolve) => {
+        const canvas = canvasRef.current;
+        const img = imgRef.current;
+        const strokes = strokesRef.current.filter((st) => st.points.length > 0);
+        if (!canvas || !img || strokes.length === 0) { resolve(null); return; }
+        const scale = Math.min(1, maxDimension / Math.max(canvas.width, canvas.height));
+        const w = Math.round(canvas.width * scale);
+        const h = Math.round(canvas.height * scale);
+
+        // The stroke layer on its own, so overlapping strokes tint once, not twice.
+        const layer = document.createElement('canvas');
+        layer.width = w; layer.height = h;
+        const lctx = layer.getContext('2d');
+        const out = document.createElement('canvas');
+        out.width = w; out.height = h;
+        const octx = out.getContext('2d');
+        if (!lctx || !octx) { resolve(null); return; }
+        lctx.lineCap = 'round'; lctx.lineJoin = 'round';
+        lctx.strokeStyle = '#FF0000'; lctx.fillStyle = '#FF0000';
+
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const st of strokes) {
+          const r = (st.size / 2) * scale;
+          for (const p of st.points) {
+            x0 = Math.min(x0, p.x * scale - r); y0 = Math.min(y0, p.y * scale - r);
+            x1 = Math.max(x1, p.x * scale + r); y1 = Math.max(y1, p.y * scale + r);
+          }
+          if (st.points.length === 1) {
+            lctx.beginPath();
+            lctx.arc(st.points[0].x * scale, st.points[0].y * scale, r, 0, Math.PI * 2);
+            lctx.fill();
+            continue;
+          }
+          lctx.lineWidth = st.size * scale;
+          lctx.beginPath();
+          lctx.moveTo(st.points[0].x * scale, st.points[0].y * scale);
+          for (const p of st.points.slice(1)) lctx.lineTo(p.x * scale, p.y * scale);
+          lctx.stroke();
+        }
+
+        octx.drawImage(img, 0, 0, w, h);
+        octx.globalAlpha = 0.4;
+        octx.drawImage(layer, 0, 0);
+        octx.globalAlpha = 1;
+
+        const clamp = (v: number) => Math.max(0, Math.min(1, v));
+        const box = { x0: clamp(x0 / w), y0: clamp(y0 / h), x1: clamp(x1 / w), y1: clamp(y1 / h) };
+        out.toBlob((blob) => resolve(blob ? { blob, box } : null), 'image/jpeg', 0.85);
       }),
     clear: doClear,
     undo: doUndo,

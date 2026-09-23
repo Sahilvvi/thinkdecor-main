@@ -61,7 +61,7 @@ export default function Blog() {
       />
       <Navbar />
 
-      <main className="relative z-10 px-3 pt-24 sm:px-4">
+      <main className="relative z-10 mx-auto w-full max-w-[1240px] px-5 pt-24 sm:px-8">
         {/* ---------------- HEADER (prototype .bl-head) ---------------- */}
         <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(60%_70%_at_100%_0%,rgba(0,160,140,0.18),transparent_60%),radial-gradient(40%_60%_at_0%_100%,rgba(0,89,78,0.08),transparent_60%)] px-[clamp(20px,4vw,64px)] pb-[clamp(28px,4vw,48px)] pt-[clamp(40px,6vw,88px)]">
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -110,7 +110,7 @@ export default function Blog() {
 
         {/* ---------------- LOADING ---------------- */}
         {loading && (
-          <div className="container mx-auto max-w-[1120px] px-3 pb-12 pt-8 sm:px-4">
+          <div className="pb-12 pt-8">
             <div className="grid gap-4 lg:grid-cols-2">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse space-y-4 rounded-3xl border border-foreground/[0.08] bg-card p-5">
@@ -125,7 +125,7 @@ export default function Blog() {
 
         {/* ---------------- ERROR ---------------- */}
         {!loading && err && (
-          <div className="container mx-auto max-w-[1120px] px-3 pb-12 pt-8 sm:px-4">
+          <div className="pb-12 pt-8">
             <div className="rounded-[26px] border border-foreground/[0.09] bg-card px-8 py-14 text-center shadow-[0_20px_60px_-40px_hsl(168_30%_12%/0.3)]">
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/[0.09] text-primary">
                 <PenLine className="h-5 w-5" />
@@ -143,7 +143,7 @@ export default function Blog() {
 
         {/* ---------------- EMPTY ---------------- */}
         {!loading && !err && visible.length === 0 && (
-          <div className="container mx-auto max-w-[1120px] px-3 pb-12 pt-8 sm:px-4">
+          <div className="pb-12 pt-8">
             <div className="rounded-[26px] border border-foreground/[0.09] bg-card px-8 py-16 text-center shadow-[0_20px_60px_-40px_hsl(168_30%_12%/0.3)]">
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/[0.09] text-primary">
                 <PenLine className="h-5 w-5" />

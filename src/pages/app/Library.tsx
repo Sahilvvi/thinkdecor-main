@@ -1,19 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Download, Images, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Download, RefreshCw, Trash2 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
-import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
-import { Tilt } from '@/components/motion/primitives';
 import {
   type Generation, downloadStoredImage, fileNameFor, formatDate, isSetupError, titleFor, useDeleteGeneration,
   useGenerations,
@@ -86,122 +82,93 @@ export default function Library() {
     <>
       <SEO title="Projects | ThinkDecor" description="Every room you've redesigned." />
 
-      <Reveal className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-            </span>
-            Projects
-          </p>
-          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Projects</h1>
-          <p className="mt-1 text-[15px] text-foreground/55">
-            {query
-              ? `${visible?.length ?? 0} ${visible?.length === 1 ? 'result' : 'results'} for "${searchParams.get('q')}"`
-              : generations && generations.length > 0
-                ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`
-                : 'Every design you create is saved here.'}
-          </p>
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">Projects · Saved automatically</div>
+            <h1>Projects</h1>
+            <p className="sub">
+              {query
+                ? `${visible?.length ?? 0} ${visible?.length === 1 ? 'result' : 'results'} for "${searchParams.get('q')}"`
+                : generations && generations.length > 0
+                  ? `${generations.length} ${generations.length === 1 ? 'design' : 'designs'} saved`
+                  : '0 designs'}
+              <span className="sep" />Every design you create is saved here
+            </p>
+          </div>
+          <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <Link className="btn btn-dark" to="/app/create">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              New design
+            </Link>
+          </div>
         </div>
-        <Link
-          to="/app/create"
-          className="group relative inline-flex items-center gap-2 self-start overflow-hidden rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03] sm:self-auto"
-        >
-          <span
-            aria-hidden
-            className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.25),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-          />
-          <Plus className="relative h-4 w-4" /> <span className="relative">New design</span>
-        </Link>
-      </Reveal>
 
-      {isLoading ? (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[4/3] rounded-[22px]" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">
-          {isSetupError(error)
-            ? 'Your projects switch on once the latest database update is applied.'
-            : "We couldn't load your projects. Refresh to try again."}
-        </div>
-      ) : !generations || generations.length === 0 ? (
-        <div className="mt-8 flex flex-col items-center rounded-[22px] border border-dashed border-border px-6 py-16 text-center">
-          <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <span aria-hidden className="absolute inset-0 rounded-full bg-primary/25 blur-xl" />
-            <Images className="relative h-6 w-6 text-primary" />
-          </span>
-          <p className="mt-4 text-[16px] font-semibold text-foreground">No projects yet</p>
-          <p className="mt-1 max-w-[40ch] text-[14px] text-foreground/55">
-            Redesign a room and it will appear here, ready to compare, download or refine.
-          </p>
-          <Link
-            to="/app/create"
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground"
-          >
-            <Plus className="h-4 w-4" /> Create a design
-          </Link>
-        </div>
-      ) : !visible || visible.length === 0 ? (
-        <div className="mt-8 flex flex-col items-center rounded-[22px] border border-dashed border-border px-6 py-16 text-center">
-          <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <span aria-hidden className="absolute inset-0 rounded-full bg-primary/25 blur-xl" />
-            <Images className="relative h-6 w-6 text-primary" />
-          </span>
-          <p className="mt-4 text-[16px] font-semibold text-foreground">No matching projects</p>
-          <p className="mt-1 max-w-[40ch] text-[14px] text-foreground/55">
-            Nothing saved matches "{searchParams.get('q')}" — try a different search.
-          </p>
-          <Link to="/app/library" className="mt-5 text-[14px] font-semibold text-primary hover:underline">
-            Clear search
-          </Link>
-        </div>
-      ) : (
-        <Stagger className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" gap={0.05}>
-          {visible.map((g) => (
-            <motion.div key={g.id} variants={staggerItem}>
-              <Tilt max={4} innerClassName="rounded-[22px]">
-                <article className="group overflow-hidden rounded-[22px] border border-border/70 bg-card transition-all duration-300 hover:border-primary/25 hover:shadow-[0_20px_48px_-28px_hsl(168_30%_15%/0.4)]">
-                  <button
-                    type="button"
-                    onClick={() => setViewing(g)}
-                    className="relative block aspect-[4/3] w-full overflow-hidden bg-secondary"
-                    aria-label={`Open ${titleFor(g)}`}
-                  >
-                    <StoredImage
-                      src={g.output_image_url ?? g.input_image_url}
-                      alt={titleFor(g)}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  </button>
-                  <div className="flex items-center justify-between gap-3 p-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-semibold text-foreground">{titleFor(g)}</p>
-                      <p className="text-[12.5px] text-foreground/50">{formatDate(g.created_at)}</p>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-1">
-                      <IconButton label="Download" onClick={() => download(g)}>
-                        <Download className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton label={isMaskEdit(g) ? 'Edit again' : 'Regenerate'} onClick={() => regenerate(g)}>
-                        <RefreshCw className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton label="Delete" onClick={() => setConfirming(g)} danger>
-                        <Trash2 className="h-4 w-4" />
-                      </IconButton>
-                    </div>
+        {isLoading ? (
+          <div className="dgrid" style={{ marginTop: 24 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="dcard" style={{ opacity: 0.5 }}><div className="pic" /></div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="note r" style={{ marginTop: 24 }}>
+            <div className="ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" /></svg>
+            </div>
+            <div>
+              {isSetupError(error)
+                ? 'Your projects switch on once the latest database update is applied.'
+                : "We couldn't load your projects. Refresh to try again."}
+            </div>
+          </div>
+        ) : !generations || generations.length === 0 ? (
+          <div className="empty" style={{ marginTop: 20 }}>
+            <div className="frames">
+              <i /><i />
+              <i>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+              </i>
+            </div>
+            <div>
+              <h4>Your rooms will <em>live here</em></h4>
+              <p>Redesign a room and it appears here, ready to compare before and after, download, or refine with another prompt.</p>
+            </div>
+            <Link className="btn btn-dark" to="/app/create">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              Create a design
+            </Link>
+          </div>
+        ) : !visible || visible.length === 0 ? (
+          <div className="empty" style={{ marginTop: 20, gridTemplateColumns: '1fr' }}>
+            <div style={{ textAlign: 'center' }}>
+              <h4>No matching projects</h4>
+              <p>Nothing saved matches "{searchParams.get('q')}" — try a different search.</p>
+              <Link to="/app/library" className="btn btn-line" style={{ marginTop: 14 }}>Clear search</Link>
+            </div>
+          </div>
+        ) : (
+          <div className="dgrid">
+            {visible.map((g, i) => (
+              <div key={g.id} className="dcard r" style={{ ['--i' as string]: i }}>
+                <button type="button" onClick={() => setViewing(g)} className="pic" style={{ width: '100%', display: 'block' }} aria-label={`Open ${titleFor(g)}`}>
+                  <StoredImage src={g.output_image_url ?? g.input_image_url} alt={titleFor(g)} />
+                </button>
+                <div className="bd" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h4>{titleFor(g)}</h4>
+                    <div className="m">{formatDate(g.created_at)}</div>
                   </div>
-                </article>
-              </Tilt>
-            </motion.div>
-          ))}
-        </Stagger>
-      )}
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    <button type="button" className="ico-btn" title="Download" onClick={() => download(g)}><Download width={16} height={16} /></button>
+                    <button type="button" className="ico-btn" title={isMaskEdit(g) ? 'Edit again' : 'Regenerate'} onClick={() => regenerate(g)}><RefreshCw width={16} height={16} /></button>
+                    <button type="button" className="ico-btn danger" title="Delete" onClick={() => setConfirming(g)}><Trash2 width={16} height={16} /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Detail view */}
       <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
@@ -268,28 +235,5 @@ export default function Library() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-function IconButton({
-  label, onClick, children, danger,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={`rounded-lg p-2 transition-colors ${
-        danger ? 'text-foreground/50 hover:bg-destructive/10 hover:text-destructive' : 'text-foreground/50 hover:bg-secondary hover:text-foreground'
-      }`}
-    >
-      {children}
-    </button>
   );
 }

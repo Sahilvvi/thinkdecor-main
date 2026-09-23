@@ -1,10 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Search } from 'lucide-react';
-
 import { SEO } from '@/components/shared/SEO';
-import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { TEMPLATES } from '@/lib/templates';
 
 const ALL = 'All';
@@ -13,7 +9,11 @@ export default function Templates() {
   const [tag, setTag] = useState(ALL);
   const [query, setQuery] = useState('');
 
-  const tags = useMemo(() => [ALL, ...Array.from(new Set(TEMPLATES.flatMap((t) => t.tags)))], []);
+  const tags = useMemo(() => {
+    const counts = new Map<string, number>();
+    TEMPLATES.forEach((t) => t.tags.forEach((tg) => counts.set(tg, (counts.get(tg) ?? 0) + 1)));
+    return [[ALL, TEMPLATES.length] as [string, number], ...Array.from(counts.entries())];
+  }, []);
 
   const visible = TEMPLATES.filter((t) => {
     const matchesTag = tag === ALL || t.tags.includes(tag);
@@ -26,108 +26,84 @@ export default function Templates() {
     <>
       <SEO title="Templates | ThinkDecor" description="Interior styles to start a redesign from." />
 
-      <Reveal>
-        <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-          </span>
-          {TEMPLATES.length} styles
-        </p>
-        <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Templates</h1>
-        <p className="mt-1 text-[15px] text-foreground/55">
-          Start from a style. You can still describe your own changes on top.
-        </p>
-      </Reveal>
-
-      <Reveal delay={0.06} className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex flex-wrap gap-2">
-          {tags.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTag(t)}
-              aria-pressed={tag === t}
-              className={`relative rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
-                tag === t ? 'text-primary-foreground' : 'border border-border/70 bg-card text-foreground/65 hover:text-foreground'
-              }`}
-            >
-              {tag === t && (
-                <motion.span
-                  layoutId="template-tag-active"
-                  className="absolute inset-0 rounded-full bg-primary shadow-[0_8px_20px_-8px_hsl(168_100%_17%/0.5)]"
-                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                />
-              )}
-              <span className="relative">{t}</span>
-            </button>
-          ))}
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">{TEMPLATES.length} styles · Curated by Mantha</div>
+            <h1>Templates</h1>
+            <p className="sub">Start from a style. You can still describe your own changes on top.</p>
+          </div>
+          <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <Link className="btn btn-line" to="/app/library">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></svg>
+              See before &amp; after
+            </Link>
+          </div>
         </div>
 
-        <label className="relative block sm:w-64">
-          <span className="sr-only">Search templates</span>
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search styles"
-            className="w-full rounded-full border border-border/70 bg-card py-2 pl-10 pr-4 text-[13.5px] outline-none transition-colors placeholder:text-foreground/40 focus:border-primary"
-          />
-        </label>
-      </Reveal>
-
-      {visible.length === 0 ? (
-        <div className="mt-10 rounded-[22px] border border-dashed border-border px-6 py-12 text-center">
-          <p className="text-[15px] font-semibold text-foreground">No styles match that search</p>
-          <button
-            type="button"
-            onClick={() => { setQuery(''); setTag(ALL); }}
-            className="mt-2 text-[14px] font-semibold text-primary hover:underline"
-          >
-            Clear filters
-          </button>
+        <div className="toolbar r" style={{ ['--i' as string]: 2 }}>
+          <div className="chips">
+            {tags.map(([t, count]) => (
+              <button key={t} type="button" className={`pchip${tag === t ? ' on' : ''}`} onClick={() => setTag(t)}>
+                {t} <span>{count}</span>
+              </button>
+            ))}
+          </div>
+          <span className="spacer" />
+          <div className="field" style={{ width: 230 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search styles" />
+          </div>
         </div>
-      ) : (
-        <Stagger className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" gap={0.05}>
-          {visible.map((t) => (
-            <motion.article
-              key={t.key}
-              variants={staggerItem}
-              className="group flex flex-col overflow-hidden rounded-[22px] border border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_22px_50px_-28px_hsl(168_40%_15%/0.45)]"
-            >
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <img
-                  src={t.image}
-                  alt={`${t.label} interior style`}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <span className="absolute left-3 top-3 overflow-hidden rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary backdrop-blur">
-                  {t.featured && (
-                    <span
-                      aria-hidden
-                      className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(168_100%_17%/0.2),transparent)]"
-                    />
-                  )}
-                  <span className="relative">{t.label}</span>
-                </span>
+
+        {visible.length === 0 ? (
+          <div className="empty r" style={{ ['--i' as string]: 3, marginTop: 20, gridTemplateColumns: '1fr' }}>
+            <div style={{ textAlign: 'center' }}>
+              <h4>No styles match that search</h4>
+              <button type="button" className="btn btn-line" style={{ marginTop: 14 }} onClick={() => { setQuery(''); setTag(ALL); }}>
+                Clear filters
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid">
+            {visible.map((t, i) => (
+              <Link key={t.key} className={`tp${i === 0 ? ' hv' : ''} r`} style={{ ['--i' as string]: 3 + i }} to={`/app/create?template=${t.key}`}>
+                <div className="pic">
+                  <img src={t.image} alt="" />
+                  {t.featured && <span className="tagp dark feat">Featured</span>}
+                  <span className="fav">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20s-7-4.4-9-9a4.5 4.5 0 0 1 9-2 4.5 4.5 0 0 1 9 2c-2 4.6-9 9-9 9z" /></svg>
+                  </span>
+                  <span className="use">
+                    Use this template
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  </span>
+                </div>
+                <div className="bd">
+                  <h4>{t.label}</h4>
+                  <p>{t.description}</p>
+                  <div className="tags">
+                    {t.tags.map((tg) => <span key={tg} className="tagp">{tg}</span>)}
+                  </div>
+                </div>
+              </Link>
+            ))}
+            <Link className="own r" style={{ ['--i' as string]: 3 + visible.length }} to="/app/create">
+              <div className="ic">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2M15 10V8M11 6h2M17 6h2M4 20L14 10M18 13v2M18 19v2M16 17h-2M22 17h-2" /></svg>
               </div>
-              <div className="flex flex-1 flex-col p-5">
-                <h2 className="text-[16px] font-semibold text-foreground">{t.label}</h2>
-                <p className="mt-1 flex-1 text-[13.5px] leading-relaxed text-foreground/55">{t.description}</p>
-                <Link
-                  to={`/app/create?template=${t.key}`}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.02]"
-                >
-                  Use this template
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </motion.article>
-          ))}
-        </Stagger>
-      )}
+              <h4>Or describe <em>your own</em></h4>
+              <p>No template needed. Tell Mantha what you want and it works from your photo.</p>
+              <div className="ex">"Dark green walls, oak floor, keep my sofa<span className="caret" />"</div>
+              <span className="btn btn-dark" style={{ marginTop: 16 }}>
+                Open Create
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </span>
+            </Link>
+          </div>
+        )}
+      </section>
     </>
   );
 }

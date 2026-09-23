@@ -1,28 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
-  ArrowUp, Check, ChevronLeft, ChevronRight, Download, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2, X,
+  ArrowRight, Check, Download, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
-import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
-import { Tilt } from '@/components/motion/primitives';
-import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { useAuthStore } from '@/stores/authStore';
+import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import {
-  FREE_SIGNUP_CREDITS, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
+  GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
   downloadStoredImage, fileNameFor, isSetupError, type Generation, useCreditBalance, useGenerate,
 } from '@/lib/generation';
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
 } from '@/lib/templates';
-import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 
-const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
-const MONTHLY = money(PHASE1_PLAN.monthly);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 /** The photo in the composer: a new local file, or one already stored (refining/regenerating). */
@@ -30,7 +24,6 @@ type SourceImage = { kind: 'file'; file: File; preview: string } | { kind: 'stor
 
 interface Turn {
   id: string;
-  /** Local blob: preview while uploading; the stored bucket path once saved. */
   sourceRef: string;
   templateKey: string;
   roomType: RoomType;
@@ -71,7 +64,6 @@ export default function Create() {
   const [dragging, setDragging] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const threadEndRef = useRef<HTMLDivElement>(null);
 
   const voice = useVoiceInput({
     onResult: (text) => setPrompt((prev) => (prev ? `${prev} ${text}` : text)),
@@ -83,13 +75,8 @@ export default function Create() {
   const busy = turns.some((t) => t.status === 'pending');
   const canSend = !!source && !busy && !creditsLoading && !outOfCredits && !setupPending;
 
-  // Release local previews when they're replaced or the page unmounts.
   const filePreview = source?.kind === 'file' ? source.preview : null;
   useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview); }, [filePreview]);
-
-  useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [turns]);
 
   const pickFile = (file: File | undefined) => {
     if (!file) return;
@@ -105,16 +92,15 @@ export default function Create() {
   };
 
   const run = async (args: {
+    userId: string;
     image: File | string;
     sourceRef: string;
     templateKey: string;
     roomType: RoomType;
     prompt: string;
     attempt: number;
-    /** A fresh send cleared the composer — give the text back if it fails. */
     restorePromptOnError?: boolean;
   }) => {
-    if (!user) return;
     const id = crypto.randomUUID();
     setTurns((prev) => [
       ...prev,
@@ -131,19 +117,16 @@ export default function Create() {
 
     try {
       const result = await generate.mutateAsync({
-        userId: user.id,
+        userId: args.userId,
         image: args.image,
         templateKey: args.templateKey,
         roomType: args.roomType,
         prompt: args.prompt,
         attempt: args.attempt,
       });
-      // Point the bubble at the stored photo in the same update that swaps the
-      // composer over, so the local preview can be released safely.
       setTurns((prev) =>
         prev.map((t) => (t.id === id ? { ...t, status: 'done', result, sourceRef: result.input_image_url } : t)),
       );
-      // Keep refining the same photo without uploading it again.
       setSource({ kind: 'stored', path: result.input_image_url });
     } catch (err) {
       const message =
@@ -160,8 +143,9 @@ export default function Create() {
   };
 
   const send = () => {
-    if (!source || !canSend) return;
+    if (!user || !source || !canSend) return;
     run({
+      userId: user.id,
       image: source.kind === 'file' ? source.file : source.path,
       sourceRef: refOf(source),
       templateKey,
@@ -174,8 +158,9 @@ export default function Create() {
   };
 
   const regenerate = (turn: Turn) => {
-    if (!turn.result || busy || outOfCredits) return;
+    if (!user || !turn.result || busy || outOfCredits) return;
     run({
+      userId: user.id,
       image: turn.result.input_image_url,
       sourceRef: turn.result.input_image_url,
       templateKey: turn.templateKey,
@@ -191,418 +176,213 @@ export default function Create() {
     <>
       <SEO title="Create | ThinkDecor" description="Redesign a room with Mantha AI." />
 
-      <Reveal className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-            </span>
-            Create
-          </p>
-          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">Create</h1>
-          <p className="mt-1 text-[15px] text-foreground/55">
-            Upload a room, choose a style, and tell Mantha what to change.
-          </p>
-        </div>
-        {credits !== undefined && (
-          <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1.5 text-[12.5px] font-semibold text-primary sm:self-auto">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            {credits} {credits === 1 ? 'credit' : 'credits'} left · 1 per design
-          </span>
-        )}
-      </Reveal>
-
-      {IS_PLACEHOLDER_GENERATOR && (
-        <p className="mt-4 rounded-xl border border-border/70 bg-secondary/60 px-4 py-2.5 text-[12.5px] text-foreground/60">
-          Preview mode: results are sample designs while Mantha's live generation is being connected. Credits,
-          history and your projects all work as they will at launch.
-        </p>
-      )}
-
-      {setupPending && (
-        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">
-          Creating switches on once the latest database update is applied.
-        </div>
-      )}
-
-      {/* Thread */}
-      <div className="mt-8 space-y-8">
-        {turns.length === 0 ? (
-          <EmptyThread credits={credits} onPickTemplate={setTemplateKey} activeTemplate={templateKey} />
-        ) : (
-          <AnimatePresence initial={false}>
-          {turns.map((turn) => (
-            <motion.div
-              key={turn.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="space-y-4"
-            >
-              {/* The request */}
-              <div className="flex justify-end">
-                <div className="max-w-[min(100%,440px)] rounded-[20px] rounded-br-md bg-primary p-3 text-primary-foreground">
-                  <StoredImage src={turn.sourceRef} alt="Your room" className="aspect-[4/3] w-full rounded-xl object-cover" />
-                  <div className="mt-3 flex flex-wrap gap-1.5 px-1">
-                    <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-medium">
-                      {templateByKey(turn.templateKey)?.label}
-                    </span>
-                    <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-medium">
-                      {roomLabel(turn.roomType)}
-                    </span>
-                    {turn.attempt > 0 && (
-                      <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-medium">
-                        Variation {turn.attempt + 1}
-                      </span>
-                    )}
-                  </div>
-                  {turn.prompt && <p className="mt-2 px-1 pb-1 text-[14px] leading-relaxed">{turn.prompt}</p>}
-                </div>
-              </div>
-
-              {/* The response */}
-              <div className="flex gap-3">
-                <span className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[hsl(160_84%_38%)]">
-                  <Wand2 className="h-4 w-4 text-primary-foreground" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-foreground">Mantha AI</p>
-
-                  {turn.status === 'pending' && (
-                    <div className="mt-2 overflow-hidden rounded-[20px] border border-border/70 bg-card">
-                      <div className="relative aspect-[4/3] w-full max-w-[640px] overflow-hidden bg-secondary">
-                        <StoredImage src={turn.sourceRef} className="h-full w-full scale-105 object-cover opacity-60 blur-md" />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                          <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                          <p className="text-[14px] font-medium text-foreground">Redesigning your room…</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {turn.status === 'error' && (
-                    <div className="mt-2 rounded-[20px] border border-destructive/20 bg-destructive/[0.05] px-4 py-3 text-[14px] text-foreground/75">
-                      {turn.error}
-                      {outOfCredits && (
-                        <Link to="/pricing" className="ml-1 font-semibold text-primary hover:underline">
-                          See plans
-                        </Link>
-                      )}
-                    </div>
-                  )}
-
-                  {turn.status === 'done' && turn.result && (
-                    <div className="mt-2 max-w-[640px] overflow-hidden rounded-[20px] border border-border/70 bg-card">
-                      <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} />
-                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/55">
-                          <Check className="h-3.5 w-3.5 text-primary" />
-                          Saved to your{' '}
-                          <Link to="/app/library" className="font-semibold text-primary hover:underline">
-                            projects
-                          </Link>
-                        </span>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => regenerate(turn)}
-                            disabled={busy || outOfCredits}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" /> Regenerate
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              turn.result?.output_image_url &&
-                              downloadStoredImage(
-                                turn.result.output_image_url,
-                                fileNameFor(turn.result.output_image_url, `thinkdecor-${turn.result.id.slice(0, 8)}`),
-                              )
-                            }
-                            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground"
-                          >
-                            <Download className="h-3.5 w-3.5" /> Download
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-          </AnimatePresence>
-        )}
-        <div ref={threadEndRef} />
-      </div>
-
-      {/* Composer — or the paywall once free credits are spent */}
-      <div className="sticky bottom-4 z-10 mt-8">
-        {outOfCredits ? (
-          <div className="rounded-[24px] bg-primary p-6 text-primary-foreground shadow-[0_24px_60px_-28px_hsl(168_100%_17%/0.6)] sm:flex sm:items-center sm:justify-between sm:gap-6">
-            <div>
-              <p className="text-[17px] font-bold">You've used your {FREE_SIGNUP_CREDITS} free redesigns</p>
-              <p className="mt-1 text-[14px] text-primary-foreground/75">
-                Subscribe for {INTRO} your first month, then {MONTHLY}/month — {PHASE1_PLAN.credits} redesigns every month.
-              </p>
-            </div>
-            <Magnetic className="mt-4 flex-shrink-0 sm:mt-0">
-              <Link
-                to="/pricing"
-                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary transition-transform duration-300 hover:scale-[1.03]"
-              >
-                <span
-                  aria-hidden
-                  className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.12),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-                />
-                <span className="relative">Start for {INTRO}</span>
-              </Link>
-            </Magnetic>
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">Tools · Create</div>
+            <h1>What are we <em>redesigning</em>?</h1>
+            <p className="sub">Upload a room, choose a style, and tell Mantha what to change.</p>
           </div>
-        ) : (
+          {credits !== undefined && (
+            <div className="actions r" style={{ ['--i' as string]: 1 }}>
+              <span className="credpill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
+                <b>{credits}</b> credits left · 1 per design
+              </span>
+            </div>
+          )}
+        </div>
+
+        {IS_PLACEHOLDER_GENERATOR && (
+          <div className="note r" style={{ ['--i' as string]: 2 }}>
+            <div className="ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" /></svg>
+            </div>
+            <div><b>Preview mode.</b> Results are sample designs while Mantha's live generation is being connected. Credits, history and your projects all work as they will at launch.</div>
+          </div>
+        )}
+
+        {setupPending && (
+          <div className="note r" style={{ ['--i' as string]: 2 }}>
+            <div className="ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" /></svg>
+            </div>
+            <div>Creating switches on once the latest database update is applied.</div>
+          </div>
+        )}
+
+        {/* Past turns */}
+        {turns.length > 0 && (
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {turns.map((turn) => (
+              <div key={turn.id} className="card" style={{ padding: 16 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span className="tagp">{templateByKey(turn.templateKey)?.label}</span>
+                  <span className="tagp">{roomLabel(turn.roomType)}</span>
+                  {turn.attempt > 0 && <span className="tagp">Variation {turn.attempt + 1}</span>}
+                </div>
+                {turn.prompt && <p className="muted" style={{ marginTop: 8, fontSize: 13.5 }}>{turn.prompt}</p>}
+
+                {turn.status === 'pending' && (
+                  <div style={{ marginTop: 12, position: 'relative', borderRadius: 16, overflow: 'hidden', aspectRatio: '4/3', maxWidth: 480 }}>
+                    <StoredImage src={turn.sourceRef} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(6px)', opacity: 0.6 }} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                      <Loader2 className="animate-spin" color="var(--brass)" width={28} height={28} />
+                      <span style={{ fontWeight: 600, fontSize: 13.5 }}>Redesigning your room…</span>
+                    </div>
+                  </div>
+                )}
+
+                {turn.status === 'error' && (
+                  <div className="note" style={{ marginTop: 12, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
+                    <div>
+                      {turn.error}
+                      {outOfCredits && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
+                    </div>
+                  </div>
+                )}
+
+                {turn.status === 'done' && turn.result && (
+                  <div style={{ marginTop: 12, maxWidth: 560, borderRadius: 16, overflow: 'hidden', boxShadow: 'inset 0 0 0 1px var(--stone-2)' }}>
+                    <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 14px' }}>
+                      <span className="muted" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Check width={14} height={14} color="var(--brass)" />
+                        Saved to your <Link to="/app/library" style={{ fontWeight: 700, color: 'var(--brass)' }}>projects</Link>
+                      </span>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" onClick={() => regenerate(turn)} disabled={busy || outOfCredits} className="btn btn-line btn-sm">
+                          <RefreshCw width={14} height={14} /> Regenerate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => turn.result?.output_image_url && downloadStoredImage(turn.result.output_image_url, fileNameFor(turn.result.output_image_url, `thinkdecor-${turn.result.id.slice(0, 8)}`))}
+                          className="btn btn-dark btn-sm"
+                        >
+                          <Download width={14} height={14} /> Download
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="ws">
           <div
+            className="drop r"
+            style={{ ['--i' as string]: 3 }}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
-            className={`rounded-[24px] border bg-background/95 p-3 backdrop-blur-xl transition-all duration-300 ${
-              dragging
-                ? 'border-primary shadow-[0_0_0_4px_hsl(168_100%_17%/0.1),0_24px_60px_-30px_hsl(168_100%_17%/0.5)]'
-                : 'border-border/80 shadow-[0_24px_60px_-30px_hsl(168_40%_15%/0.45)]'
-            }`}
           >
-            {/* Style + room */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTemplateKey(t.key)}
-                  aria-pressed={templateKey === t.key}
-                  className={`relative flex flex-shrink-0 items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[12.5px] font-medium transition-colors ${
-                    templateKey === t.key
-                      ? 'border-primary text-primary'
-                      : 'border-border/70 text-foreground/65 hover:text-foreground'
-                  }`}
-                >
-                  {templateKey === t.key && (
-                    <motion.span
-                      layoutId="create-template-active"
-                      className="absolute inset-0 rounded-full bg-primary/10"
-                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                    />
-                  )}
-                  <img src={t.image} alt="" className="relative h-6 w-6 rounded-full object-cover" />
-                  <span className="relative">{t.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-end gap-3 pt-1">
-              {/* Photo */}
-              {source ? (
-                <div className="relative flex-shrink-0">
-                  <StoredImage src={refOf(source)} alt="Selected room" className="h-16 w-16 rounded-xl object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setSource(null)}
-                    aria-label="Remove photo"
-                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background"
-                  >
-                    <X className="h-3 w-3" />
+            {dragging && (
+              <svg className="ants"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="21" ry="21" /></svg>
+            )}
+            {source ? (
+              <>
+                <div style={{ position: 'relative', width: '100%', maxWidth: 420, borderRadius: 18, overflow: 'hidden' }}>
+                  <StoredImage src={refOf(source)} alt="Selected room" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} />
+                </div>
+                <button type="button" className="btn btn-line" style={{ marginTop: 16 }} onClick={() => setSource(null)}>Choose a different photo</button>
+              </>
+            ) : (
+              <>
+                <div className="big">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13" r="4" /></svg>
+                </div>
+                <h3>Drop a room photo, <em>or tap to choose</em></h3>
+                <p>Straight-on and in daylight works best. Get two walls and the floor in frame so Mantha can read the room.</p>
+                <div className="acts">
+                  <button type="button" className="btn btn-dark" onClick={() => fileInputRef.current?.click()}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14" /></svg>Choose a photo
                   </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary/[0.04] text-primary transition-colors hover:bg-primary/[0.08]"
-                  aria-label="Upload a room photo"
-                >
-                  <ImagePlus className="h-5 w-5" />
-                  <span className="text-[10px] font-semibold">Photo</span>
-                </button>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
-              />
-
-              <div className="min-w-0 flex-1">
-                <label htmlFor="room-type" className="sr-only">Room type</label>
-                <select
-                  id="room-type"
-                  value={roomType}
-                  onChange={(e) => setRoomType(e.target.value as RoomType)}
-                  className="mb-1.5 rounded-full border border-border/70 bg-card px-3 py-1 text-[12.5px] font-medium text-foreground/70 outline-none focus:border-primary"
-                >
-                  {ROOM_TYPES.map((r) => (
-                    <option key={r.key} value={r.key}>{r.label}</option>
-                  ))}
-                </select>
-
-                <label htmlFor="prompt" className="sr-only">Describe your changes</label>
-                <textarea
-                  id="prompt"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-                  }}
-                  rows={1}
-                  placeholder={
-                    source
-                      ? `Describe changes — e.g. "green velvet sofa, oak floors" (${selectedTemplate?.label ?? 'style'})`
-                      : 'Upload or drop a room photo to begin'
-                  }
-                  className="block max-h-40 min-h-[40px] w-full resize-none bg-transparent px-1 py-2 text-[14.5px] text-foreground outline-none placeholder:text-foreground/40 [field-sizing:content]"
-                />
-              </div>
-
-              {voice.supported && (
-                <button
-                  type="button"
-                  onClick={() => (voice.listening ? voice.stop() : voice.start())}
-                  aria-label={voice.listening ? 'Stop voice input' : 'Describe changes by voice'}
-                  className={`relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                    voice.listening ? 'text-destructive' : 'text-foreground/45 hover:bg-secondary hover:text-foreground'
-                  }`}
-                >
-                  {voice.listening && (
-                    <span aria-hidden className="absolute inset-0.5 animate-ping rounded-full bg-destructive/25" />
-                  )}
-                  {voice.listening ? <MicOff className="relative h-4 w-4" /> : <Mic className="relative h-4 w-4" />}
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={send}
-                disabled={!canSend}
-                aria-label="Generate design"
-                className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${
-                  canSend ? 'shadow-[0_8px_24px_-6px_hsl(168_100%_17%/0.55)]' : ''
-                }`}
-              >
-                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
-              </button>
-            </div>
+                <div className="fmt">
+                  <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M21 16l-5-5-9 9" /></svg>JPG or PNG</span>
+                  <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2" /></svg>One room per photo</span>
+                </div>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
+            />
           </div>
-        )}
-      </div>
-    </>
-  );
-}
 
-function EmptyThread({
-  credits, onPickTemplate, activeTemplate,
-}: {
-  credits: number | undefined;
-  onPickTemplate: (key: string) => void;
-  activeTemplate: string;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateArrows = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  };
-
-  useEffect(() => {
-    updateArrows();
-    window.addEventListener('resize', updateArrows);
-    return () => window.removeEventListener('resize', updateArrows);
-  }, []);
-
-  const scrollByCard = (dir: 1 | -1) => {
-    scrollRef.current?.scrollBy({ left: dir * 200, behavior: 'smooth' });
-  };
-
-  return (
-    <Reveal className="relative overflow-hidden rounded-[26px] border border-border/70 bg-card px-6 py-10 text-center sm:px-10">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(hsl(168_30%_20%/0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(168_30%_20%/0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000,transparent)]"
-      />
-      <span className="relative mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-        <Wand2 className="h-5 w-5 text-primary" />
-      </span>
-      <h2 className="relative mt-4 text-[20px] font-bold tracking-[-0.02em] text-foreground">What are we redesigning today?</h2>
-      <p className="relative mx-auto mt-2 max-w-[48ch] text-[14.5px] text-foreground/55">
-        Add a photo below — straight-on, in daylight works best. Pick a style to start from, then describe anything
-        you want changed.
-        {credits !== undefined && credits > 0 && ` You have ${credits} ${credits === 1 ? 'credit' : 'credits'}.`}
-      </p>
-      <div className="relative mt-7">
-        {canScrollLeft && (
-          <button
-            type="button"
-            onClick={() => scrollByCard(-1)}
-            aria-label="Scroll templates left"
-            className="absolute left-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground/70 shadow-md backdrop-blur transition-colors hover:text-foreground sm:flex"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        )}
-
-        {canScrollLeft && (
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-[5] w-10 bg-gradient-to-r from-card to-transparent" />
-        )}
-        {canScrollRight && (
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-10 bg-gradient-to-l from-card to-transparent" />
-        )}
-
-        <div
-          ref={scrollRef}
-          onScroll={updateArrows}
-          className="overflow-x-auto scroll-smooth px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-8"
-        >
-          <Stagger className="flex snap-x snap-mandatory justify-start gap-3 pb-1" gap={0.05}>
-            {TEMPLATES.map((t) => (
-              <motion.div key={t.key} variants={staggerItem} className="w-[172px] flex-shrink-0 snap-center sm:w-[190px]">
-                <Tilt max={6} innerClassName="rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => onPickTemplate(t.key)}
-                    className={`group relative block aspect-[4/3] w-full overflow-hidden rounded-2xl border text-left transition-colors ${
-                      activeTemplate === t.key ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'
-                    }`}
-                  >
-                    <img
-                      src={t.image}
-                      alt={`${t.label} style`}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
-                    <p className="absolute inset-x-0 bottom-0 px-3 py-2.5 text-left text-[13.5px] font-semibold text-white">
-                      {t.label}
-                    </p>
-                  </button>
-                </Tilt>
-              </motion.div>
-            ))}
-          </Stagger>
+          <aside className="side2">
+            <div className="box r" style={{ ['--i' as string]: 4 }}>
+              <h5><span className="n">1</span>Style<small>{selectedTemplate?.label}</small></h5>
+              <div className="styles">
+                {TEMPLATES.map((t) => (
+                  <div key={t.key} className={`st${templateKey === t.key ? ' on' : ''}`} onClick={() => setTemplateKey(t.key)}>
+                    <img src={t.image} alt="" />
+                    <span>{t.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="box r" style={{ ['--i' as string]: 5 }}>
+              <h5><span className="n">2</span>Room type</h5>
+              <div className="rooms">
+                {ROOM_TYPES.map((r) => (
+                  <button key={r.key} type="button" className={`pchip${roomType === r.key ? ' on' : ''}`} onClick={() => setRoomType(r.key)}>{r.label}</button>
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
 
-        {canScrollRight && (
-          <button
-            type="button"
-            onClick={() => scrollByCard(1)}
-            aria-label="Scroll templates right"
-            className="absolute right-1 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-card/95 text-foreground/70 shadow-md backdrop-blur transition-colors hover:text-foreground sm:flex"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-    </Reveal>
+        <div className="comp r" style={{ ['--i' as string]: 7 }}>
+          <div className="top1">
+            <span className="kicker" style={{ fontSize: 10 }}>3 · Describe it</span>
+            <span className="sel"><img src={selectedTemplate?.image} alt="" />{selectedTemplate?.label}</span>
+            <span className="sel">{roomLabel(roomType)}</span>
+          </div>
+          <div className="ta">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+              rows={2}
+              placeholder="Keep my sofa, swap the rug for something softer and add warmer lighting…"
+            />
+          </div>
+          <div className="bot">
+            {['Warmer lighting', 'Oak floor', 'Keep my furniture', 'Add plants'].map((s) => (
+              <button key={s} type="button" className="sug" onClick={() => setPrompt((p) => (p ? `${p}, ${s.toLowerCase()}` : s))}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>{s}
+              </button>
+            ))}
+            <span className="cost">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
+              Uses <b>1</b> of your {credits ?? '—'} credits
+            </span>
+            {voice.supported && (
+              <button
+                type="button"
+                onClick={() => (voice.listening ? voice.stop() : voice.start())}
+                className="ico-btn"
+                aria-label={voice.listening ? 'Stop voice input' : 'Describe changes by voice'}
+                style={voice.listening ? { color: 'var(--rose)' } : undefined}
+              >
+                {voice.listening ? <MicOff width={16} height={16} /> : <Mic width={16} height={16} />}
+              </button>
+            )}
+            <button type="button" onClick={send} disabled={!canSend} className={`go${canSend ? ' ready' : ''}`}>
+              {!source && <span className="tt">Add a room photo to begin</span>}
+              {busy ? <Loader2 className="animate-spin" width={15} height={15} /> : <Wand2 width={15} height={15} />}
+              Redesign
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

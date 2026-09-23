@@ -1,279 +1,179 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Images, LayoutGrid, Plus, Wand2, Zap } from 'lucide-react';
-
 import { SEO } from '@/components/shared/SEO';
-import { Skeleton } from '@/components/ui/skeleton';
 import { StoredImage } from '@/components/app/StoredImage';
-import { Magnetic, Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
-import { Tilt } from '@/components/motion/primitives';
 import { useDisplayName } from '@/hooks/useProfile';
 import {
   FREE_SIGNUP_CREDITS, formatDate, isSetupError, titleFor, useCreditBalance, useGenerations,
 } from '@/lib/generation';
 import { TEMPLATES } from '@/lib/templates';
-import { PHASE1_PLAN, pence } from '@/lib/billing';
-
-const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 
 export default function Overview() {
   const { firstName } = useDisplayName();
   const { data: credits, error: creditsError } = useCreditBalance();
-  const { data: recent, isLoading: recentLoading, error: recentError } = useGenerations(6);
+  const { data: recent, error: recentError } = useGenerations(6);
   const { data: all } = useGenerations();
 
   const setupPending = isSetupError(creditsError) || isSetupError(recentError);
-  const empty = credits !== undefined && credits <= 0;
-  const featured = TEMPLATES.filter((t) => t.featured);
+  const featured = TEMPLATES.filter((t) => t.featured).slice(0, 3);
+  const rest = TEMPLATES.filter((t) => !t.featured);
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <>
       <SEO title="Overview | ThinkDecor" description="Your ThinkDecor workspace." />
 
-      <Reveal className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-            </span>
-            Your workspace
-          </p>
-          <h1 className="mt-2 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">
-            Hello, {firstName}
-          </h1>
-          <p className="mt-1 text-[15px] text-foreground/55">Pick up a design or start a new room.</p>
-        </div>
-        <Magnetic className="self-start sm:self-auto">
-          <Link
-            to="/app/create"
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03]"
-          >
-            <span
-              aria-hidden
-              className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.25),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-            />
-            <Plus className="relative h-4 w-4" /> <span className="relative">New design</span>
-          </Link>
-        </Magnetic>
-      </Reveal>
-
-      {setupPending && (
-        <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">
-          Your workspace is almost ready — credits and design history switch on once the latest database update is applied.
-        </div>
-      )}
-
-      {/* Stats */}
-      <Stagger className="mt-8 grid gap-4 sm:grid-cols-3" gap={0.08}>
-        <StatCard
-          icon={Zap}
-          label="Credits remaining"
-          value={credits === undefined ? '—' : String(credits)}
-          hint={
-            empty ? (
-              <Link to="/pricing" className="font-semibold text-primary hover:underline">
-                Upgrade — {INTRO} first month
-              </Link>
-            ) : (
-              'Each redesign uses 1 credit'
-            )
-          }
-        />
-        <StatCard
-          icon={Images}
-          label="Designs created"
-          value={all === undefined ? '—' : String(all.length)}
-          hint={<Link to="/app/library" className="font-semibold text-primary hover:underline">Open projects</Link>}
-        />
-        <StatCard
-          icon={LayoutGrid}
-          label="Templates"
-          value={String(TEMPLATES.length)}
-          hint={<Link to="/app/templates" className="font-semibold text-primary hover:underline">Browse styles</Link>}
-        />
-      </Stagger>
-
-      {/* Create tile — full-bleed photo with a floating card, not a split panel */}
-      <Reveal delay={0.08} y={28} className="mt-6">
-        <Tilt max={2.5} innerClassName="rounded-[26px]">
-          <Link
-            to="/app/create"
-            className="group relative block overflow-hidden rounded-[26px] shadow-[0_30px_70px_-34px_hsl(168_100%_17%/0.6)]"
-          >
-            <div className="relative aspect-[16/10] sm:aspect-[2.2/1]">
-              <img
-                src="/assets/samples/styled_room.png"
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent sm:bg-gradient-to-r sm:from-black/15 sm:via-transparent sm:to-transparent" />
-            </div>
-
-            <div className="absolute inset-x-4 bottom-4 overflow-hidden rounded-[20px] bg-[linear-gradient(150deg,hsl(168_100%_14%),hsl(168_85%_20%)_60%,hsl(166_70%_27%))] p-5 text-primary-foreground shadow-[0_20px_50px_-18px_rgba(0,0,0,0.55)] sm:inset-x-auto sm:inset-y-6 sm:left-6 sm:w-[min(400px,88%)] sm:p-7">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_100%_100%_at_0%_0%,#000,transparent)]"
-              />
-              <div
-                aria-hidden
-                className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.18),transparent)] mix-blend-overlay"
-              />
-              <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 transition-transform duration-400 group-hover:scale-110">
-                <Wand2 className="h-5 w-5" />
-              </span>
-              <h2 className="relative mt-4 text-[clamp(1.25rem,2.2vw,1.7rem)] font-bold tracking-[-0.02em]">Redesign a room</h2>
-              <p className="relative mt-2 max-w-[38ch] text-[14px] leading-relaxed text-primary-foreground/75">
-                Upload a photo, choose a style, and describe what you want changed. Mantha AI does the rest.
-              </p>
-              <span className="group/btn relative mt-5 inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[13.5px] font-semibold text-primary">
-                <span
-                  aria-hidden
-                  className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.1),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-                />
-                <span className="relative">Start creating</span>
-                <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </span>
-            </div>
-          </Link>
-        </Tilt>
-      </Reveal>
-
-      {/* Quick start */}
-      <section className="mt-10">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">Quick start</h2>
-          <Link to="/app/templates" className="text-[13.5px] font-semibold text-primary hover:underline">
-            All templates
-          </Link>
-        </div>
-        <Stagger className="mt-4 grid gap-4 sm:grid-cols-3" gap={0.07}>
-          {featured.map((t) => (
-            <motion.div key={t.key} variants={staggerItem}>
-              <Tilt max={5} innerClassName="h-full rounded-2xl">
-                <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_18px_40px_-24px_hsl(168_40%_15%/0.4)]">
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={t.image}
-                      alt={`${t.label} style`}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    {t.tags[0] && (
-                      <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary backdrop-blur-sm">
-                        {t.tags[0]}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1.5 p-4">
-                    <p className="text-[14.5px] font-semibold text-foreground">{t.label}</p>
-                    <p className="line-clamp-1 flex-1 text-[13px] text-foreground/55">{t.description}</p>
-                    <Link
-                      to={`/app/create?template=${t.key}`}
-                      className="mt-2 inline-flex w-max items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[12px] font-semibold text-primary-foreground transition-transform duration-300 group-hover:scale-[1.03]"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Try Style
-                    </Link>
-                  </div>
-                </div>
-              </Tilt>
-            </motion.div>
-          ))}
-        </Stagger>
-      </section>
-
-      {/* Recent designs */}
-      <section className="mt-10">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">Recent designs</h2>
-          {recent && recent.length > 0 && (
-            <Link to="/app/library" className="text-[13.5px] font-semibold text-primary hover:underline">
-              View all
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">Your studio · {today}</div>
+            <h1>Hello, <em>{firstName}</em></h1>
+            <p className="sub">
+              {credits !== undefined ? `You have ${credits} free redesign${credits === 1 ? '' : 's'} waiting` : 'Loading your credits'}
+              <span className="sep" />Pick a room and let Mantha get to work
+            </p>
+          </div>
+          <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <Link className="btn btn-line" to="/app/templates">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="8" height="8" rx="2" /><rect x="13" y="3" width="8" height="8" rx="2" /><rect x="3" y="13" width="8" height="8" rx="2" /><rect x="13" y="13" width="8" height="8" rx="2" /></svg>
+              Browse templates
             </Link>
-          )}
+            <Link className="btn btn-dark" to="/app/create">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              New design
+            </Link>
+          </div>
         </div>
 
-        {recentLoading ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
+        {setupPending && (
+          <div className="note r" style={{ ['--i' as string]: 2, marginTop: 24 }}>
+            <div className="ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" /></svg>
+            </div>
+            <div><b>Almost ready.</b> Credits and design history switch on once the latest database update is applied.</div>
+          </div>
+        )}
+
+        <div className="hero r" style={{ ['--i' as string]: 2 }}>
+          <div className="copy">
+            <div className="kicker">Mantha AI · Redesign</div>
+            <h2>Redesign a room, <em>keep the walls</em></h2>
+            <p>Upload a photo, choose a style and describe what you want changed. Same architecture, same light. Only the surfaces change.</p>
+            <div className="steps">
+              <div><span>1</span>Upload a room photo</div>
+              <div><span>2</span>Choose one of {TEMPLATES.length} styles</div>
+              <div><span>3</span>Describe anything to change</div>
+            </div>
+            <div className="cta">
+              <Link className="btn btn-w" to="/app/create">
+                Start creating
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </Link>
+              <Link className="btn btn-g" to="/app/templates">See examples</Link>
+            </div>
+          </div>
+          <div className="dip">
+            <figure><img src="/assets/samples/room_before.jpg" alt="Room before" onError={(e) => { e.currentTarget.src = '/assets/samples/1.jpg'; }} /></figure>
+            <figure className="af"><img src="/assets/samples/styled_room.png" alt="Same room redesigned in Modern" /></figure>
+            <span className="seam" />
+            <span className="knob">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M12 4v16" /></svg>
+            </span>
+            <span className="lbl b">BEFORE</span>
+            <span className="lbl a">AFTER · MODERN</span>
+          </div>
+        </div>
+
+        <div className="strip r" style={{ ['--i' as string]: 3 }}>
+          <Link className="sx" to="/pricing">
+            <div className="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg></div>
+            <div className="v">{credits === undefined ? '—' : credits}</div>
+            <div><div className="l">Credits left</div><div className="d">Each redesign uses 1</div></div>
+            <span className="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+          </Link>
+          <Link className="sx" to="/app/library">
+            <div className="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg></div>
+            <div className="v">{all === undefined ? '—' : all.length}</div>
+            <div><div className="l">Designs created</div><div className="d">Saved to Projects</div></div>
+            <span className="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+          </Link>
+          <Link className="sx" to="/app/templates">
+            <div className="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="8" height="8" rx="2" /><rect x="13" y="3" width="8" height="8" rx="2" /><rect x="3" y="13" width="8" height="8" rx="2" /><rect x="13" y="13" width="8" height="8" rx="2" /></svg></div>
+            <div className="v">{TEMPLATES.length}</div>
+            <div><div className="l">Style templates</div><div className="d">Ready to apply</div></div>
+            <span className="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+          </Link>
+        </div>
+
+        <div className="sec r" style={{ ['--i' as string]: 4 }}>
+          <div>
+            <h3>Quick <em>start</em></h3>
+            <p>Tap a style to open it in Create with your next photo.</p>
+          </div>
+          <Link to="/app/templates">All templates <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+        </div>
+        <div className="qs">
+          {featured.map((t, i) => (
+            <Link key={t.key} className="tc r" style={{ ['--i' as string]: 5 + i }} to={`/app/create?template=${t.key}`}>
+              <div className="pic">
+                <img src={t.image} alt="" />
+                {i === 0 && <span className="tagp dark">Popular</span>}
+                <span className="use">Use style <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              </div>
+              <div className="bd">
+                <h4>{t.label}</h4>
+                <p>{t.description}</p>
+              </div>
+            </Link>
+          ))}
+          <Link className="more r" style={{ ['--i' as string]: 8 }} to="/app/templates">
+            <div className="fan">
+              {rest.slice(0, 3).map((t) => <img key={t.key} src={t.image} alt="" />)}
+            </div>
+            <b>+{rest.length} more styles</b>
+            <span>{rest.slice(0, 2).map((t) => t.label).join(', ')} &amp; more <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+          </Link>
+        </div>
+
+        <div className="sec r" style={{ ['--i' as string]: 9 }}>
+          <div><h3>Recent <em>designs</em></h3></div>
+          {recent && recent.length > 0 && <Link to="/app/library">View all <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>}
+        </div>
+        {recent && recent.length > 0 ? (
+          <div className="dgrid r" style={{ ['--i' as string]: 10 }}>
+            {recent.map((g) => (
+              <Link key={g.id} className="dcard" to={`/app/library?open=${g.id}`}>
+                <div className="pic">
+                  <StoredImage src={g.output_image_url ?? g.input_image_url} alt="" />
+                </div>
+                <div className="bd">
+                  <h4>{titleFor(g)}</h4>
+                  <div className="m">{formatDate(g.created_at)}</div>
+                </div>
+              </Link>
             ))}
           </div>
-        ) : recent && recent.length > 0 ? (
-          <Stagger className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" gap={0.06}>
-            {recent.map((g) => (
-              <motion.div key={g.id} variants={staggerItem}>
-                <Tilt max={4} innerClassName="rounded-2xl">
-                  <Link
-                    to={`/app/library?open=${g.id}`}
-                    className="group block overflow-hidden rounded-2xl border border-border/70 bg-card transition-colors hover:border-primary/30"
-                  >
-                    <div className="aspect-[4/3] overflow-hidden bg-secondary">
-                      <StoredImage
-                        src={g.output_image_url ?? g.input_image_url}
-                        alt="Generated design"
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 p-4">
-                      <div className="min-w-0">
-                        <p className="truncate text-[14px] font-semibold text-foreground">
-                          {titleFor(g)}
-                        </p>
-                        <p className="text-[12.5px] text-foreground/50">{formatDate(g.created_at)}</p>
-                      </div>
-                    </div>
-                  </Link>
-                </Tilt>
-              </motion.div>
-            ))}
-          </Stagger>
         ) : (
-          <div className="mt-4 flex flex-col items-center rounded-[22px] border border-dashed border-border px-6 py-12 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <Wand2 className="h-5 w-5 text-primary" />
-            </span>
-            <p className="mt-4 text-[16px] font-semibold text-foreground">No designs yet</p>
-            <p className="mt-1 max-w-[40ch] text-[14px] text-foreground/55">
-              {credits && credits > 0
-                ? `You have ${credits} free ${credits === 1 ? 'redesign' : 'redesigns'} — try one on any room photo.`
-                : `Every new account starts with ${FREE_SIGNUP_CREDITS} free redesigns.`}
-            </p>
-            <Link
-              to="/app/create"
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground"
-            >
-              <Plus className="h-4 w-4" /> Create your first design
+          <div className="empty r" style={{ ['--i' as string]: 10 }}>
+            <div className="frames">
+              <i /><i />
+              <i>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2M15 10V8M11 6h2M17 6h2M4 20L14 10M18 13v2M18 19v2M16 17h-2M22 17h-2" /></svg>
+              </i>
+            </div>
+            <div>
+              <h4>Your first redesign is one photo away</h4>
+              <p>
+                Designs you create land here, ready to compare before and after, download, or refine with another prompt.
+                {' '}{credits !== undefined && credits > 0 ? `You have ${credits} free redesign${credits === 1 ? '' : 's'}.` : `Every account starts with ${FREE_SIGNUP_CREDITS} free redesigns.`}
+              </p>
+            </div>
+            <Link className="btn btn-dark" to="/app/create">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              Create your first design
             </Link>
           </div>
         )}
       </section>
     </>
-  );
-}
-
-function StatCard({
-  icon: Icon, label, value, hint,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  hint: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      variants={staggerItem}
-      className="group rounded-2xl border border-border/70 bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_18px_40px_-26px_hsl(168_30%_15%/0.35)]"
-    >
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 transition-all duration-400 group-hover:scale-110 group-hover:bg-primary">
-          <Icon className="h-4 w-4 text-primary transition-colors duration-400 group-hover:text-primary-foreground" />
-        </span>
-        <span className="text-[12.5px] font-medium text-foreground/55">{label}</span>
-      </div>
-      <p className="mt-3 text-[30px] font-bold leading-none tracking-[-0.03em] text-foreground">{value}</p>
-      <p className="mt-2 text-[13px] text-foreground/55">{hint}</p>
-    </motion.div>
   );
 }

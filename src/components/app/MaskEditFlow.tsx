@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
-  ArrowRight, Check, Download, Eraser, ImagePlus, Loader2, Mic, MicOff, Repeat, RotateCcw, Sparkles,
+  ArrowRight, Check, Download, Loader2, Mic, MicOff, RotateCcw, Sparkles,
 } from 'lucide-react';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { MaskCanvas, type MaskCanvasHandle, type Stroke } from '@/components/app/MaskCanvas';
 import { StoredCompare } from '@/components/app/StoredImage';
-import { Magnetic, Reveal } from '@/components/premium/Motion';
 import {
   FREE_SIGNUP_CREDITS, GenerationError, OutOfCreditsError, RateLimitError,
   downloadStoredImage, fileNameFor, isSetupError, labelMaskRegion, useCreditBalance, useGenerateMaskEdit,
@@ -105,13 +103,11 @@ export function MaskEditFlow({
     setLabelFailed(false);
     labelTimer.current = window.setTimeout(async () => {
       try {
-        // A small JPEG is plenty to name an object, and far quicker to send.
         const maskedImage = await canvasRef.current?.exportMasked({ maxDimension: 768, type: 'image/jpeg' });
         if (!maskedImage || myId !== labelRequestId.current) return;
         const detected = await labelMaskRegion(maskedImage);
         if (myId === labelRequestId.current) setLabel(detected);
       } catch {
-        // Detection is optional — Generate still works without a label.
         if (myId === labelRequestId.current) { setLabel(null); setLabelFailed(true); }
       } finally {
         if (myId === labelRequestId.current) setLabeling(false);
@@ -196,350 +192,225 @@ export function MaskEditFlow({
 
   return (
     <>
-      <Reveal className="text-center">
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <h1 className="font-display text-[clamp(1.9rem,3.4vw,2.6rem)] font-normal tracking-[-0.01em] text-foreground">{title}</h1>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-            </span>
-            {kicker}
-          </span>
-        </div>
-        <p className="mx-auto mt-2 max-w-[60ch] text-[15px] text-foreground/55">{description}</p>
-        {credits !== undefined && (
-          <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1.5 text-[12.5px] font-semibold text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            {credits} {credits === 1 ? 'credit' : 'credits'} left · 1 per design
-          </span>
-        )}
-      </Reveal>
-
-      {setupPending && (
-        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-5 py-4 text-[14px] text-amber-800">
-          {title} switches on once the latest database update is applied.
-        </div>
-      )}
-
-      {outOfCredits && !setupPending && (
-        <div className="mt-4 rounded-[24px] bg-primary p-6 text-primary-foreground shadow-[0_24px_60px_-28px_hsl(168_100%_17%/0.6)] sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <div>
-            <p className="text-[17px] font-bold">You've used your {FREE_SIGNUP_CREDITS} free redesigns</p>
-            <p className="mt-1 text-[14px] text-primary-foreground/75">
-              Subscribe for {INTRO} your first month, then {MONTHLY}/month — {PHASE1_PLAN.credits} redesigns every month.
-            </p>
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">Tools · {kicker}</div>
+            <h1>{title === 'Cleanup' ? <>Erase <em>anything</em></> : <>Swap <em>one thing</em></>}</h1>
+            <p className="sub">{description}</p>
           </div>
-          <Magnetic className="mt-4 flex-shrink-0 sm:mt-0">
-            <Link
-              to="/pricing"
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-primary transition-transform duration-300 hover:scale-[1.03]"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,hsl(168_100%_17%/0.12),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-              />
-              <span className="relative">Start for {INTRO}</span>
-            </Link>
-          </Magnetic>
-        </div>
-      )}
-
-      {/* Step progress — a real stepper (fixed equal-width columns + a track
-          spanning exactly between circle centers), not flex-1 rows. Flex-1
-          on every column — including the last, with nothing after it to
-          fill — was what made the whole row read as off-center before. */}
-      <div className="relative mx-auto mt-8 max-w-[420px]">
-        {(() => {
-          const stepIndex = result ? 2 : source ? 1 : 0;
-          return (
-            <>
-              <div className="absolute left-[calc(100%/6)] right-[calc(100%/6)] top-4 h-[2px] -translate-y-1/2 rounded-full bg-border" />
-              <motion.div
-                className="absolute left-[calc(100%/6)] top-4 h-[2px] -translate-y-1/2 rounded-full bg-primary"
-                initial={false}
-                animate={{ width: `${stepIndex * (100 / 3)}%` }}
-                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              />
-              <div className="relative grid grid-cols-3">
-                {(['Upload', 'Paint', 'Result'] as const).map((label, i) => {
-                  const active = i === stepIndex;
-                  const done = i < stepIndex;
-                  return (
-                    <div key={label} className="flex flex-col items-center gap-2">
-                      <span
-                        className={`relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold shadow-sm transition-colors duration-300 ${
-                          active || done ? 'bg-primary text-primary-foreground' : 'border border-border bg-card text-foreground/40'
-                        }`}
-                      >
-                        {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                        {active && (
-                          <motion.span
-                            layoutId="mask-flow-step-ring"
-                            className="absolute -inset-1.5 rounded-full ring-2 ring-primary/25"
-                            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                          />
-                        )}
-                      </span>
-                      <span className={`text-[12.5px] font-medium transition-colors duration-300 ${active ? 'text-foreground' : 'text-foreground/40'}`}>
-                        {label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          );
-        })()}
-      </div>
-
-      <div className="relative mx-auto mt-5 max-w-[640px] overflow-hidden rounded-[26px] border border-border/70 bg-card p-6 shadow-[0_28px_60px_-32px_hsl(168_40%_15%/0.4)] sm:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(hsl(168_30%_20%/0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(168_30%_20%/0.03)_1px,transparent_1px)] bg-[size:36px_36px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000,transparent)]"
-        />
-        <AnimatePresence mode="wait">
-          {/* ---------- 1. no photo yet ---------- */}
-          {!source && !result && (
-            <motion.div
-              key="upload"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
-            >
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
-                className={`flex flex-col items-center justify-center gap-3 rounded-[20px] border-2 border-dashed px-8 py-14 text-center transition-colors duration-300 ${
-                  dragging ? 'border-primary bg-primary/[0.04]' : 'border-border/70 hover:border-primary/40'
-                }`}
-              >
-                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <span aria-hidden className="absolute inset-0 rounded-full bg-primary/25 blur-xl" />
-                  <motion.span
-                    animate={{ scale: [1, 1.08, 1] }}
-                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                    className="relative"
-                  >
-                    {mode === 'cleanup' ? (
-                      <Eraser className="h-6 w-6 text-primary" />
-                    ) : (
-                      <Repeat className="h-6 w-6 text-primary" />
-                    )}
-                  </motion.span>
-                </span>
-                <p className="text-[16px] font-semibold text-foreground">Upload a room photo</p>
-                <p className="max-w-[40ch] text-[13.5px] text-foreground/55">
-                  Drop a photo here or tap to choose one — then paint over what you want to {mode === 'cleanup' ? 'remove' : 'replace'}.
-                </p>
-                <Magnetic strength={0.25}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="group relative mt-1 inline-flex items-center gap-2 overflow-hidden rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground transition-transform duration-300 hover:scale-[1.03]"
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.25),transparent)] transition-transform duration-700 group-hover:translate-x-full"
-                    />
-                    <ImagePlus className="relative h-4 w-4" /> <span className="relative">Upload photo</span>
-                  </button>
-                </Magnetic>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  hidden
-                  onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
-                />
-
-                {mode === 'replace' && (
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    {REPLACE_SUGGESTIONS.map((s) => (
-                      <button
-                        key={s.label}
-                        type="button"
-                        onClick={() => { setPrompt(s.prompt); fileInputRef.current?.click(); }}
-                        className="rounded-full bg-primary/10 px-3 py-1.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/20"
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
+          {credits !== undefined && (
+            <div className="actions r" style={{ ['--i' as string]: 1 }}>
+              <span className="credpill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
+                <b>{credits}</b> credits left · 1 per design
+              </span>
+            </div>
           )}
+        </div>
 
-          {/* ---------- 2. paint the mask ---------- */}
-          {source && !result && (
-            <motion.div
-              key="mask"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
+        <div className="switch r" style={{ ['--i' as string]: 2 }}>
+          <div className="seg dark">
+            <span className="ind" style={{ transform: mode === 'cleanup' ? 'translateX(0)' : 'translateX(100%)', width: '50%' }} />
+            <Link to="/app/cleanup" className={mode === 'cleanup' ? 'on' : ''}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20H9L4 15a2 2 0 0 1 0-2.8l8.5-8.5a2 2 0 0 1 2.8 0l4.2 4.2a2 2 0 0 1 0 2.8L12 18" /><path d="M8 11l6 6" /></svg>Cleanup
+            </Link>
+            <Link to="/app/replace" className={mode === 'replace' ? 'on' : ''}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="14" width="7" height="7" rx="1.5" /><path d="M14 4h6v6M3 10V7a3 3 0 0 1 3-3h4" /><path d="M14 17h3a3 3 0 0 0 3-3v-1" strokeDasharray="2 2.5" /></svg>Replace
+            </Link>
+          </div>
+          <span className="muted">Precise edits. Paint over one area and leave the rest of the room untouched.</span>
+        </div>
+
+        {setupPending && (
+          <div className="note r" style={{ ['--i' as string]: 2 }}>
+            <div className="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" /></svg></div>
+            <div>{title} switches on once the latest database update is applied.</div>
+          </div>
+        )}
+
+        {outOfCredits && !setupPending && (
+          <div className="note r" style={{ ['--i' as string]: 2, background: 'var(--char)', color: '#fff', boxShadow: 'none' }}>
+            <div>
+              <b style={{ color: '#fff' }}>You've used your {FREE_SIGNUP_CREDITS} free redesigns.</b>{' '}
+              Subscribe for {INTRO} your first month, then {MONTHLY}/month.
+              <Link to="/pricing" className="btn btn-w btn-sm" style={{ marginLeft: 12 }}>See plans</Link>
+            </div>
+          </div>
+        )}
+
+        {!result ? (
+          <div className="tw" style={source ? { gridTemplateColumns: '1fr' } : undefined}>
+            <div
+              className="drop r"
+              style={{ ['--i' as string]: 3, ...(source ? { minHeight: 0, padding: 20 } : {}) }}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
             >
-              {canvasSrc ? (
-                <MaskCanvas
-                  ref={canvasRef}
-                  imageSrc={canvasSrc}
-                  initialStrokes={strokes}
-                  onStrokesChange={setStrokes}
-                  onStrokeCountChange={setStrokeCount}
-                />
-              ) : (
-                <div className="flex aspect-[4/3] w-full animate-pulse items-center justify-center rounded-[18px] bg-secondary text-[13px] text-muted-foreground">
-                  Loading photo…
-                </div>
-              )}
-              <p className="mt-3 text-[12.5px] text-foreground/50">
-                Paint over the {mode === 'cleanup' ? 'thing you want gone' : 'thing you want swapped out'} — the red marks the spot, they won't show up in the result.
-              </p>
+              {dragging && <svg className="ants"><rect x="1" y="1" rx="21" ry="21" /></svg>}
 
-              <AnimatePresence mode="wait">
-                {(labeling || label || labelFailed) && (
-                  <motion.div
-                    key={labeling ? 'labeling' : label ? 'label' : 'failed'}
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.2 }}
-                    className={`mt-3 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-medium ${
-                      labeling || label ? 'bg-primary/10 text-primary' : 'bg-secondary text-foreground/60'
-                    }`}
-                  >
-                    {labeling ? (
-                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting…</>
-                    ) : label ? (
-                      <><Sparkles className="h-3.5 w-3.5" /> Looks like: <span className="font-semibold">{label}</span></>
+              {!source ? (
+                <>
+                  <div className="big">
+                    {mode === 'cleanup' ? (
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20H9L4 15a2 2 0 0 1 0-2.8l8.5-8.5a2 2 0 0 1 2.8 0l4.2 4.2a2 2 0 0 1 0 2.8L12 18" /><path d="M8 11l6 6" /></svg>
                     ) : (
-                      <>Couldn't identify it — you can still generate.</>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {mode === 'replace' && (
-                <div className="mt-4">
-                  <label className="text-[12.5px] font-medium text-foreground/60">{promptLabel}</label>
-                  <div className="relative mt-1.5">
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder={promptPlaceholder}
-                      rows={2}
-                      className="w-full resize-none rounded-xl border border-foreground/[0.12] bg-foreground/[0.03] py-3 pl-4 pr-11 text-[14px] text-foreground placeholder:text-foreground/38 outline-none transition-colors focus:border-primary/50"
-                    />
-                    {voice.supported && (
-                      <button
-                        type="button"
-                        onClick={() => (voice.listening ? voice.stop() : voice.start())}
-                        aria-label={voice.listening ? 'Stop voice input' : 'Describe by voice'}
-                        className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
-                          voice.listening ? 'text-destructive' : 'text-foreground/40 hover:bg-secondary hover:text-foreground'
-                        }`}
-                      >
-                        {voice.listening && (
-                          <span aria-hidden className="absolute inset-0.5 animate-ping rounded-full bg-destructive/25" />
-                        )}
-                        {voice.listening ? <MicOff className="relative h-3.5 w-3.5" /> : <Mic className="relative h-3.5 w-3.5" />}
-                      </button>
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="14" width="7" height="7" rx="1.5" /><path d="M14 4h6v6M3 10V7a3 3 0 0 1 3-3h4" /><path d="M14 17h3a3 3 0 0 0 3-3v-1" strokeDasharray="2 2.5" /></svg>
                     )}
                   </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="mt-4 rounded-[16px] border border-destructive/20 bg-destructive/[0.05] px-4 py-3 text-[14px] text-foreground/75">
-                  {error}
-                  {error.includes('out of credits') && (
-                    <Link to="/pricing" className="ml-1 font-semibold text-primary hover:underline">See plans</Link>
+                  <h3>Upload a room photo, <em>{mode === 'cleanup' ? 'then brush it away' : 'then mark what to swap'}</em></h3>
+                  <p>Drop a photo here or tap to choose one, then paint over what you want to {mode === 'cleanup' ? 'remove' : 'replace'}.</p>
+                  <div className="acts">
+                    <button type="button" className="btn btn-dark" onClick={() => fileInputRef.current?.click()}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14" /></svg>Choose a photo
+                    </button>
+                  </div>
+                  {mode === 'replace' && (
+                    <div className="fmt" style={{ marginTop: 16 }}>
+                      {REPLACE_SUGGESTIONS.map((s) => (
+                        <button
+                          key={s.label}
+                          type="button"
+                          className="pchip"
+                          onClick={() => { setPrompt(s.prompt); fileInputRef.current?.click(); }}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
                   )}
+                </>
+              ) : canvasSrc ? (
+                <div style={{ width: '100%' }}>
+                  <MaskCanvas
+                    ref={canvasRef}
+                    imageSrc={canvasSrc}
+                    initialStrokes={strokes}
+                    onStrokesChange={setStrokes}
+                    onStrokeCountChange={setStrokeCount}
+                  />
+                  <p className="muted" style={{ marginTop: 12, fontSize: 12.5 }}>
+                    Paint over the {mode === 'cleanup' ? 'thing you want gone' : 'thing you want swapped out'} — the red marks the spot, it won't show up in the result.
+                  </p>
+
+                  {(labeling || label || labelFailed) && (
+                    <span className={`tagp${labeling || label ? ' dark' : ''}`} style={{ marginTop: 10, display: 'inline-flex' }}>
+                      {labeling ? (
+                        <><Loader2 className="animate-spin" width={13} height={13} /> Detecting…</>
+                      ) : label ? (
+                        <><Sparkles width={13} height={13} /> Looks like: <b>{label}</b></>
+                      ) : (
+                        "Couldn't identify it — you can still generate."
+                      )}
+                    </span>
+                  )}
+
+                  {mode === 'replace' && (
+                    <div className="comp" style={{ marginTop: 16 }}>
+                      <div className="top1"><span className="kicker" style={{ fontSize: 10 }}>{promptLabel}</span></div>
+                      <div className="ta">
+                        <textarea
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          placeholder={promptPlaceholder}
+                          rows={2}
+                        />
+                      </div>
+                      {voice.supported && (
+                        <div className="bot">
+                          <button
+                            type="button"
+                            onClick={() => (voice.listening ? voice.stop() : voice.start())}
+                            className="ico-btn"
+                            aria-label={voice.listening ? 'Stop voice input' : 'Describe by voice'}
+                            style={voice.listening ? { color: 'var(--rose)' } : undefined}
+                          >
+                            {voice.listening ? <MicOff width={15} height={15} /> : <Mic width={15} height={15} />}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="note r" style={{ marginTop: 14, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
+                      <div>
+                        {error}
+                        {outOfCredits && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button type="button" className="btn btn-line" onClick={startOver}>
+                      <RotateCcw width={14} height={14} /> Different photo
+                    </button>
+                    <span className="spacer" />
+                    <button
+                      type="button"
+                      onClick={generateNow}
+                      disabled={strokeCount === 0 || labeling || generate.isPending || outOfCredits || setupPending}
+                      className={`go${strokeCount > 0 && !labeling && !generate.isPending && !outOfCredits && !setupPending ? ' ready' : ''}`}
+                    >
+                      {generate.isPending ? (
+                        <><Loader2 className="animate-spin" width={15} height={15} /> {generatingLabel}</>
+                      ) : (
+                        <><Sparkles width={15} height={15} /> {hasGenerated ? 'Regenerate' : 'Generate'} <ArrowRight width={14} height={14} /></>
+                      )}
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <div className="muted">Loading photo…</div>
               )}
 
-              <div className="mt-5 flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
+              />
+            </div>
+
+            {!source && (
+              <div className="demo r" style={{ ['--i' as string]: 4 }}>
+                <div className="dh">
+                  <b>How {title} works</b>
+                  <span className="tagp">Example</span>
+                </div>
+                <div className="steps3">
+                  <div><span className="n">01</span><b>Upload</b><span>One photo of the room.</span></div>
+                  <div><span className="n">02</span><b>{mode === 'cleanup' ? 'Brush' : 'Mark'}</b><span>Paint over {mode === 'cleanup' ? 'what should go' : 'the piece to swap'}.</span></div>
+                  <div><span className="n">03</span><b>{mode === 'cleanup' ? 'Erase' : 'Describe'}</b><span>{mode === 'cleanup' ? 'Mantha fills the gap in.' : 'Say what goes there instead.'}</span></div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : cleanBeforeRef && (
+          <div className="card r" style={{ ['--i' as string]: 3, marginTop: 20, overflow: 'hidden' }}>
+            <StoredCompare before={cleanBeforeRef} after={result.output_image_url} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 16 }}>
+              <span className="muted" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Check width={14} height={14} color="var(--brass)" />
+                Saved to your <Link to="/app/library" style={{ fontWeight: 700, color: 'var(--brass)' }}>projects</Link>
+              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button type="button" className="btn btn-line btn-sm" onClick={editMaskAgain}>Edit mask again</button>
+                <button type="button" className="btn btn-line btn-sm" onClick={startOver}><RotateCcw width={14} height={14} /> New photo</button>
                 <button
                   type="button"
-                  onClick={startOver}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-[13.5px] font-medium text-foreground/70 transition-colors hover:text-foreground"
+                  className="btn btn-dark btn-sm"
+                  onClick={() => result.output_image_url && downloadStoredImage(result.output_image_url, fileNameFor(result.output_image_url, `thinkdecor-${mode}-${result.id.slice(0, 8)}`))}
                 >
-                  <RotateCcw className="h-3.5 w-3.5" /> Different photo
+                  <Download width={14} height={14} /> Download
                 </button>
-                <Magnetic className="ml-auto" strength={0.25}>
-                  <button
-                    type="button"
-                    onClick={generateNow}
-                    disabled={strokeCount === 0 || labeling || generate.isPending || outOfCredits || setupPending}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-[0_14px_32px_-14px_hsl(168_100%_17%/0.55)] transition-transform duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                  >
-                    {generate.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> {generatingLabel}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" /> {hasGenerated ? 'Regenerate' : 'Generate'} <ArrowRight className="h-3.5 w-3.5" />
-                      </>
-                    )}
-                  </button>
-                </Magnetic>
               </div>
-            </motion.div>
-          )}
-
-          {/* ---------- 3. result ---------- */}
-          {result && cleanBeforeRef && (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="relative overflow-hidden rounded-[20px] border border-border/70 bg-card"
-            >
-              {/* StoredCompare/useStoredImageUrl already handle both a bucket
-                  path (signs it) and an already-displayable blob:/http URL
-                  (uses it as-is) — no branching needed here. */}
-              <StoredCompare before={cleanBeforeRef} after={result.output_image_url} />
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/55">
-                  <Check className="h-3.5 w-3.5 text-primary" />
-                  Saved to your{' '}
-                  <Link to="/app/library" className="font-semibold text-primary hover:underline">projects</Link>
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={editMaskAgain}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-secondary"
-                  >
-                    Edit mask again
-                  </button>
-                  <button
-                    type="button"
-                    onClick={startOver}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-secondary"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> New photo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => result.output_image_url && downloadStoredImage(result.output_image_url, fileNameFor(result.output_image_url, `thinkdecor-${mode}-${result.id.slice(0, 8)}`))}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Download
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
+          </div>
+        )}
+      </section>
     </>
   );
 }

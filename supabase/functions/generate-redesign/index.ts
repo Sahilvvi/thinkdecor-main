@@ -299,7 +299,8 @@ Deno.serve(async (req) => {
         output_image_url: outputPath,
         template_key: mode === "redesign" ? (templateKey ?? null) : null,
         room_type: mode === "redesign" ? (roomType ?? null) : null,
-        prompt: mode === "replace" ? (prompt ?? null) : null,
+        // Cleanup has no user prompt (fixed instruction); redesign and replace both do.
+        prompt: mode === "cleanup" ? null : (prompt ?? null),
         status: "completed",
         kind: mode,
       })

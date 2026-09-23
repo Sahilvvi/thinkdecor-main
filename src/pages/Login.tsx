@@ -9,6 +9,7 @@ import { SEO } from '@/components/shared/SEO';
 import { Captcha } from '@/components/auth/Captcha';
 import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { useAuthStore } from '@/stores/authStore';
+import { useAuthProviders } from '@/hooks/useAuthProviders';
 import { safeReturnPath } from '@/lib/returnPath';
 import { CAPTCHA_ENABLED } from '@/lib/captcha';
 import { toast } from 'sonner';
@@ -31,6 +32,8 @@ export default function Login() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaKey, setCaptchaKey] = useState(0);
   const { signIn, signInWithOAuth } = useAuthStore();
+  const providers = useAuthProviders();
+  const anyProvider = providers.google || providers.apple;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -99,8 +102,11 @@ export default function Login() {
           </Reveal>
 
           <Stagger className="space-y-5">
-            <motion.div variants={staggerItem} className="grid grid-cols-2 gap-2.5">
-              <button
+            {anyProvider && (
+<>
+<motion.div variants={staggerItem} className={`grid gap-2.5 ${providers.google && providers.apple ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {providers.google && (
+<button
                 type="button"
                 onClick={() => handleOAuth('google')}
                 disabled={oauthLoading !== null || isLoading}
@@ -115,7 +121,9 @@ export default function Login() {
                 )}
                 Google
               </button>
-              <button
+)}
+              {providers.apple && (
+<button
                 type="button"
                 onClick={() => handleOAuth('apple')}
                 disabled={oauthLoading !== null || isLoading}
@@ -130,6 +138,7 @@ export default function Login() {
                 )}
                 Apple
               </button>
+)}
             </motion.div>
 
             <motion.div
@@ -140,8 +149,10 @@ export default function Login() {
               or with email
               <span className="h-px flex-1 bg-border" />
             </motion.div>
+</>
+)}
 
-            <motion.form onSubmit={handleSubmit} variants={staggerItem} className="space-y-5">
+<motion.form onSubmit={handleSubmit} variants={staggerItem} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -172,7 +183,7 @@ export default function Login() {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>

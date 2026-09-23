@@ -2,39 +2,41 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Download, Trash2, Loader2, Inbox, Mail, Phone, Building2,
-  Globe, Users, Tag, X, Clock, StickyNote, Check,
+  Download, LayoutGrid, List as ListIcon, MoreHorizontal, Mail, Phone, Building2, Globe, Tag, Users, Inbox,
+  X, Clock, StickyNote, Check, Trash2, Loader2, Calendar,
 } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { Reveal } from '@/components/premium/Motion';
+import { Seg } from '@/components/admin/Seg';
+import { CountUp } from '@/components/admin/CountUp';
 import { Button } from '@/components/ui/button';
 import {
   listLeads, setLeadStatus, setLeadNotes, deleteLead, downloadCsv,
   STATUSES, type Lead, type LeadStatus,
 } from '@/lib/leads';
 
-const STATUS_STYLE: Record<LeadStatus, string> = {
-  new: 'bg-primary/12 text-primary',
-  contacted: 'bg-amber-500/14 text-amber-700',
-  qualified: 'bg-emerald-500/14 text-emerald-700',
-  closed: 'bg-foreground/[0.06] text-foreground/45',
+const STAGE_COLOR: Record<LeadStatus, string> = {
+  new: 'var(--brass)', contacted: '#D69A3A', qualified: '#5B6FC0', closed: 'var(--char)',
 };
 
-function when(iso: string) {
-  const d = new Date(iso);
-  const mins = Math.round((Date.now() - d.getTime()) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
-  if (mins < 10080) return `${Math.round(mins / 1440)}d ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const SOURCE_STYLE: Record<string, string> = {
+  newsletter: 'nl',
+};
+
+function sourceClass(reason: string | null) {
+  if (!reason) return 'ps';
+  const key = reason.toLowerCase();
+  if (key.includes('newsletter')) return 'nl';
+  if (key.includes('brand') || key.includes('partner')) return 'bp';
+  return SOURCE_STYLE[key] ?? 'ps';
+}
+
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 function full(iso: string) {
-  return new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
+  return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function Leads() {
@@ -42,39 +44,34 @@ export default function Leads() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState('');
-  const [tab, setTab] = useState<'all' | LeadStatus>('all');
+  const [view, setView] = useState<'board' | 'list'>('board');
   const [open, setOpen] = useState<Lead | null>(null);
   const [confirm, setConfirm] = useState<Lead | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overCol, setOverCol] = useState<LeadStatus | null>(null);
 
-  const load = () => {
-    return listLeads()
-      .then((r) => { setLeads(r); setErr(null); })
-      .catch((e: Error) => setErr(e.message))
-      .finally(() => setLoading(false));
-  };
-
+  const load = () => listLeads().then((r) => { setLeads(r); setErr(null); }).catch((e: Error) => setErr(e.message)).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
-
   useEffect(() => { setNoteDraft(open?.notes ?? ''); }, [open]);
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: leads.length };
-    STATUSES.forEach((s) => { c[s.value] = leads.filter((l) => l.status === s.value).length; });
-    return c;
-  }, [leads]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return leads.filter((l) => {
-      if (tab !== 'all' && l.status !== tab) return false;
-      if (!term) return true;
-      return [l.name, l.email, l.company, l.message, l.reason, l.industry, l.region]
-        .filter(Boolean)
-        .some((v) => (v as string).toLowerCase().includes(term));
-    });
-  }, [leads, q, tab]);
+    if (!term) return leads;
+    return leads.filter((l) =>
+      [l.name, l.email, l.company, l.message, l.reason, l.phone].filter(Boolean).some((v) => (v as string).toLowerCase().includes(term)),
+    );
+  }, [leads, q]);
+
+  const byStage = useMemo(() => {
+    const map: Record<LeadStatus, Lead[]> = { new: [], contacted: [], qualified: [], closed: [] };
+    filtered.forEach((l) => map[l.status]?.push(l));
+    return map;
+  }, [filtered]);
+
+  const unread = leads.filter((l) => l.status === 'new').length;
+  const total = leads.length || 1;
 
   const changeStatus = async (l: Lead, status: LeadStatus) => {
     const prev = leads;
@@ -114,153 +111,170 @@ export default function Leads() {
     }
   };
 
+  const onDrop = (status: LeadStatus) => {
+    setOverCol(null);
+    if (!dragId) return;
+    const lead = leads.find((l) => l.id === dragId);
+    setDragId(null);
+    if (lead && lead.status !== status) changeStatus(lead, status);
+  };
+
   return (
     <AdminShell>
       <SEO title="Leads · ThinkDecor" description="Contact form submissions." />
 
-      <main className="container mx-auto max-w-[1180px] px-6 py-10">
-        {/* heading */}
-        <Reveal className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Leads</h1>
-            <p className="mt-1.5 text-[13.5px] text-foreground/50">
-              {leads.length} total · {counts.new ?? 0} unread
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">Content · Inbound</div>
+            <h1>Leads <em>pipeline</em></h1>
+            <p className="sub">
+              {leads.length} leads<span className="sep" />{unread} unread<span className="sep" />
+              {view === 'board' ? 'Drag a card to move it between stages' : 'Click a row to open it'}
             </p>
           </div>
-          <button
-            onClick={() => downloadCsv(filtered)}
-            disabled={!filtered.length}
-            className="flex items-center gap-2 rounded-full border border-foreground/[0.12] px-5 py-2.5 text-[13.5px] font-medium text-foreground/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary disabled:opacity-40 disabled:hover:translate-y-0"
-          >
-            <Download className="h-4 w-4" /> Export CSV
-          </button>
-        </Reveal>
-
-        {/* filters */}
-        <Reveal delay={0.08} className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex flex-1 items-center gap-3 rounded-xl border border-foreground/[0.10] bg-foreground/[0.025] px-4 py-3">
-            <Search className="h-4 w-4 flex-shrink-0 text-foreground/42" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search name, email, company, message…"
-              className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/38"
+          <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <Seg<'board' | 'list'>
+              layoutId="leads-view"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'board', label: 'Board', icon: <LayoutGrid width={14} height={14} /> },
+                { value: 'list', label: 'List', icon: <ListIcon width={14} height={14} /> },
+              ]}
             />
+            <button type="button" className="btn btn-line" onClick={() => downloadCsv(filtered)} disabled={!filtered.length}>
+              <Download width={15} height={15} /> Export CSV
+            </button>
           </div>
-          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-foreground/[0.09] bg-foreground/[0.025] p-1">
-            {[{ value: 'all' as const, label: 'All' }, ...STATUSES].map((s) => {
-              const active = tab === s.value;
-              return (
-                <button
-                  key={s.value}
-                  onClick={() => setTab(s.value)}
-                  className={`relative rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-300 ${
-                    active ? 'text-primary-foreground' : 'text-foreground/55 hover:text-foreground'
-                  }`}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="lead-tab-pill"
-                      className="absolute inset-0 rounded-lg bg-primary"
-                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative z-10">
-                    {s.label}
-                    <span className={`ml-1.5 ${active ? 'text-primary-foreground/65' : 'text-foreground/35'}`}>
-                      {counts[s.value] ?? 0}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Reveal>
-
-        {/* list */}
-        <div className="mt-6 overflow-hidden rounded-2xl border border-foreground/[0.09]">
-          {loading && (
-            <div className="flex items-center justify-center gap-3 py-20 text-foreground/50">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading leads…
-            </div>
-          )}
-
-          {!loading && err && (
-            <div className="px-6 py-16 text-center">
-              <Inbox className="mx-auto h-8 w-8 text-foreground/25" />
-              <p className="mt-4 text-[15px] font-medium text-foreground">Couldn't load leads</p>
-              <p className="mx-auto mt-2 max-w-[48ch] text-[13.5px] leading-relaxed text-foreground/55">
-                If this is a fresh setup, run the
-                <code className="mx-1.5 rounded bg-foreground/[0.05] px-1.5 py-0.5 text-[12.5px] text-primary">contact_leads_admin</code>
-                migration in Supabase so the panel is allowed to read submissions.
-              </p>
-              <p className="mt-3 text-[12px] text-foreground/38">{err}</p>
-            </div>
-          )}
-
-          {!loading && !err && filtered.length === 0 && (
-            <div className="px-6 py-20 text-center">
-              <Inbox className="mx-auto h-8 w-8 text-foreground/25" />
-              <p className="mt-4 text-[15px] text-foreground/58">
-                {leads.length === 0 ? 'No enquiries yet.' : 'Nothing matches those filters.'}
-              </p>
-            </div>
-          )}
-
-          {!loading && !err && filtered.map((l, i) => (
-            <motion.button
-              key={l.id}
-              onClick={() => setOpen(l)}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(i * 0.025, 0.4) }}
-              className="group flex w-full items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 text-left transition-colors last:border-0 hover:bg-foreground/[0.025]"
-            >
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary transition-transform duration-300 group-hover:scale-110">
-                {l.name?.slice(0, 1).toUpperCase() || '?'}
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2.5">
-                  <span className="truncate text-[14.5px] font-medium text-foreground">{l.name}</span>
-                  <span className={`flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider ${STATUS_STYLE[l.status]}`}>
-                    {l.status}
-                  </span>
-                  {l.reason && (
-                    <span className="hidden flex-shrink-0 rounded-full bg-foreground/[0.05] px-2.5 py-0.5 text-[10.5px] text-foreground/50 md:block">
-                      {l.reason}
-                    </span>
-                  )}
-                </span>
-                <span className="mt-1 block truncate text-[12.5px] text-foreground/45">
-                  {l.email}
-                  {l.company && <span className="text-foreground/28"> · {l.company}</span>}
-                </span>
-                <span className="mt-1 block truncate text-[12.5px] text-foreground/38 sm:hidden">
-                  {l.message}
-                </span>
-              </span>
-
-              <span className="hidden min-w-0 flex-1 truncate text-[13px] text-foreground/45 sm:block">
-                {l.message}
-              </span>
-
-              <span className="flex flex-shrink-0 items-center gap-3">
-                <span className="whitespace-nowrap text-[12px] text-foreground/38">{when(l.created_at)}</span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); setConfirm(l); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setConfirm(l); } }}
-                  className="rounded-lg border border-foreground/[0.10] p-2 text-foreground/45 opacity-0 transition-all duration-300 hover:border-destructive/50 hover:text-destructive group-hover:opacity-100"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </span>
-              </span>
-            </motion.button>
-          ))}
         </div>
-      </main>
+
+        <div className="funnel r" style={{ ['--i' as string]: 2 }}>
+          {STATUSES.map((s) => {
+            const count = byStage[s.value]?.length ?? leads.filter((l) => l.status === s.value).length;
+            return (
+              <div className="fs" key={s.value}>
+                <div className="lab"><i style={{ background: STAGE_COLOR[s.value] }} />{s.label}</div>
+                <div className="v"><CountUp value={leads.filter((l) => l.status === s.value).length} /></div>
+                <div className="track"><b style={{ width: `${(count / total) * 100}%`, background: STAGE_COLOR[s.value] }} /></div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="toolbar r" style={{ ['--i' as string]: 3 }}>
+          <div className="field" style={{ width: 340 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, company, message…" />
+          </div>
+          <span className="spacer" />
+          <span className="muted text-[12.5px]">Newest first</span>
+        </div>
+
+        {loading && (
+          <div className="mt-10 flex items-center justify-center gap-3 py-14" style={{ color: 'var(--taupe)' }}>
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading leads…
+          </div>
+        )}
+
+        {!loading && err && (
+          <div className="mt-8 rounded-2xl px-6 py-10 text-center" style={{ boxShadow: 'inset 0 0 0 1px var(--stone-2)' }}>
+            <p className="text-[14.5px]" style={{ color: 'var(--taupe)' }}>Couldn't load leads.</p>
+            <p className="mt-2 text-[12px]" style={{ color: 'var(--taupe-2)' }}>{err}</p>
+          </div>
+        )}
+
+        {!loading && !err && view === 'board' && (
+          <div className="board">
+            {STATUSES.map((s, ci) => (
+              <div
+                key={s.value}
+                className={`col r${overCol === s.value ? ' over' : ''}`}
+                style={{ ['--i' as string]: ci + 4 }}
+                onDragOver={(e) => { e.preventDefault(); setOverCol(s.value); }}
+                onDragLeave={() => setOverCol((c) => (c === s.value ? null : c))}
+                onDrop={(e) => { e.preventDefault(); onDrop(s.value); }}
+              >
+                <div className="col-h">
+                  <i style={{ background: STAGE_COLOR[s.value] }} />{s.label} <span className="c">{byStage[s.value].length}</span>
+                </div>
+                {byStage[s.value].length === 0 ? (
+                  <div className="drop">
+                    <div><b>{s.value === 'new' ? 'Nothing new' : `Drop here for ${s.label.toLowerCase()}`}</b>Drag a card from another column</div>
+                  </div>
+                ) : (
+                  byStage[s.value].map((l) => (
+                    <div
+                      key={l.id}
+                      className="lead"
+                      draggable
+                      onDragStart={() => setDragId(l.id)}
+                      onDragEnd={() => setDragId(null)}
+                      onClick={() => setOpen(l)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className="top1">
+                        <div className="av s l">{l.name?.slice(0, 1).toUpperCase() || '?'}</div>
+                        <div>
+                          <div className="nm">{l.name}{l.status === 'new' && <span className="unread" />}</div>
+                          <div className="co">{l.company || 'No company'}</div>
+                        </div>
+                        <span className="hacts">
+                          <button
+                            type="button"
+                            className="ico-btn"
+                            title="Delete"
+                            onClick={(e) => { e.stopPropagation(); setConfirm(l); }}
+                          >
+                            <MoreHorizontal width={14} height={14} />
+                          </button>
+                        </span>
+                      </div>
+                      {l.message && <blockquote>"{l.message.length > 80 ? `${l.message.slice(0, 80)}…` : l.message}"</blockquote>}
+                      <div className="mail">
+                        <Mail width={13} height={13} />{l.email}
+                      </div>
+                      <div className="ft">
+                        <span className={`src ${sourceClass(l.reason)}`}>{l.reason || 'Contact form'}</span>
+                        <time>
+                          <Calendar width={12} height={12} />{shortDate(l.created_at)}
+                        </time>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && !err && view === 'list' && (
+          <div className="tbl r" style={{ ['--i' as string]: 4, marginTop: 14 }}>
+            {filtered.length === 0 ? (
+              <div className="px-6 py-16 text-center text-[14px]" style={{ color: 'var(--taupe)' }}>
+                {leads.length === 0 ? 'No enquiries yet.' : 'Nothing matches that search.'}
+              </div>
+            ) : (
+              filtered.map((l, i) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => setOpen(l)}
+                  className="tr"
+                  style={{ gridTemplateColumns: '32px minmax(0,1.6fr) minmax(0,2fr) 120px 90px', width: '100%', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <div className={`av s ${['', 't2', 't3', 't4', 'l'][i % 5]}`}>{l.name?.slice(0, 1).toUpperCase() || '?'}</div>
+                  <div className="mem"><span className="nm">{l.name}</span></div>
+                  <span className="em">{l.message}</span>
+                  <span className={`src ${sourceClass(l.reason)}`}>{l.reason || 'Contact'}</span>
+                  <span className="jn">{shortDate(l.created_at)}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </section>
 
       {/* ---------------- detail drawer ---------------- */}
       <AnimatePresence>
@@ -269,80 +283,58 @@ export default function Leads() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setOpen(null)}
-              className="fixed inset-0 z-50 bg-foreground/25 backdrop-blur-[2px]"
+              className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px]"
             />
             <motion.aside
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[520px] flex-col border-l border-foreground/[0.09] bg-background shadow-2xl"
+              className="admin-x fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-white shadow-2xl"
+              style={{ fontFamily: 'var(--body)' }}
             >
-              <div className="flex items-start gap-4 border-b border-foreground/[0.08] px-6 py-5">
-                <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[15px] font-bold text-primary">
-                  {open.name?.slice(0, 1).toUpperCase() || '?'}
-                </span>
+              <div className="flex items-start gap-4 px-6 py-5" style={{ borderBottom: '1px solid var(--stone-2)' }}>
+                <span className="av" style={{ width: 44, height: 44, fontSize: 15 }}>{open.name?.slice(0, 1).toUpperCase() || '?'}</span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[18px] font-bold tracking-[-0.02em] text-foreground">{open.name}</h2>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-foreground/45">
+                  <h2 className="truncate font-display text-[19px]" style={{ color: 'var(--char)' }}>{open.name}</h2>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--taupe-2)' }}>
                     <Clock className="h-3 w-3" /> {full(open.created_at)}
                   </p>
                 </div>
-                <button
-                  onClick={() => setOpen(null)}
-                  className="rounded-lg border border-foreground/[0.10] p-2 text-foreground/50 transition-colors hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <button type="button" onClick={() => setOpen(null)} className="ico-btn"><X width={16} height={16} /></button>
               </div>
 
-              <div className="flex-1 space-y-7 overflow-y-auto px-6 py-6">
-                {/* status */}
+              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/45">Status</p>
+                  <p className="kicker">Status</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {STATUSES.map((s) => {
-                      const active = open.status === s.value;
-                      return (
-                        <button
-                          key={s.value}
-                          onClick={() => changeStatus(open, s.value)}
-                          className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-all duration-300 ${
-                            active
-                              ? 'bg-primary text-primary-foreground'
-                              : 'border border-foreground/[0.12] text-foreground/55 hover:border-primary/35 hover:text-primary'
-                          }`}
-                        >
-                          {s.label}
-                        </button>
-                      );
-                    })}
+                    {STATUSES.map((s) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => changeStatus(open, s.value)}
+                        className="pill"
+                        style={open.status === s.value ? { background: 'var(--char)', color: '#fff', boxShadow: 'none' } : undefined}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* contact actions */}
                 <div className="grid gap-2.5">
-                  <a
-                    href={`mailto:${open.email}?subject=${encodeURIComponent('Re: your ThinkDecor enquiry')}`}
-                    className="group flex items-center gap-3 rounded-xl border border-foreground/[0.10] bg-card px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30"
-                  >
-                    <Mail className="h-4 w-4 flex-shrink-0 text-primary" />
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">{open.email}</span>
-                    <span className="text-[11.5px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">Reply</span>
+                  <a href={`mailto:${open.email}?subject=${encodeURIComponent('Re: your ThinkDecor enquiry')}`} className="field" style={{ height: 44 }}>
+                    <Mail width={15} height={15} style={{ color: 'var(--brass)' }} />
+                    <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--ink)' }}>{open.email}</span>
                   </a>
                   {open.phone && (
-                    <a
-                      href={`tel:${open.phone}`}
-                      className="group flex items-center gap-3 rounded-xl border border-foreground/[0.10] bg-card px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30"
-                    >
-                      <Phone className="h-4 w-4 flex-shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">{open.phone}</span>
-                      <span className="text-[11.5px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">Call</span>
+                    <a href={`tel:${open.phone}`} className="field" style={{ height: 44 }}>
+                      <Phone width={15} height={15} style={{ color: 'var(--brass)' }} />
+                      <span style={{ color: 'var(--ink)' }}>{open.phone}</span>
                     </a>
                   )}
                 </div>
 
-                {/* attributes */}
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/45">Details</p>
+                  <p className="kicker">Details</p>
                   <dl className="mt-3 grid grid-cols-2 gap-2.5">
                     {[
                       { icon: Building2, label: 'Company', value: open.company },
@@ -350,62 +342,45 @@ export default function Leads() {
                       { icon: Tag, label: 'Industry', value: open.industry },
                       { icon: Globe, label: 'Region', value: open.region },
                       { icon: Inbox, label: 'Reason', value: open.reason },
-                    ]
-                      .filter((r) => r.value)
-                      .map((r) => {
-                        const Icon = r.icon;
-                        return (
-                          <div
-                            key={r.label}
-                            className="rounded-xl border border-foreground/[0.08] bg-card px-4 py-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_14px_30px_-22px_hsl(168_30%_15%/0.35)]"
-                          >
-                            <dt className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-foreground/40">
-                              <Icon className="h-3 w-3" /> {r.label}
-                            </dt>
-                            <dd className="mt-1 text-[13.5px] text-foreground">{r.value}</dd>
-                          </div>
-                        );
-                      })}
+                    ].filter((r) => r.value).map((r) => {
+                      const Icon = r.icon;
+                      return (
+                        <div key={r.label} className="box" style={{ padding: '10px 14px' }}>
+                          <dt className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--taupe-2)' }}>
+                            <Icon className="h-3 w-3" /> {r.label}
+                          </dt>
+                          <dd className="mt-1 text-[13.5px]" style={{ color: 'var(--ink)' }}>{r.value}</dd>
+                        </div>
+                      );
+                    })}
                   </dl>
                 </div>
 
-                {/* message */}
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/45">Message</p>
-                  <p className="mt-3 whitespace-pre-line rounded-xl border border-foreground/[0.08] bg-card px-4 py-4 text-[14px] leading-relaxed text-foreground/75">
+                  <p className="kicker">Message</p>
+                  <p className="mt-3 whitespace-pre-line rounded-xl px-4 py-4 text-[14px] leading-relaxed" style={{ boxShadow: 'inset 0 0 0 1px var(--stone-2)', color: 'var(--ink)' }}>
                     {open.message}
                   </p>
                 </div>
 
-                {/* internal note */}
                 <div>
-                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/45">
-                    <StickyNote className="h-3 w-3" /> Internal note
-                  </p>
+                  <p className="flex items-center gap-1.5 kicker"><StickyNote className="h-3 w-3" /> Internal note</p>
                   <textarea
                     value={noteDraft}
                     onChange={(e) => setNoteDraft(e.target.value)}
                     rows={4}
                     placeholder="Only your team sees this."
-                    className="mt-3 w-full resize-none rounded-xl border border-foreground/[0.12] bg-card px-4 py-3 text-[13.5px] leading-relaxed text-foreground outline-none transition-all duration-300 placeholder:text-foreground/35 focus:border-primary/45 focus:ring-4 focus:ring-primary/[0.09]"
+                    className="mt-3 w-full resize-none rounded-xl px-4 py-3 text-[13.5px] leading-relaxed outline-none"
+                    style={{ boxShadow: 'inset 0 0 0 1px var(--stone)', color: 'var(--ink)' }}
                   />
-                  <Button
-                    onClick={saveNote}
-                    disabled={savingNote || noteDraft === (open.notes ?? '')}
-                    variant="hero"
-                    className="mt-2.5 h-auto rounded-full px-5 py-2.5 text-[13px] disabled:hover:scale-100"
-                  >
-                    {savingNote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                    Save note
+                  <Button onClick={saveNote} disabled={savingNote || noteDraft === (open.notes ?? '')} variant="hero" className="mt-2.5 h-auto rounded-full px-5 py-2.5 text-[13px]">
+                    {savingNote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Save note
                   </Button>
                 </div>
               </div>
 
-              <div className="border-t border-foreground/[0.08] px-6 py-4">
-                <button
-                  onClick={() => setConfirm(open)}
-                  className="flex items-center gap-2 text-[13px] text-foreground/50 transition-colors hover:text-destructive"
-                >
+              <div className="px-6 py-4" style={{ borderTop: '1px solid var(--stone-2)' }}>
+                <button type="button" onClick={() => setConfirm(open)} className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--taupe)' }}>
                   <Trash2 className="h-3.5 w-3.5" /> Delete this lead
                 </button>
               </div>
@@ -414,34 +389,25 @@ export default function Leads() {
         )}
       </AnimatePresence>
 
-      {/* ---------------- delete confirm ---------------- */}
       <AnimatePresence>
         {confirm && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/35 px-6 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 px-6 backdrop-blur-sm"
             onClick={() => setConfirm(null)}
           >
             <motion.div
               initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[400px] rounded-2xl border border-foreground/[0.10] bg-background p-7 shadow-2xl"
+              className="admin-x w-full max-w-[400px] rounded-2xl bg-white p-7 shadow-2xl"
             >
-              <h3 className="text-[17px] font-bold tracking-[-0.02em] text-foreground">Delete this lead?</h3>
-              <p className="mt-2.5 text-[14px] leading-relaxed text-foreground/58">
+              <h3 className="font-display text-[20px]" style={{ color: 'var(--char)' }}>Delete this lead?</h3>
+              <p className="mt-2.5 text-[14px] leading-relaxed" style={{ color: 'var(--taupe)' }}>
                 {confirm.name}'s enquiry will be removed permanently. Export first if you need a record.
               </p>
               <div className="mt-7 flex gap-3">
-                <button
-                  onClick={() => setConfirm(null)}
-                  className="flex-1 rounded-full border border-foreground/[0.14] py-3 text-[13.5px] font-medium text-foreground/70 transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => remove(confirm)}
-                  className="flex-1 rounded-full bg-destructive py-3 text-[13.5px] font-semibold text-destructive-foreground transition-transform duration-300 hover:scale-[1.02]"
-                >
+                <button type="button" onClick={() => setConfirm(null)} className="btn btn-line flex-1 justify-center">Cancel</button>
+                <button type="button" onClick={() => remove(confirm)} className="btn flex-1 justify-center" style={{ background: 'var(--rose)', color: '#fff' }}>
                   Delete
                 </button>
               </div>

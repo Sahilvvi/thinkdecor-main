@@ -1,33 +1,68 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, Users, ShieldCheck, ShieldOff, Ban, RotateCcw } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Download, UserPlus, ShieldCheck, ShieldOff, Ban, RotateCcw, Loader2 } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { Reveal } from '@/components/premium/Motion';
+import { Seg } from '@/components/admin/Seg';
+import { CountUp } from '@/components/admin/CountUp';
 import { useAdminUsers, useAdminUserAction, type AdminUserRow } from '@/lib/admin';
 import { useAuthStore } from '@/stores/authStore';
 
 function when(iso: string | null) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
+
+/** Last 4 digits, everything else masked — same idea as the reference's "click to reveal". */
+function maskPhone(phone: string | null) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  const last4 = digits.slice(-4);
+  const cc = phone.trim().startsWith('+') ? phone.trim().split(/\s|\d{4,}$/)[0] : '';
+  return `${cc ? `${cc} ` : ''}•••• ••${last4}`;
+}
+
+type Filter = 'all' | 'admins' | 'members' | 'suspended';
 
 export default function Accounts() {
   const { data: users, isLoading, error } = useAdminUsers();
   const action = useAdminUserAction();
   const { user: me } = useAuthStore();
   const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<{ user: AdminUserRow; kind: 'ban' | 'demote' } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const admins = users?.filter((u) => u.isAdmin).length ?? 0;
+  const suspended = users?.filter((u) => u.bannedAt).length ?? 0;
+  const paid = users?.filter((u) => u.plan !== 'free').length ?? 0;
+
+  // Phone numbers that appear on more than one account — flagged the same way the reference calls out likely test sign-ups.
+  const duplicatePhones = useMemo(() => {
+    const counts = new Map<string, number>();
+    (users ?? []).forEach((u) => {
+      if (!u.phone) return;
+      const key = u.phone.replace(/\D/g, '').slice(-4);
+      if (key.length < 4) return;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    let top: [string, number] | null = null;
+    counts.forEach((count, key) => { if (count > 1 && (!top || count > top[1])) top = [key, count]; });
+    return top as [string, number] | null;
+  }, [users]);
+
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return users ?? [];
-    return (users ?? []).filter((u) =>
-      [u.email, u.name, u.phone].filter(Boolean).some((v) => (v as string).toLowerCase().includes(term)),
-    );
-  }, [users, q]);
+    return (users ?? []).filter((u) => {
+      if (filter === 'admins' && !u.isAdmin) return false;
+      if (filter === 'members' && u.isAdmin) return false;
+      if (filter === 'suspended' && !u.bannedAt) return false;
+      if (!term) return true;
+      return [u.email, u.name, u.phone].filter(Boolean).some((v) => (v as string).toLowerCase().includes(term));
+    });
+  }, [users, q, filter]);
 
   const run = async (u: AdminUserRow, act: 'promote' | 'demote' | 'ban' | 'unban') => {
     setBusyId(u.id);
@@ -35,9 +70,9 @@ export default function Accounts() {
       await action.mutateAsync({ action: act, userId: u.id });
       toast.success(
         act === 'promote' ? `${u.email} is now an admin`
-        : act === 'demote' ? `${u.email} is no longer an admin`
-        : act === 'ban' ? `${u.email} has been suspended`
-        : `${u.email} has been restored`,
+          : act === 'demote' ? `${u.email} is no longer an admin`
+            : act === 'ban' ? `${u.email} has been suspended`
+              : `${u.email} has been restored`,
       );
     } catch (e) {
       toast.error((e as Error).message);
@@ -47,151 +82,219 @@ export default function Accounts() {
     }
   };
 
+  const avatarClass = (i: number) => ['', 't2', 't3', 't4', 'l'][i % 5];
+
   return (
     <AdminShell>
       <SEO title="Accounts · Admin" description="Manage customer and admin accounts." />
 
-      <main className="container mx-auto max-w-[1180px] px-6 py-10">
-        <Reveal className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <h1 className="font-display text-[34px] font-normal tracking-[-0.01em] text-foreground">Accounts</h1>
-            <p className="mt-1.5 text-[13.5px] text-foreground/50">
-              {users?.length ?? 0} total · {users?.filter((u) => u.isAdmin).length ?? 0} admins ·{' '}
-              {users?.filter((u) => u.bannedAt).length ?? 0} suspended
+      <section className="panel">
+        <div className="ph">
+          <div className="r">
+            <div className="kicker">People · Members</div>
+            <h1>Accounts</h1>
+            <p className="sub">
+              {users?.length ?? 0} accounts<span className="sep" />{admins} admins<span className="sep" />{suspended} suspended
             </p>
           </div>
-        </Reveal>
-
-        <Reveal delay={0.08} className="mt-7 flex items-center gap-3 rounded-xl border border-foreground/[0.10] bg-foreground/[0.025] px-4 py-3">
-          <Search className="h-4 w-4 flex-shrink-0 text-foreground/42" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, email, phone…"
-            className="flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-foreground/38"
-          />
-        </Reveal>
-
-        <div className="mt-6 overflow-hidden rounded-2xl border border-foreground/[0.09]">
-          {isLoading && (
-            <div className="flex items-center justify-center gap-3 py-20 text-foreground/50">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading accounts…
-            </div>
-          )}
-
-          {!isLoading && error && (
-            <div className="px-6 py-16 text-center">
-              <Users className="mx-auto h-8 w-8 text-foreground/25" />
-              <p className="mt-4 text-[15px] font-medium text-foreground">Couldn't load accounts</p>
-              <p className="mx-auto mt-2 max-w-[48ch] text-[13.5px] leading-relaxed text-foreground/55">
-                Deploy the <code className="mx-1 rounded bg-foreground/[0.05] px-1.5 py-0.5 text-primary">admin-users</code> edge function and run the admin_panel migration.
-              </p>
-              <p className="mt-3 text-[12px] text-foreground/38">{(error as Error).message}</p>
-            </div>
-          )}
-
-          {!isLoading && !error && filtered.map((u, i) => (
-            <motion.div
-              key={u.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(i * 0.02, 0.4) }}
-              className="group flex flex-wrap items-center gap-4 border-b border-foreground/[0.07] bg-card px-5 py-4 transition-colors last:border-0 hover:bg-foreground/[0.02]"
-            >
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/[0.10] text-[13px] font-bold text-primary transition-transform duration-300 group-hover:scale-110">
-                {(u.name || u.email || '?').slice(0, 1).toUpperCase()}
-              </span>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[14px] font-medium text-foreground">{u.name || 'No name'}</span>
-                  {u.isAdmin && (
-                    <span className="flex items-center gap-1 rounded-full bg-primary/12 px-2.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-primary">
-                      <ShieldCheck className="h-3 w-3" /> Admin
-                    </span>
-                  )}
-                  {u.bannedAt && (
-                    <span className="flex items-center gap-1 rounded-full bg-destructive/12 px-2.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-destructive">
-                      <Ban className="h-3 w-3" /> Suspended
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 truncate text-[12.5px] text-foreground/45">
-                  {u.email} {u.phone && <span className="text-foreground/28"> · {u.phone}</span>}
-                </p>
-              </div>
-
-              <span className="hidden text-[12px] text-foreground/40 sm:block">Joined {when(u.createdAt)}</span>
-              <span className="hidden rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] font-medium capitalize text-foreground/55 md:block">
-                {u.plan}
-              </span>
-
-              <div className="flex flex-shrink-0 items-center gap-2">
-                {busyId === u.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-foreground/40" />
-                ) : (
-                  <>
-                    <button
-                      onClick={() => (u.isAdmin ? setConfirm({ user: u, kind: 'demote' }) : run(u, 'promote'))}
-                      disabled={u.id === me?.id}
-                      title={u.isAdmin ? 'Remove admin access' : 'Make admin'}
-                      className="rounded-lg border border-foreground/[0.10] p-2 text-foreground/55 transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-30"
-                    >
-                      {u.isAdmin ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-                    </button>
-                    <button
-                      onClick={() => (u.bannedAt ? run(u, 'unban') : setConfirm({ user: u, kind: 'ban' }))}
-                      disabled={u.id === me?.id}
-                      title={u.bannedAt ? 'Restore account' : 'Suspend account'}
-                      className="rounded-lg border border-foreground/[0.10] p-2 text-foreground/55 transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-30"
-                    >
-                      {u.bannedAt ? <RotateCcw className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
-                    </button>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          ))}
-
-          {!isLoading && !error && filtered.length === 0 && (
-            <div className="px-6 py-20 text-center">
-              <Users className="mx-auto h-8 w-8 text-foreground/25" />
-              <p className="mt-4 text-[15px] text-foreground/58">No accounts match that search.</p>
-            </div>
-          )}
+          <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <button type="button" className="btn btn-line" onClick={() => exportCsv(filtered)} disabled={!filtered.length}>
+              <Download width={15} height={15} /> Export
+            </button>
+            <button type="button" className="btn btn-dark" disabled title="Coming soon">
+              <UserPlus width={15} height={15} /> Invite admin
+            </button>
+          </div>
         </div>
-      </main>
+
+        {!isLoading && error && (
+          <div className="mt-8 rounded-2xl px-6 py-10 text-center" style={{ boxShadow: 'inset 0 0 0 1px var(--stone-2)' }}>
+            <p className="text-[14.5px]" style={{ color: 'var(--taupe)' }}>
+              Couldn't load accounts. Deploy the <code>admin-users</code> edge function and run the admin_panel migration.
+            </p>
+            <p className="mt-2 text-[12px]" style={{ color: 'var(--taupe-2)' }}>{(error as Error).message}</p>
+          </div>
+        )}
+
+        {users && (
+          <>
+            <div className="stats">
+              <div className="st graph r" style={{ ['--i' as string]: 2 }}>
+                <div>
+                  <div className="lab">Signups</div>
+                  <div className="v"><CountUp value={users.length} /></div>
+                  <div className="n">Every account, all-time</div>
+                </div>
+                <div>
+                  <SignupHistogram users={users} />
+                </div>
+              </div>
+              <div className="st r" style={{ ['--i' as string]: 3 }}>
+                <div className="lab">Admins</div>
+                <div className="v"><CountUp value={admins} /></div>
+                <div className="n">{users.length - admins} regular members</div>
+              </div>
+              <div className="st r" style={{ ['--i' as string]: 4 }}>
+                <div className="lab">On a paid plan</div>
+                <div className="v"><CountUp value={paid} /></div>
+                <div className="split"><b style={{ width: `${Math.max(1, (paid / Math.max(1, users.length)) * 100)}%` }} /></div>
+                <div className="n" style={{ marginTop: 8 }}>{users.length ? `All ${users.length} on Free` : ''}</div>
+              </div>
+              <div className="st r" style={{ ['--i' as string]: 5 }}>
+                <div className="lab">Suspended</div>
+                <div className="v"><CountUp value={suspended} /></div>
+                <div className="n">{suspended ? 'Access revoked' : 'No accounts restricted'}</div>
+              </div>
+            </div>
+
+            {duplicatePhones && (
+              <div className="notice r" style={{ ['--i' as string]: 6 }}>
+                <div className="ic">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l10 18H2z" /><path d="M12 10v5M12 18v.5" /></svg>
+                </div>
+                <div>
+                  <b>{duplicatePhones[1]} accounts share the same phone number</b> (ending {duplicatePhones[0]}). Likely test sign-ups.
+                </div>
+                <button type="button" className="btn btn-sm" onClick={() => setQ(duplicatePhones[0])}>Review duplicates</button>
+              </div>
+            )}
+
+            <div className="toolbar r" style={{ ['--i' as string]: 7 }}>
+              <Seg<Filter>
+                layoutId="accounts-filter"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: 'all', label: 'All', count: users.length },
+                  { value: 'admins', label: 'Admins', count: admins },
+                  { value: 'members', label: 'Members', count: users.length - admins },
+                  { value: 'suspended', label: 'Suspended', count: suspended },
+                ]}
+              />
+              <span className="spacer" />
+              <div className="field" style={{ width: 280 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, phone…" />
+              </div>
+            </div>
+
+            <div className="tbl r" style={{ ['--i' as string]: 8 }}>
+              <div className="th">
+                <span />
+                <span>MEMBER</span>
+                <span>EMAIL</span>
+                <span>PHONE</span>
+                <span>PLAN</span>
+                <span>JOINED</span>
+                <span style={{ textAlign: 'right' }}>ACTIONS</span>
+              </div>
+              {filtered.map((u, i) => {
+                const self = u.id === me?.id;
+                const phoneRevealed = revealed.has(u.id);
+                return (
+                  <div key={u.id} className={`tr${self ? ' self' : ''}`}>
+                    <span />
+                    <div className="mem">
+                      <div className={`av s ${avatarClass(i)}`}>{(u.name || u.email || '?').slice(0, 1).toUpperCase()}</div>
+                      <span className={`nm${!u.name ? ' dim' : ''}`}>{u.name || 'No name'}</span>
+                      {u.isAdmin && (
+                        <span className="tg">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /></svg>
+                          ADMIN
+                        </span>
+                      )}
+                      {self && <span className="you">YOU</span>}
+                    </div>
+                    <span className="em">{u.email}</span>
+                    {u.phone ? (
+                      <button
+                        type="button"
+                        className="ph2"
+                        onClick={() => setRevealed((s) => {
+                          const n = new Set(s);
+                          if (n.has(u.id)) n.delete(u.id); else n.add(u.id);
+                          return n;
+                        })}
+                        title={phoneRevealed ? 'Click to hide' : 'Click to reveal'}
+                      >
+                        {phoneRevealed ? u.phone : maskPhone(u.phone)}
+                      </button>
+                    ) : (
+                      <span className="ph2 none">—</span>
+                    )}
+                    <span><span className="plan">{u.plan}</span></span>
+                    <span className="jn">{when(u.createdAt)}</span>
+                    <div className="ra">
+                      {busyId === u.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--taupe)' }} />
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={`ico-btn${u.isAdmin ? ' is' : ''}`}
+                            disabled={self}
+                            title={u.isAdmin ? 'Remove admin access' : 'Make admin'}
+                            onClick={() => (u.isAdmin ? setConfirm({ user: u, kind: 'demote' }) : run(u, 'promote'))}
+                          >
+                            {u.isAdmin ? <ShieldOff width={16} height={16} /> : <ShieldCheck width={16} height={16} />}
+                          </button>
+                          <button
+                            type="button"
+                            className="ico-btn danger"
+                            disabled={self}
+                            title={u.bannedAt ? 'Restore account' : 'Suspend account'}
+                            onClick={() => (u.bannedAt ? run(u, 'unban') : setConfirm({ user: u, kind: 'ban' }))}
+                          >
+                            {u.bannedAt ? <RotateCcw width={16} height={16} /> : <Ban width={16} height={16} />}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {filtered.length === 0 && !isLoading && (
+                <div className="px-6 py-16 text-center text-[14px]" style={{ color: 'var(--taupe)' }}>
+                  No accounts match that search.
+                </div>
+              )}
+            </div>
+
+            <div className="pager r" style={{ ['--i' as string]: 9 }}>
+              <span>Showing {filtered.length} of {users.length} accounts</span>
+              <span>Phone numbers are masked · click a row to reveal</span>
+            </div>
+          </>
+        )}
+      </section>
 
       <AnimatePresence>
         {confirm && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/35 px-6 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 px-6 backdrop-blur-sm"
             onClick={() => setConfirm(null)}
           >
             <motion.div
               initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[400px] rounded-2xl border border-foreground/[0.10] bg-background p-7 shadow-2xl"
+              className="admin-x w-full max-w-[400px] rounded-2xl bg-white p-7 shadow-2xl"
             >
-              <h3 className="text-[17px] font-bold tracking-[-0.02em] text-foreground">
+              <h3 className="font-display text-[20px] text-[--char]">
                 {confirm.kind === 'ban' ? 'Suspend this account?' : 'Remove admin access?'}
               </h3>
-              <p className="mt-2.5 text-[14px] leading-relaxed text-foreground/58">
+              <p className="mt-2.5 text-[14px] leading-relaxed" style={{ color: 'var(--taupe)' }}>
                 {confirm.kind === 'ban'
-                  ? `${confirm.user.email} won't be able to generate any new designs until restored. Their existing designs and data stay intact.`
+                  ? `${confirm.user.email} won't be able to generate any new designs until restored.`
                   : `${confirm.user.email} will lose access to the admin panel.`}
               </p>
               <div className="mt-7 flex gap-3">
+                <button type="button" onClick={() => setConfirm(null)} className="btn btn-line flex-1 justify-center">Cancel</button>
                 <button
-                  onClick={() => setConfirm(null)}
-                  className="flex-1 rounded-full border border-foreground/[0.14] py-3 text-[13.5px] font-medium text-foreground/70 transition-colors hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
+                  type="button"
                   onClick={() => run(confirm.user, confirm.kind === 'ban' ? 'ban' : 'demote')}
-                  className="flex-1 rounded-full bg-destructive py-3 text-[13.5px] font-semibold text-destructive-foreground transition-transform duration-300 hover:scale-[1.02]"
+                  className="btn flex-1 justify-center"
+                  style={{ background: 'var(--rose)', color: '#fff' }}
                 >
                   {confirm.kind === 'ban' ? 'Suspend' : 'Remove access'}
                 </button>
@@ -202,4 +305,50 @@ export default function Accounts() {
       </AnimatePresence>
     </AdminShell>
   );
+}
+
+/** Signups per day over the last 14 days, from account creation dates already in hand — no extra query. */
+function SignupHistogram({ users }: { users: AdminUserRow[] }) {
+  const days = 14;
+  const since = Date.now() - days * 86_400_000;
+  const counts = new Array(days).fill(0);
+  users.forEach((u) => {
+    const t = new Date(u.createdAt).getTime();
+    if (t < since) return;
+    const idx = Math.min(days - 1, Math.floor((t - since) / 86_400_000));
+    counts[idx] += 1;
+  });
+  const max = Math.max(1, ...counts);
+  const start = new Date(since);
+  const end = new Date();
+
+  return (
+    <>
+      <div className="hist">
+        {counts.map((v, i) => (
+          <i key={i} className={v ? 'on' : ''} style={{ height: `${v ? Math.max(12, (v / max) * 100) : 3}%`, animationDelay: `${300 + i * 40}ms` }} />
+        ))}
+      </div>
+      <div className="hist-l">
+        <span>{start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+        <span>Last {days} days</span>
+        <span>{end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+      </div>
+    </>
+  );
+}
+
+function exportCsv(users: AdminUserRow[]) {
+  const header = ['Name', 'Email', 'Phone', 'Plan', 'Admin', 'Suspended', 'Joined'];
+  const rows = users.map((u) => [
+    u.name ?? '', u.email ?? '', u.phone ?? '', u.plan, u.isAdmin ? 'yes' : 'no', u.bannedAt ? 'yes' : 'no', u.createdAt,
+  ]);
+  const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'thinkdecor-accounts.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }

@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed';
@@ -95,4 +96,16 @@ export function downloadCsv(rows: Lead[], filename = 'thinkdecor-leads.csv') {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Sidebar nav badge (total + unread) — cached under the same query key the Leads page could reuse. */
+export function useLeadsSummary() {
+  return useQuery({
+    queryKey: ['admin-leads-summary'],
+    queryFn: async () => {
+      const rows = await listLeads();
+      return { total: rows.length, unread: rows.filter((l) => l.status === 'new').length };
+    },
+    staleTime: 30_000,
+  });
 }

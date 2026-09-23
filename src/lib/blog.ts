@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -159,4 +160,16 @@ export function renderMarkdown(md: string) {
   }
   closeBlocks();
   return out.join('\n');
+}
+
+/** Sidebar nav badge (total article count). */
+export function useBlogSummary() {
+  return useQuery({
+    queryKey: ['admin-blog-summary'],
+    queryFn: async () => {
+      const rows = await listAll();
+      return { total: rows.length };
+    },
+    staleTime: 30_000,
+  });
 }

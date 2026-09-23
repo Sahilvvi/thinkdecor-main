@@ -173,13 +173,16 @@ Deno.serve(async (req) => {
   // same principle as generate-redesign spending a credit before calling
   // the model (there it refunds on failure; here there's nothing to refund,
   // this is a single anonymous try, not a paid balance).
-  const { error: usageError } = await admin
-    .from("homepage_demo_usage")
-    .insert({ device_id: deviceId, ip: ip ?? "0.0.0.0" });
+  // upsert (not insert) while testing: the same device retrying repeatedly
+  // would otherwise still hit this table's primary key and get blocked here
+  // even with the checks above skipped.
+  const { error: usageError } = limitDisabled
+    ? await admin.from("homepage_demo_usage").upsert({ device_id: deviceId, ip: ip ?? "0.0.0.0" })
+    : await admin.from("homepage_demo_usage").insert({ device_id: deviceId, ip: ip ?? "0.0.0.0" });
   if (usageError) {
     // A duplicate-key race (two tabs at once) reads as "already used," anything
     // else is a real failure.
-    if (usageError.code === "23505") return demoUsed();
+    if (!limitDisabled && usageError.code === "23505") return demoUsed();
     console.error("demo-redesign: usage insert failed:", usageError);
     return json({ error: "Something went wrong. Please try again.", code: "usage_failed" }, 500);
   }

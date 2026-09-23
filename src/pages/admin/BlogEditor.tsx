@@ -222,14 +222,14 @@ export default function BlogEditor() {
             />
 
             <div className="tools">
-              <button type="button" className="ico-btn" title="Heading" onClick={() => insert('## ', '', 'Heading')}><Heading1 width={16} height={16} /></button>
-              <button type="button" className="ico-btn" title="Bold" onClick={() => insert('**', '**', 'bold text')}><Bold width={16} height={16} /></button>
-              <button type="button" className="ico-btn" title="Italic" onClick={() => insert('*', '*', 'italic text')}><Italic width={16} height={16} /></button>
-              <button type="button" className="ico-btn" title="Link" onClick={() => insert('[', '](https://)', 'link text')}><Link2 width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="Heading" aria-label="Heading" onClick={() => insert('## ', '', 'Heading')}><Heading1 width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="Bold" aria-label="Bold" onClick={() => insert('**', '**', 'bold text')}><Bold width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="Italic" aria-label="Italic" onClick={() => insert('*', '*', 'italic text')}><Italic width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="Link" aria-label="Link" onClick={() => insert('[', '](https://)', 'link text')}><Link2 width={16} height={16} /></button>
               <span className="vr" />
-              <button type="button" className="ico-btn" title="Quote" onClick={() => insert('\n> ', '', 'A pull quote')}><Quote width={16} height={16} /></button>
-              <button type="button" className="ico-btn" title="List" onClick={() => insert('\n- ', '', 'List item')}><List width={16} height={16} /></button>
-              <button type="button" className="ico-btn" title="Code" onClick={() => insert('`', '`', 'code')}><Code2 width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="Quote" aria-label="Quote" onClick={() => insert('\n> ', '', 'A pull quote')}><Quote width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="List" aria-label="List" onClick={() => insert('\n- ', '', 'List item')}><List width={16} height={16} /></button>
+              <button type="button" className="ico-btn" title="Code" aria-label="Code" onClick={() => insert('`', '`', 'code')}><Code2 width={16} height={16} /></button>
               <span className="vr" />
               <button
                 type="button"

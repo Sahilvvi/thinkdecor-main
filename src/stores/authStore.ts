@@ -51,8 +51,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       });
 
-      // Then get the current session
-      const { data: { session } } = await supabase.auth.getSession();
+      // Then get the current session. A transient failure here (a token refresh
+      // hiccup, a throttled background tab, a brief network drop) must not read as
+      // "signed out" - that bounced signed-in people off protected pages - so retry
+      // before giving up.
+      let session: Session | null = null;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const res = await supabase.auth.getSession();
+          if (res.error) throw res.error;
+          session = res.data.session;
+          break;
+        } catch (err) {
+          if (attempt >= 2) throw err;
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        }
+      }
       set({
         session,
         user: session?.user ?? null,
@@ -61,6 +75,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (error) {
       console.error("Auth initialization error:", error);
+      // Keep whatever the auth listener has already established rather than
+      // forcing a signed-out state.
       set({ loading: false, initialized: true });
     }
   },

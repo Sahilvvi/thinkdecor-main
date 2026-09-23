@@ -144,22 +144,29 @@ Deno.serve(async (req) => {
   const demoUsed = () =>
     json({ error: "You've already tried your free redesign — sign up for more.", code: "demo_used" }, 402);
 
-  const { data: existing } = await admin
-    .from("homepage_demo_usage")
-    .select("device_id")
-    .eq("device_id", deviceId)
-    .maybeSingle();
-  if (existing) return demoUsed();
+  // TEMPORARY — set while the team is testing the demo, so a device/IP never
+  // gets blocked. Unset (`supabase secrets unset DEMO_LIMIT_DISABLED`) to
+  // restore the real one-per-device limit before this goes out to visitors.
+  const limitDisabled = Deno.env.get("DEMO_LIMIT_DISABLED") === "true";
 
-  // No IP header means no backstop — never lump every such visitor together.
-  if (ip) {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await admin
+  if (!limitDisabled) {
+    const { data: existing } = await admin
       .from("homepage_demo_usage")
-      .select("device_id", { count: "exact", head: true })
-      .eq("ip", ip)
-      .gt("used_at", since);
-    if ((count ?? 0) >= IP_DAILY_LIMIT) return demoUsed();
+      .select("device_id")
+      .eq("device_id", deviceId)
+      .maybeSingle();
+    if (existing) return demoUsed();
+
+    // No IP header means no backstop — never lump every such visitor together.
+    if (ip) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await admin
+        .from("homepage_demo_usage")
+        .select("device_id", { count: "exact", head: true })
+        .eq("ip", ip)
+        .gt("used_at", since);
+      if ((count ?? 0) >= IP_DAILY_LIMIT) return demoUsed();
+    }
   }
 
   // Insert first — a slow/failed generation still spends the one free try,

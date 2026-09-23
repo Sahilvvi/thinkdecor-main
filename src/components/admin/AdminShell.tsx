@@ -95,6 +95,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         searchRef.current?.focus();
+        setSearchOpen(true);
       }
     };
     const onDown = (e: MouseEvent) => {

@@ -66,73 +66,51 @@ export function useInviteAdmin() {
 /* Overview analytics — visitors, signups, generations, revenue         */
 /* ------------------------------------------------------------------ */
 
+export type OverviewRange = '7d' | '30d' | 'all';
+
 export interface OverviewStats {
-  visitors7d: number;
-  pageViews7d: number;
+  /** Unique visitors / page views / signups / designs inside the chosen range. */
+  visitors: number;
+  pageViews: number;
+  signups: number;
+  generations: number;
   signupsTotal: number;
-  signups7d: number;
   generationsTotal: number;
   generationsByKind: { kind: string; count: number }[];
   revenuePenceTotal: number;
   activeSubscriptions: number;
   openTickets: number;
+  /** One entry per day - the last 7 days, or the last 30 for the 30-day and all-time views. */
   dailyViews: { day: string; count: number }[];
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const dayKey = (iso: string) => iso.slice(0, 10);
-
-export function useOverviewStats() {
+/**
+ * Counted in the database (admin_overview_stats). This used to download every
+ * row and count in the browser, which PostgREST silently caps at 1,000 - so
+ * page views read 1000 when the real number was 1030.
+ */
+export function useOverviewStats(range: OverviewRange = '7d') {
   return useQuery({
-    queryKey: ['admin-overview'],
+    queryKey: ['admin-overview', range],
+    refetchInterval: 60_000,
     queryFn: async (): Promise<OverviewStats> => {
-      const since7d = new Date(Date.now() - 7 * DAY_MS).toISOString();
-
-      const [views, profiles, generations, payments, subs, tickets] = await Promise.all([
-        db.from('page_views').select('session_id, created_at').gte('created_at', since7d),
-        db.from('profiles').select('created_at'),
-        db.from('generations').select('kind, created_at'),
-        db.from('payments').select('amount_total').eq('status', 'paid'),
-        db.from('subscriptions').select('status').eq('status', 'active'),
-        db.from('support_tickets').select('status').eq('status', 'open'),
-      ]);
-
-      const viewRows = (views.data ?? []) as { session_id: string | null; created_at: string }[];
-      const profileRows = (profiles.data ?? []) as { created_at: string }[];
-      const genRows = (generations.data ?? []) as { kind: string | null; created_at: string }[];
-      const paymentRows = (payments.data ?? []) as { amount_total: number | null }[];
-
-      const uniqueSessions = new Set(viewRows.map((v) => v.session_id ?? '')).size;
-      const signups7d = profileRows.filter((p) => p.created_at >= since7d).length;
-
-      const kindCounts = new Map<string, number>();
-      genRows.forEach((g) => {
-        const kind = g.kind ?? 'redesign';
-        kindCounts.set(kind, (kindCounts.get(kind) ?? 0) + 1);
-      });
-
-      const dailyMap = new Map<string, number>();
-      viewRows.forEach((v) => {
-        const day = dayKey(v.created_at);
-        dailyMap.set(day, (dailyMap.get(day) ?? 0) + 1);
-      });
-      const dailyViews = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(Date.now() - (6 - i) * DAY_MS);
-        const key = d.toISOString().slice(0, 10);
-        return { day: key, count: dailyMap.get(key) ?? 0 };
-      });
-
+      const days = range === '7d' ? 7 : range === '30d' ? 30 : null;
+      const { data, error } = await db.rpc('admin_overview_stats', { p_days: days });
+      if (error) throw error;
+      const r = data as Record<string, unknown>;
+      const num = (v: unknown) => Number(v ?? 0);
       return {
-        visitors7d: uniqueSessions,
-        pageViews7d: viewRows.length,
-        signupsTotal: profileRows.length,
-        signups7d,
-        generationsTotal: genRows.length,
-        generationsByKind: Array.from(kindCounts, ([kind, count]) => ({ kind, count })),
-        revenuePenceTotal: paymentRows.reduce((sum, p) => sum + (p.amount_total ?? 0), 0),
-        activeSubscriptions: subs.data?.length ?? 0,
-        openTickets: tickets.data?.length ?? 0,
-        dailyViews,
+        visitors: num(r.visitors),
+        pageViews: num(r.pageViews),
+        signups: num(r.signups),
+        generations: num(r.generations),
+        signupsTotal: num(r.signupsTotal),
+        generationsTotal: num(r.generationsTotal),
+        generationsByKind: ((r.generationsByKind as { kind: string; count: number }[]) ?? []).map((k) => ({ kind: k.kind, count: num(k.count) })),
+        revenuePenceTotal: num(r.revenuePence),
+        activeSubscriptions: num(r.activeSubscriptions),
+        openTickets: num(r.openTickets),
+        dailyViews: ((r.dailyViews as { day: string; count: number }[]) ?? []).map((d) => ({ day: d.day, count: num(d.count) })),
       };
     },
   });

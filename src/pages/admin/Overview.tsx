@@ -7,7 +7,7 @@ import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Seg } from '@/components/admin/Seg';
 import { CountUp } from '@/components/admin/CountUp';
-import { useOverviewStats } from '@/lib/admin';
+import { useAdminUsers, useOverviewStats, type OverviewRange } from '@/lib/admin';
 import { useLeadsSummary } from '@/lib/leads';
 import { useBlogSummary } from '@/lib/blog';
 import { money } from '@/lib/billing';
@@ -23,18 +23,33 @@ const KIND_LABEL: Record<string, string> = {
 function dayLabel(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { weekday: 'short' });
 }
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+const RANGE_COPY: Record<OverviewRange, { title: [string, string]; window: string; chart: string; signups: string }> = {
+  '7d': { title: ['The week at a ', 'glance'], window: 'the last 7 days', chart: 'Last 7 days', signups: 'this week' },
+  '30d': { title: ['The month at a ', 'glance'], window: 'the last 30 days', chart: 'Last 30 days', signups: 'in 30 days' },
+  all: { title: ['Everything, at a ', 'glance'], window: 'all time', chart: 'Last 30 days', signups: 'all time' },
+};
 
 const TEMPLATE_SAMPLES = ['/assets/rooms/t-scandi.jpg', '/assets/rooms/t-classic.jpg', '/assets/rooms/t-japandi.jpg'];
 
 export default function Overview() {
-  const { data: stats, isLoading, error } = useOverviewStats();
+  const [range, setRange] = useState<OverviewRange>('7d');
+  const { data: stats, isLoading, isFetching, error, dataUpdatedAt } = useOverviewStats(range);
   const { data: leadsSummary } = useLeadsSummary();
   const { data: blogSummary } = useBlogSummary();
-  const [range, setRange] = useState<'7d' | '30d' | 'all'>('7d');
+  const { data: accounts } = useAdminUsers();
+  const copy = RANGE_COPY[range];
+  const latestSignups = (accounts ?? []).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
 
   const maxDaily = stats ? Math.max(1, ...stats.dailyViews.map((d) => d.count)) : 1;
   const totalViews = stats?.dailyViews.reduce((s, d) => s + d.count, 0) ?? 0;
   const peakDay = stats?.dailyViews.reduce((best, d) => (d.count > (best?.count ?? -1) ? d : best), stats.dailyViews[0]);
+  const peakShare = peakDay && totalViews ? Math.round((peakDay.count / totalViews) * 100) : 0;
+  const longSeries = (stats?.dailyViews.length ?? 0) > 7;
+  const axisLabel = (iso: string, i: number) => (longSeries ? (i % 5 === 0 ? shortDate(iso) : '') : dayLabel(iso));
   const genByKind = (stats?.generationsByKind ?? []).slice().sort((a, b) => b.count - a.count);
 
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -47,15 +62,17 @@ export default function Overview() {
         <div className="ph">
           <div className="r">
             <div className="kicker">{today}</div>
-            <h1>The week at a <em>glance</em></h1>
+            <h1>{copy.title[0]}<em>{copy.title[1]}</em></h1>
             <p className="sub">
-              Site traffic, signups and revenue for the last 7 days
+              Site traffic, signups and designs for {copy.window}
               <span className="sep" />
-              {isLoading ? 'Loading…' : 'Updated just now'}
+              {isLoading || isFetching
+                ? 'Refreshing…'
+                : `Updated ${new Date(dataUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
             </p>
           </div>
           <div className="actions r" style={{ ['--i' as string]: 1 }}>
-            <Seg<'7d' | '30d' | 'all'>
+            <Seg<OverviewRange>
               layoutId="overview-range"
               value={range}
               onChange={setRange}
@@ -77,8 +94,8 @@ export default function Overview() {
             <div className="kpis r" style={{ ['--i' as string]: 2 }}>
               <div className="kpi lead">
                 <div className="lab"><Eye width={15} height={15} /> Visitors</div>
-                <div className="v"><CountUp value={stats.visitors7d} /></div>
-                <div className="n"><b>{stats.pageViews7d}</b> page views</div>
+                <div className="v"><CountUp value={stats.visitors} /></div>
+                <div className="n"><b>{stats.pageViews}</b> page views</div>
                 <svg className="spark" width="96" height="40" viewBox="0 0 96 40" fill="none">
                   <path
                     className="l"
@@ -90,12 +107,12 @@ export default function Overview() {
               <div className="kpi">
                 <div className="lab"><Users width={15} height={15} /> Signups</div>
                 <div className="v"><CountUp value={stats.signupsTotal} /></div>
-                <div className="n"><b>+{stats.signups7d}</b> this week</div>
+                <div className="n"><b>+{stats.signups}</b> {copy.signups}</div>
               </div>
               <div className="kpi">
                 <div className="lab"><Sparkles width={15} height={15} /> Designs</div>
                 <div className="v"><CountUp value={stats.generationsTotal} /></div>
-                <div className="n">{stats.activeSubscriptions} active plans</div>
+                <div className="n"><b>{stats.generations}</b> {range === 'all' ? 'overall' : copy.signups} · {stats.activeSubscriptions} active plans</div>
               </div>
               <div className="kpi">
                 <div className="lab"><PoundSterling width={15} height={15} /> Revenue</div>
@@ -113,13 +130,12 @@ export default function Overview() {
               <div className="card r" style={{ ['--i' as string]: 3 }}>
                 <div className="card-h">
                   <h3>Page views</h3>
-                  <span className="tagp">Last 7 days</span>
-                  <a className="more" href="#views">Full report <ArrowRight width={13} height={13} /></a>
+                  <span className="tagp">{copy.chart}</span>
                 </div>
                 <div className="chart">
                   <div className="sum">
                     <b>{totalViews}</b>
-                    <span>views{peakDay?.count ? ` · almost all on ${dayLabel(peakDay.day)}` : ''}</span>
+                    <span>views{peakDay?.count ? ` · busiest ${longSeries ? shortDate(peakDay.day) : dayLabel(peakDay.day)} (${peakShare}%)` : ''}</span>
                   </div>
                   <div className="bars">
                     <div className="gl" style={{ bottom: '33%' }}><span>{Math.round(maxDaily * 0.33)}</span></div>
@@ -133,14 +149,14 @@ export default function Overview() {
                           className={`bar${isPeak ? ' hi' : d.count === 0 ? ' z' : ''}`}
                           style={{ ['--h' as string]: d.count === 0 ? '3px' : `${pct}%`, ['--d' as string]: i }}
                         >
-                          {isPeak && <span className="tip">{dayLabel(d.day)} · ~{d.count} views</span>}
+                          {isPeak && <span className="tip">{longSeries ? shortDate(d.day) : dayLabel(d.day)} · {d.count} views</span>}
                         </div>
                       );
                     })}
                   </div>
                   <div className="days">
-                    {stats.dailyViews.map((d) => (
-                      <span key={d.day} className={peakDay?.day === d.day ? 't' : ''}>{dayLabel(d.day)}</span>
+                    {stats.dailyViews.map((d, i) => (
+                      <span key={d.day} className={peakDay?.day === d.day ? 't' : ''}>{axisLabel(d.day, i)}</span>
                     ))}
                   </div>
                 </div>
@@ -194,14 +210,15 @@ export default function Overview() {
                 </div>
                 <div className="people">
                   {stats.signupsTotal === 0 && <p className="px-3 py-6 text-[13px]" style={{ color: 'var(--taupe)' }}>No signups yet.</p>}
-                  {/* Overview's own stats query doesn't carry per-user rows — Accounts is the source of truth for the list. */}
-                  <Link to="/admin/accounts" className="person">
-                    <div className="av s l">→</div>
-                    <div>
-                      <div className="nm">See the full list</div>
-                      <div className="em">Names, emails and admin roles</div>
-                    </div>
-                  </Link>
+                  {latestSignups.map((u) => (
+                    <Link key={u.id} to={`/admin/accounts?q=${encodeURIComponent(u.email ?? '')}`} className="person">
+                      <div className="av s l">{(u.name || u.email || '?').charAt(0).toUpperCase()}</div>
+                      <div>
+                        <div className="nm">{u.name || 'No name'}</div>
+                        <div className="em">{u.email} · {shortDate(u.createdAt)}</div>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
 

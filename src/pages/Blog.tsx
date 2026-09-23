@@ -80,7 +80,7 @@ export default function Blog() {
           {/* filter chips — sliding gradient pill, matching prototype .chips2 */}
           {!loading && !err && tags.length > 2 && (
             <Reveal delay={0.12}>
-              <div className="relative mt-[clamp(24px,3vw,40px)] inline-flex flex-wrap gap-0.5 rounded-full bg-[#EEF6F4] p-[5px] shadow-[inset_0_0_0_1px_hsl(168_20%_88%)]">
+              <div className="relative mt-[clamp(24px,3vw,40px)] inline-flex flex-wrap gap-0.5 rounded-[26px] bg-[#EEF6F4] p-[5px] shadow-[inset_0_0_0_1px_hsl(168_20%_88%)]">
                 {tags.map((t) => {
                   const active = filter === t;
                   return (

@@ -143,10 +143,11 @@ export function renderMarkdown(md: string) {
       out.push(`<figure class="${sizeClass.trim()}"><img src="${m[2]}" alt="${altText}" loading="lazy" /></figure>`);
       continue;
     }
-    if (/^>\s?/.test(l)) {
+    // The text was HTML-escaped up front, so a quote marker is `&gt;` here, not `>`.
+    if (/^&gt;\s?/.test(l)) {
       if (inList) { out.push('</ul>'); inList = false; }
       if (!inQuote) { out.push('<blockquote>'); inQuote = true; }
-      out.push(`<p>${inline(l.replace(/^>\s?/, ''))}</p>`);
+      out.push(`<p>${inline(l.replace(/^&gt;\s?/, ''))}</p>`);
       continue;
     }
     if (/^[-*]\s+/.test(l)) {

@@ -91,6 +91,9 @@ export default function Leads() {
     try {
       await setLeadNotes(open.id, noteDraft);
       setLeads((rows) => rows.map((r) => (r.id === open.id ? { ...r, notes: noteDraft } : r)));
+      // The open panel keeps its own copy of the lead; without this its idea of the
+      // saved note goes stale and Save stays disabled when you clear or revert a note.
+      setOpen((o) => (o && o.id === open.id ? { ...o, notes: noteDraft } : o));
       toast.success('Note saved');
     } catch (e) {
       toast.error((e as Error).message);

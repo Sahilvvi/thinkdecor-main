@@ -78,6 +78,13 @@ Deno.serve(async (req) => {
 
     const byEmail = await stripe.customers.list({ email: user.email, limit: 10 });
     for (const c of byEmail.data) customerIds.add(c.id);
+
+    // Checkout collects the payer's email fresh (it can differ from the account email), but every
+    // session carries this user's id in its metadata. Adopt the customers of recent sessions that do.
+    const recent = await stripe.checkout.sessions.list({ limit: 100 });
+    for (const s of recent.data) {
+      if (s.metadata?.user_id === user.id && typeof s.customer === "string") customerIds.add(s.customer);
+    }
     summary.customers = customerIds.size;
 
     for (const customerId of customerIds) {

@@ -24,6 +24,22 @@ function sessionId(): string {
   }
 }
 
+/** Where this visit came from, decided once per tab: the referring site (host only) or a ?utm_source. */
+function origin(): { referrer: string; utm: string | null } {
+  try {
+    const cached = sessionStorage.getItem('td_origin');
+    if (cached) return JSON.parse(cached);
+    let referrer = '';
+    try { referrer = document.referrer ? new URL(document.referrer).hostname : ''; } catch { /* keep empty */ }
+    const utm = new URLSearchParams(location.search).get('utm_source');
+    const value = { referrer, utm };
+    sessionStorage.setItem('td_origin', JSON.stringify(value));
+    return value;
+  } catch {
+    return { referrer: '', utm: null };
+  }
+}
+
 /** Mounted once, at the app root — logs a row on every route change. Fire-and-forget: a failed insert never affects the visit itself. */
 export function usePageViewTracking() {
   const location = useLocation();
@@ -32,9 +48,12 @@ export function usePageViewTracking() {
   if (!sid.current) sid.current = sessionId();
 
   useEffect(() => {
+    // The admin panels are not visitors.
+    if (location.pathname.startsWith('/super') || location.pathname.startsWith('/admin')) return;
+    const o = origin();
     supabase
       .from('page_views' as never)
-      .insert({ path: location.pathname, user_id: user?.id ?? null, session_id: sid.current } as never)
+      .insert({ path: location.pathname, user_id: user?.id ?? null, session_id: sid.current, referrer: o.referrer, utm_source: o.utm } as never)
       .then(() => {}, () => {});
   }, [location.pathname, user?.id]);
 }

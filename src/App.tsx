@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { usePageViewTracking } from "@/lib/analytics";
+import { MaintenanceBanner } from "@/components/shared/MaintenanceBanner";
 
 // Pages — single-page B2B landing + product demo + app
 import Home from "./pages/Home";
@@ -18,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Pricing from "./pages/Pricing";
 import AiRoomRedesign from "./pages/AiRoomRedesign";
+const SuperAdmin = lazy(() => import("./pages/super/SuperAdmin"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -102,6 +104,8 @@ function AppRoutes() {
   }, [location.pathname, location.hash]);
 
   return (
+    <>
+    <MaintenanceBanner />
     <AnimatePresence mode="wait">
       <Suspense fallback={<div className="min-h-screen bg-background" aria-hidden="true" />}>
       <Routes location={location} key={location.pathname}>
@@ -126,6 +130,7 @@ function AppRoutes() {
         <Route path="/blog/:slug" element={<PageTransition><BlogPostPage /></PageTransition>} />
 
         {/* Journal admin — admin role required; signed-out visitors go to the CMS login */}
+        <Route path="/super" element={<SuperAdmin />} />
         <Route path="/admin" element={<AdminAuth />} />
         <Route path="/admin/overview" element={<AdminRoute><AdminOverview /></AdminRoute>} />
         <Route path="/admin/blog" element={<AdminRoute><BlogAdmin /></AdminRoute>} />
@@ -160,6 +165,7 @@ function AppRoutes() {
       </Routes>
       </Suspense>
     </AnimatePresence>
+    </>
   );
 }
 

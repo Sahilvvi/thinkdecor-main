@@ -19,6 +19,7 @@
 // Self-contained (no ../_shared import), same convention as generate-redesign.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { generationBlock, imageModels, loadSettings, logAttempt } from "../_shared/platform.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,9 +86,10 @@ function pickFallbackStyle(): string {
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+interface Usage { input: number; output: number }
 type GeminiImageResult =
-  | { ok: true; b64: string; mimeType: string }
-  | { ok: false; hardError?: string; refusalReason?: string };
+  | { ok: true; b64: string; mimeType: string; usage?: Usage }
+  | { ok: false; hardError?: string; refusalReason?: string; textPart?: string; usage?: Usage };
 
 async function callGeminiImage(model: string, fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
   const controller = new AbortController();
@@ -111,19 +113,23 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
       },
     );
     const aiResult = await aiResponse.json();
+    const um = aiResult?.usageMetadata;
+    const usage: Usage | undefined = um
+      ? { input: Number(um.promptTokenCount ?? 0), output: Number(um.candidatesTokenCount ?? 0) + Number(um.thoughtsTokenCount ?? 0) }
+      : undefined;
     if (!aiResponse.ok) {
-      return { ok: false, hardError: aiResult?.error?.message ?? `Image model returned ${aiResponse.status}` };
+      return { ok: false, hardError: aiResult?.error?.message ?? `Image model returned ${aiResponse.status}`, usage };
     }
     const candidate = aiResult?.candidates?.[0];
     const parts: { inlineData?: { data?: string; mimeType?: string } }[] = candidate?.content?.parts ?? [];
     const imagePart = parts.find((p) => p.inlineData?.data);
     const b64 = imagePart?.inlineData?.data;
     if (typeof b64 === "string") {
-      return { ok: true, b64, mimeType: imagePart?.inlineData?.mimeType || "image/png" };
+      return { ok: true, b64, mimeType: imagePart?.inlineData?.mimeType || "image/png", usage };
     }
     const refusalReason = aiResult?.promptFeedback?.blockReason || candidate?.finishReason;
     console.error("demo-redesign: no image in response", { model, refusalReason });
-    return { ok: false, refusalReason };
+    return { ok: false, refusalReason, usage };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       return { ok: false, hardError: "Image model timed out" };
@@ -140,9 +146,17 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
  * interior photos); a hard error - retired model, overload, timeout - moves
  * straight to the next model.
  */
-async function generateImage(fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+interface AttemptRecord { model: string; ms: number; ok: boolean; usage?: Usage; error?: string; fallbackUsed: boolean }
+
+async function generateImage(
+  fullPrompt: string,
+  inputB64: string,
+  inputMimeType: string,
+  models: string[],
+  onAttempt: (a: AttemptRecord) => void,
+): Promise<GeminiImageResult> {
   let last: GeminiImageResult = { ok: false, hardError: "No image model available" };
-  for (const model of IMAGE_MODELS) {
+  for (const model of models) {
     const started = Date.now();
     let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType);
     if (!attempt.ok && attempt.refusalReason) {
@@ -154,6 +168,14 @@ async function generateImage(fullPrompt: string, inputB64: string, inputMimeType
         inputMimeType,
       );
     }
+    onAttempt({
+      model,
+      ms: Date.now() - started,
+      ok: attempt.ok,
+      usage: attempt.usage,
+      error: attempt.ok ? undefined : (attempt.hardError ?? attempt.refusalReason ?? attempt.textPart ?? "no image"),
+      fallbackUsed: model !== models[0],
+    });
     if (attempt.ok) {
       console.log("demo-redesign: image ready", { model, ms: Date.now() - started });
       return attempt;
@@ -287,6 +309,11 @@ Deno.serve(async (req) => {
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  // Switches and limits set in the super admin panel.
+  const settings = await loadSettings(admin);
+  const blocked = await generationBlock(admin, settings, "demo");
+  if (blocked) return json({ error: blocked.message, code: blocked.code }, blocked.status);
+  const models = imageModels(settings, Deno.env.get("GEMINI_IMAGE_MODEL"));
   const demoUsed = () =>
     json({ error: "You've already tried your free redesign — sign up for more.", code: "demo_used" }, 402);
 
@@ -311,7 +338,7 @@ Deno.serve(async (req) => {
         .select("device_id", { count: "exact", head: true })
         .eq("ip", ip)
         .gt("used_at", since);
-      if ((count ?? 0) >= IP_DAILY_LIMIT) return demoUsed();
+      if ((count ?? 0) >= Math.max(1, settings.demo.per_ip || IP_DAILY_LIMIT)) return demoUsed();
     }
   }
 
@@ -333,6 +360,23 @@ Deno.serve(async (req) => {
     return json({ error: "Something went wrong. Please try again.", code: "usage_failed" }, 500);
   }
 
+  const attempts: AttemptRecord[] = [];
+  const flush = async () => {
+    for (const a of attempts) {
+      await logAttempt(admin, settings, {
+        deviceId,
+        feature: "demo",
+        model: a.model,
+        ok: a.ok,
+        latencyMs: a.ms,
+        inputTokens: a.usage?.input,
+        outputTokens: a.usage?.output,
+        error: a.error,
+        fallbackUsed: a.fallbackUsed,
+      });
+    }
+  };
+
   try {
     // Tidy whatever the visitor typed (typos, other languages, vague wishes) before
     // the model sees it. Never blocks - falls back to their own words.
@@ -346,7 +390,8 @@ Deno.serve(async (req) => {
       "different, real decorating choice, not a lightly retouched version of the original photo.",
     ].join(" ");
 
-    const attempt = await generateImage(fullPrompt, imageBase64, mimeType);
+    const attempt = await generateImage(fullPrompt, imageBase64, mimeType, models, (a) => attempts.push(a));
+    await flush();
     if (!attempt.ok) {
       throw new Error(attempt.hardError ?? "Image model returned no image");
     }
@@ -354,6 +399,10 @@ Deno.serve(async (req) => {
     return json({ imageBase64: attempt.b64, mimeType: attempt.mimeType });
   } catch (err) {
     console.error("demo-redesign failed:", err);
+    await flush();
+    if (attempts.length === 0) {
+      await logAttempt(admin, settings, { deviceId, feature: "demo", model: null, ok: false, latencyMs: 0, error: err instanceof Error ? err.message : "failed" });
+    }
     // Give the free try back — "please try again" below has to be true.
     const { error: releaseError } = await admin.from("homepage_demo_usage").delete().eq("device_id", deviceId);
     if (releaseError) console.error("demo-redesign: couldn't release the free try", releaseError);

@@ -26,6 +26,7 @@
 // If 3 or 4 fails, the credit is refunded.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { generationBlock, imageModels, loadSettings, logAttempt, type PlatformSettings } from "../_shared/platform.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,9 +79,10 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const GEMINI_TIMEOUT_MS = 40_000;
 const BEAUTIFY_TIMEOUT_MS = 4_000;
 
+interface Usage { input: number; output: number }
 type GeminiImageResult =
-  | { ok: true; b64: string; mimeType: string }
-  | { ok: false; hardError?: string; refusalReason?: string; textPart?: string };
+  | { ok: true; b64: string; mimeType: string; usage?: Usage }
+  | { ok: false; hardError?: string; refusalReason?: string; textPart?: string; usage?: Usage };
 
 /**
  * One call to the image model. Refusals show up two different ways in
@@ -113,8 +115,12 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
       },
     );
     const aiResult = await aiResponse.json();
+    const um = aiResult?.usageMetadata;
+    const usage: Usage | undefined = um
+      ? { input: Number(um.promptTokenCount ?? 0), output: Number(um.candidatesTokenCount ?? 0) + Number(um.thoughtsTokenCount ?? 0) }
+      : undefined;
     if (!aiResponse.ok) {
-      return { ok: false, hardError: aiResult?.error?.message ?? `Image model returned ${aiResponse.status}` };
+      return { ok: false, hardError: aiResult?.error?.message ?? `Image model returned ${aiResponse.status}`, usage };
     }
     const candidate = aiResult?.candidates?.[0];
     const parts: { inlineData?: { data?: string; mimeType?: string }; text?: string }[] =
@@ -122,7 +128,7 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
     const imagePart = parts.find((p) => p.inlineData?.data);
     const b64 = imagePart?.inlineData?.data;
     if (typeof b64 === "string") {
-      return { ok: true, b64, mimeType: imagePart?.inlineData?.mimeType || "image/png" };
+      return { ok: true, b64, mimeType: imagePart?.inlineData?.mimeType || "image/png", usage };
     }
     const blockReason = aiResult?.promptFeedback?.blockReason;
     const finishReason = candidate?.finishReason;
@@ -134,7 +140,7 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
       safetyRatings: candidate?.safetyRatings ?? aiResult?.promptFeedback?.safetyRatings,
       textPart,
     });
-    return { ok: false, refusalReason: blockReason || finishReason, textPart };
+    return { ok: false, refusalReason: blockReason || finishReason, textPart, usage };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       return { ok: false, hardError: "Image model timed out" };
@@ -151,9 +157,17 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
  * interior photos); a hard error - retired model, overload, timeout - moves
  * straight to the next model.
  */
-async function generateImage(fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+interface AttemptRecord { model: string; ms: number; ok: boolean; usage?: Usage; error?: string; fallbackUsed: boolean }
+
+async function generateImage(
+  fullPrompt: string,
+  inputB64: string,
+  inputMimeType: string,
+  models: string[],
+  onAttempt: (a: AttemptRecord) => void,
+): Promise<GeminiImageResult> {
   let last: GeminiImageResult = { ok: false, hardError: "No image model available" };
-  for (const model of IMAGE_MODELS) {
+  for (const model of models) {
     const started = Date.now();
     let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType);
     if (!attempt.ok && attempt.refusalReason) {
@@ -165,6 +179,14 @@ async function generateImage(fullPrompt: string, inputB64: string, inputMimeType
         inputMimeType,
       );
     }
+    onAttempt({
+      model,
+      ms: Date.now() - started,
+      ok: attempt.ok,
+      usage: attempt.usage,
+      error: attempt.ok ? undefined : (attempt.hardError ?? attempt.refusalReason ?? attempt.textPart ?? "no image"),
+      fallbackUsed: model !== models[0],
+    });
     if (attempt.ok) {
       console.log("generate-redesign: image ready", { model, ms: Date.now() - started });
       return attempt;
@@ -198,6 +220,7 @@ const THINKING_VARIANTS: Record<string, unknown>[] = [
 async function beautifyPrompt(
   raw: string | undefined,
   ctx: { kind: "redesign" | "replace"; roomLabel?: string; style?: string; detectedLabel?: string },
+  lead?: string,
 ): Promise<string> {
   const base = tidyPrompt(raw);
   if (!base || !GEMINI_API_KEY) return base;
@@ -210,7 +233,7 @@ async function beautifyPrompt(
       (ctx.style ? ` being restyled as: ${ctx.style}` : "") +
       ". Rewrite it as one or two clear imperative sentences using concrete visual terms - materials, colours, finishes, lighting, furniture.";
   const system =
-    "You turn a homeowner's rough note into a precise instruction for an interior-design image editor. " +
+    (lead?.trim() ? lead.trim() + " " : "You turn a homeowner's rough note into a precise instruction for an interior-design image editor. ") +
     brief +
     " Fix spelling and grammar, translate to English, and make vague wishes specific - but keep only what they asked for: " +
     "never add extra changes, brands, people, text or logos, and never contradict them. Under 40 words. " +
@@ -322,6 +345,17 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request.", code: "bad_request" }, 400);
   }
 
+  // Switches and limits set in the super admin panel (kill switch, generation flag, daily spend cap).
+  const settings: PlatformSettings = await loadSettings(admin);
+  const { count: activePlans } = await admin
+    .from("subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .in("status", ["active", "trialing"]);
+  const blocked = await generationBlock(admin, settings, (activePlans ?? 0) > 0 ? "paid" : "free");
+  if (blocked) return json({ error: blocked.message, code: blocked.code }, blocked.status);
+  const models = imageModels(settings, Deno.env.get("GEMINI_IMAGE_MODEL"));
+
   const { inputPath, maskedPath, templateKey, roomType, roomLabel, stylePrompt, prompt, detectedLabel, mode: rawMode } = body as {
     inputPath?: string;
     /** Cleanup/Replace: the red-marked copy the model edits. inputPath stays the clean "before". */
@@ -362,7 +396,7 @@ Deno.serve(async (req) => {
   const styleName = stylePrompt?.split(/[.;]/)[0]?.trim();
   const beautifiedPromise: Promise<string> = mode === "cleanup"
     ? Promise.resolve("")
-    : beautifyPrompt(prompt, { kind: mode, roomLabel, style: styleName, detectedLabel });
+    : beautifyPrompt(prompt, { kind: mode, roomLabel, style: styleName, detectedLabel }, settings.ai.beautifier);
   const [{ error: spendError }, beautified] = await Promise.all([asUser.rpc("spend_credit"), beautifiedPromise]);
   if (spendError) {
     if (/no credits remaining/i.test(spendError.message)) {
@@ -377,6 +411,24 @@ Deno.serve(async (req) => {
     console.error("spend_credit failed:", spendError);
     return json({ error: "Couldn't reserve a credit. Please try again.", code: "spend_failed" }, 500);
   }
+
+  const attempts: AttemptRecord[] = [];
+  const flushAttempts = async (generationId?: string) => {
+    for (const a of attempts) {
+      await logAttempt(admin, settings, {
+        userId: user.id,
+        feature: mode,
+        model: a.model,
+        ok: a.ok,
+        latencyMs: a.ms,
+        inputTokens: a.usage?.input,
+        outputTokens: a.usage?.output,
+        error: a.error,
+        generationId: a.ok ? generationId : undefined,
+        fallbackUsed: a.fallbackUsed,
+      });
+    }
+  };
 
   try {
     // ---- 3. generate ------------------------------------------------------
@@ -396,7 +448,7 @@ Deno.serve(async (req) => {
     const inputMimeType = sourceBlob.type || "image/png";
     const inputB64 = toBase64(new Uint8Array(await sourceBlob.arrayBuffer()));
 
-    const attempt = await generateImage(fullPrompt, inputB64, inputMimeType);
+    const attempt = await generateImage(fullPrompt, inputB64, inputMimeType, models, (a) => attempts.push(a));
     if (!attempt.ok) {
       throw new Error(
         attempt.hardError ??
@@ -435,6 +487,7 @@ Deno.serve(async (req) => {
       .select()
       .single();
     if (insertError) throw insertError;
+    await flushAttempts(generation?.id);
 
     // The red-marked copy was only an instruction for the model. Best effort.
     if (modelPath !== inputPath) {
@@ -445,6 +498,10 @@ Deno.serve(async (req) => {
     return json({ generation });
   } catch (err) {
     console.error("generate-redesign failed:", err);
+    await flushAttempts();
+    if (attempts.length === 0) {
+      await logAttempt(admin, settings, { userId: user.id, feature: mode, model: null, ok: false, latencyMs: 0, error: err instanceof Error ? err.message : "failed" });
+    }
     const { error: refundError } = await admin
       .from("credit_ledger")
       .insert({ user_id: user.id, delta: 1, reason: "refund" });

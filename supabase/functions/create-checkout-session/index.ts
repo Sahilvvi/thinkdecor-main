@@ -11,6 +11,7 @@
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolvePrice, corsHeaders } from "../_shared/catalog.ts";
+import { loadSettings } from "../_shared/platform.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   apiVersion: "2024-06-20",
@@ -33,6 +34,15 @@ Deno.serve(async (req) => {
   try {
     if (!Deno.env.get("STRIPE_SECRET_KEY")) {
       return json({ error: "Billing is not configured yet." }, 503);
+    }
+
+    // The super admin panel can switch checkout off (payment provider incident, price migration).
+    const platform = await loadSettings(createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    ));
+    if (!platform.flags.checkout) {
+      return json({ error: "Checkout is temporarily unavailable. Please try again shortly.", code: "checkout_off" }, 503);
     }
 
     const { productKey, interval, promoCode } = await req.json();

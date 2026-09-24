@@ -3,6 +3,7 @@ Allow: /
 
 # Private areas — no reason for these to be indexed
 Disallow: /admin
+Disallow: /super
 Disallow: /admin/
 Disallow: /app
 Disallow: /app/

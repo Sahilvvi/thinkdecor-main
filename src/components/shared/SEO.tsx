@@ -23,7 +23,7 @@ interface SEOProps {
 // Pages that should never appear in search: the signed-in app, the admin panel and
 // the account/checkout utility screens. (robots.txt already blocks /app and /admin;
 // noindex covers the ones crawlers are allowed to fetch.)
-const NOINDEX_PATH = /^\/(app|admin|login|signup|forgot-password|reset-password|checkout|demo)(\/|$)/;
+const NOINDEX_PATH = /^\/(app|admin|super|login|signup|forgot-password|reset-password|checkout|demo)(\/|$)/;
 
 function absolute(url: string): string {
   if (/^https?:\/\//i.test(url)) return url;

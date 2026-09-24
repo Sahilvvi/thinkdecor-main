@@ -23,6 +23,7 @@ const benefits = [
   'Every design saved to your library',
 ];
 
+import { useSiteFlags } from '@/lib/siteFlags';
 export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -88,6 +89,19 @@ export default function Signup() {
     }
     // On success Supabase redirects the browser away — nothing left to reset.
   };
+
+  const siteFlags = useSiteFlags();
+  if (siteFlags && siteFlags.flags.signups === false) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center">
+        <div className="max-w-md">
+          <h1 className="font-display text-3xl text-foreground">Signups are paused</h1>
+          <p className="mt-3 text-muted-foreground">We are not taking new accounts for a short while. Existing customers can still sign in.</p>
+          <a href="/login" className="mt-6 inline-block rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">Sign in</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">

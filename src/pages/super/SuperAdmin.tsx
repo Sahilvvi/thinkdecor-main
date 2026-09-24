@@ -14,6 +14,12 @@ import { mountSuper } from '@/super/boot';
 
 type Phase = 'login' | 'loading' | 'ready' | 'denied' | 'mfa' | 'error';
 
+// Marks that credentials were submitted, and verified, right here on /super this browser session.
+// sessionStorage (not localStorage) so it clears when the tab/browser closes, but survives a plain
+// reload of the same tab — a refresh right after signing in shouldn't force retyping the password.
+// Being signed in elsewhere on the site never sets this, so that case still always hits the login form.
+const SESSION_KEY = 'sa_session_authed';
+
 /** The super admin panel (/super). Always starts at a dedicated sign-in form — visiting the URL
  *  while already signed in elsewhere (e.g. the customer app) does not open the panel by itself;
  *  it opens only after credentials are submitted right here and the account checks out. The whole
@@ -21,14 +27,15 @@ type Phase = 'login' | 'loading' | 'ready' | 'denied' | 'mfa' | 'error';
 export default function SuperAdmin() {
   const { signIn } = useAuthStore();
   const host = useRef<HTMLDivElement>(null);
-  const [phase, setPhase] = useState<Phase>('login');
+  const alreadyAuthed = sessionStorage.getItem(SESSION_KEY) === '1';
+  const [phase, setPhase] = useState<Phase>(alreadyAuthed ? 'loading' : 'login');
   const [message, setMessage] = useState('');
   // Bumped exactly when a load attempt should (re)start — sign-in success, or "Try again". Kept
   // separate from `phase` on purpose: this same effect calls setPhase('ready') on success, and if
   // `phase` were a dependency, that change would re-trigger the effect, run its OWN cleanup first
   // (tearing the just-mounted panel back down via mountSuper's unmount), then immediately bail out
   // on the `phase !== 'loading'` guard — mounting the panel for an instant and then wiping it.
-  const [loadSeq, setLoadSeq] = useState(0);
+  const [loadSeq, setLoadSeq] = useState(alreadyAuthed ? 1 : 0);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,6 +53,7 @@ export default function SuperAdmin() {
       toast.error(/invalid/i.test(error.message) ? 'Wrong email or password' : error.message);
       return;
     }
+    sessionStorage.setItem(SESSION_KEY, '1');
     setPhase('loading');
     setLoadSeq((n) => n + 1);
   };
@@ -122,7 +130,7 @@ export default function SuperAdmin() {
       <SEO title="Super admin | ThinkDecor" description="ThinkDecor super admin." noindex />
       <div ref={host} style={{ display: phase === 'ready' ? 'block' : 'none' }} />
       {phase === 'loading' && <Shell><p>Loading live data…</p></Shell>}
-      {phase === 'denied' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>No access</h1><p>{message || 'This account does not have admin access.'}</p><button onClick={() => setPhase('login')} style={btn}>Back to sign in</button></Shell>}
+      {phase === 'denied' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>No access</h1><p>{message || 'This account does not have admin access.'}</p><button onClick={() => { sessionStorage.removeItem(SESSION_KEY); setPhase('login'); }} style={btn}>Back to sign in</button></Shell>}
       {phase === 'error' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>Couldn’t load the panel</h1><p>{message}</p><button onClick={() => { setPhase('loading'); setLoadSeq((n) => n + 1); }} style={btn}>Try again</button></Shell>}
       {phase === 'mfa' && <MfaGate onDone={() => { setPhase('loading'); setLoadSeq((n) => n + 1); }} />}
     </>

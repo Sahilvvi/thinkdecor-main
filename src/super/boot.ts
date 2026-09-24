@@ -154,7 +154,7 @@ function lock() {
   };
   $('#pw-go').onclick = go2;
   $('#pw').onkeydown = (e: any) => { if (e.key === 'Enter') go2(); };
-  $('#pw-out').onclick = async () => { await supabase.auth.signOut(); location.href = '/admin'; };
+  $('#pw-out').onclick = async () => { sessionStorage.removeItem('sa_session_authed'); await supabase.auth.signOut(); location.href = '/admin'; };
 }
 
 /* ---- boot ---- */

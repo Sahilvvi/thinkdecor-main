@@ -89,7 +89,7 @@ export default function Privacy() {
       <SEO
         title="Privacy Policy | ThinkDecor"
         description="How ThinkDecor collects, uses and protects your data, including the room photos you upload."
-        canonical="https://thinkdecor.app/privacy"
+        canonical="https://www.thinkdecor.app/privacy"
       />
       <Navbar />
       <main className="pt-24">

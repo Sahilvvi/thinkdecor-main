@@ -136,7 +136,7 @@ export default function Contact() {
       <SEO
         title="Contact ThinkDecor | AI Room Design App, UK"
         description="Questions, partnerships or early access? Email the ThinkDecor team in Northampton. We reply within a day."
-        canonical="https://thinkdecor.app/contact"
+        canonical="https://www.thinkdecor.app/contact"
       />
       <Navbar />
 

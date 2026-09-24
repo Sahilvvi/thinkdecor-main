@@ -4,7 +4,7 @@
  * array in a single @graph automatically.
  */
 
-const SITE_URL = 'https://thinkdecor.app';
+const SITE_URL = 'https://www.thinkdecor.app';
 
 export function organizationSchema() {
   return {

@@ -62,7 +62,7 @@ export default function Refunds() {
       <SEO
         title="Refund Policy | ThinkDecor"
         description="How cancellations and refunds work at ThinkDecor — 14-day refund on your first payment, pro rata refunds on unused credit packs."
-        canonical="https://thinkdecor.app/refunds"
+        canonical="https://www.thinkdecor.app/refunds"
       />
       <Navbar />
 

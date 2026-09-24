@@ -31,7 +31,7 @@ const STARTER = `Write your article here.
 
 ## A section heading
 
-Use **bold**, *italic*, \`code\` and [links](https://thinkdecor.app).
+Use **bold**, *italic*, \`code\` and [links](https://www.thinkdecor.app).
 
 - A bullet point
 - Another point

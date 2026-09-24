@@ -58,7 +58,7 @@ export default function Blog() {
       <SEO
         title="Interior Design Ideas & AI Room Guides | ThinkDecor"
         description="Room-by-room design ideas, style guides and how AI room redesign works, from the ThinkDecor team."
-        canonical="https://thinkdecor.app/blog"
+        canonical="https://www.thinkdecor.app/blog"
         image="/og-journal.png"
         schema={[
           breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Journal', path: '/blog' }]),

@@ -116,7 +116,7 @@ export default function Home() {
       <SEO
         title="ThinkDecor | AI Interior Design From a Photo"
         description={`Upload a photo of any room and Mantha AI redesigns it in the style you choose. Start with ${FREE_SIGNUP_CREDITS} free redesigns, then ${INTRO} for your first month.`}
-        canonical="https://thinkdecor.app/"
+        canonical="https://www.thinkdecor.app/"
         schema={[
           organizationSchema(),
           softwareApplicationSchema({

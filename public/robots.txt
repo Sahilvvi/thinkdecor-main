@@ -9,4 +9,4 @@ Disallow: /app/
 Disallow: /checkout/
 Disallow: /demo
 
-Sitemap: https://thinkdecor.app/sitemap.xml
+Sitemap: https://www.thinkdecor.app/sitemap.xml

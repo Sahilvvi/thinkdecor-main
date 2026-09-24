@@ -106,7 +106,7 @@ export default function Terms() {
       <SEO
         title="Terms of Service | ThinkDecor"
         description="The terms that govern your use of ThinkDecor — accounts, billing, acceptable use and your rights."
-        canonical="https://thinkdecor.app/terms"
+        canonical="https://www.thinkdecor.app/terms"
       />
       <Navbar />
       <main className="pt-24">

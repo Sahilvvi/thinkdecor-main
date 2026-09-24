@@ -57,7 +57,7 @@ export default function BlogPostPage() {
       <SEO
         title={post ? seoTitle(post.title) : 'Article | ThinkDecor'}
         description={seoDescription(post?.excerpt, 'An article from the ThinkDecor journal.')}
-        canonical={`https://thinkdecor.app/blog/${slug}`}
+        canonical={`https://www.thinkdecor.app/blog/${slug}`}
         type="article"
         image={post?.cover_url}
         publishedTime={post?.published_at}

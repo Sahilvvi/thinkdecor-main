@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-export const SITE_URL = 'https://thinkdecor.app';
+export const SITE_URL = 'https://www.thinkdecor.app';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 interface SEOProps {

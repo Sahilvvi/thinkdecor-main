@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SITE_URL = 'https://thinkdecor.app';
+const SITE_URL = 'https://www.thinkdecor.app';
 const today = new Date().toISOString().slice(0, 10);
 
 const STATIC_PAGES = [

@@ -77,6 +77,7 @@ export default function AiRoomRedesign() {
         title="AI Room Redesign From One Photo | ThinkDecor"
         description="Upload one photo of a room and Mantha AI redesigns it in the style you choose — real walls, real windows, real layout, only the surfaces change. Free to try."
         canonical="https://thinkdecor.app/ai-room-redesign"
+        image="/og-ai-room-redesign.png"
         schema={[
           breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'AI Room Redesign', path: '/ai-room-redesign' }]),
           softwareApplicationSchema({

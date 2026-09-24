@@ -79,6 +79,7 @@ export default function Pricing() {
         title="Pricing: AI Room Design From 69p | ThinkDecor"
         description="Start for 69p, then £4.99 a month. Upload a photo of any room and Mantha AI redesigns it in the style you choose — 20 designs a month. Cancel anytime."
         canonical="https://thinkdecor.app/pricing"
+        image="/og-pricing.png"
         schema={[
           breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Pricing', path: '/pricing' }]),
           softwareApplicationSchema({

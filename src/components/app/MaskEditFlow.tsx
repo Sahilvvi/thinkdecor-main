@@ -14,6 +14,7 @@ import {
 } from '@/lib/generation';
 import { useAuthStore } from '@/stores/authStore';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
+import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 
 /** How long to wait after the last stroke before asking Gemini what's under the mask. */
 const LABEL_DEBOUNCE_MS = 700;
@@ -118,6 +119,8 @@ export function MaskEditFlow({
 
   const setupPending = isSetupError(creditsError);
   const outOfCredits = credits !== undefined && credits <= 0;
+  const { data: subscription } = useSubscription();
+  const subscribed = isActiveSubscription(subscription);
 
   const filePreview = source?.kind === 'file' ? source.preview : null;
   useEffect(() => () => { if (filePreview) URL.revokeObjectURL(filePreview); }, [filePreview]);
@@ -232,9 +235,19 @@ export function MaskEditFlow({
         {outOfCredits && !setupPending && (
           <div className="note r" style={{ ['--i' as string]: 2, background: 'var(--char)', color: '#fff', boxShadow: 'none' }}>
             <div>
-              <b style={{ color: '#fff' }}>You've used your {FREE_SIGNUP_CREDITS} free redesigns.</b>{' '}
-              Subscribe for {INTRO} your first month, then {MONTHLY}/month.
-              <Link to="/pricing" className="btn btn-w btn-sm" style={{ marginLeft: 12 }}>See plans</Link>
+              {subscribed ? (
+                <>
+                  <b style={{ color: '#fff' }}>You've used all your credits for this month.</b>{' '}
+                  They renew with your next payment. See your plan for the date.
+                  <Link to="/app/settings?tab=plan" className="btn btn-w btn-sm" style={{ marginLeft: 12 }}>View plan</Link>
+                </>
+              ) : (
+                <>
+                  <b style={{ color: '#fff' }}>You've used your {FREE_SIGNUP_CREDITS} free redesigns.</b>{' '}
+                  Subscribe for {INTRO} your first month, then {MONTHLY}/month.
+                  <Link to="/pricing" className="btn btn-w btn-sm" style={{ marginLeft: 12 }}>See plans</Link>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -337,7 +350,7 @@ export function MaskEditFlow({
                     <div className="note r" style={{ marginTop: 14, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
                       <div>
                         {error}
-                        {outOfCredits && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
+                        {outOfCredits && !subscribed && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
                       </div>
                     </div>
                   )}

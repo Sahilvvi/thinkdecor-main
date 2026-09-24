@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -72,6 +73,8 @@ export default function Create() {
 
   const setupPending = isSetupError(creditsError);
   const outOfCredits = credits !== undefined && credits <= 0;
+  const { data: subscription } = useSubscription();
+  const subscribed = isActiveSubscription(subscription);
   const busy = turns.some((t) => t.status === 'pending');
   const canSend = !!source && !busy && !creditsLoading && !outOfCredits && !setupPending;
 
@@ -233,7 +236,7 @@ export default function Create() {
                     <div className="note" style={{ margin: 0, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
                       <div>
                         {turn.error}
-                        {outOfCredits && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
+                        {outOfCredits && !subscribed && <Link to="/pricing" style={{ marginLeft: 6, fontWeight: 700, color: 'var(--brass)' }}>See plans</Link>}
                       </div>
                     </div>
                   )}

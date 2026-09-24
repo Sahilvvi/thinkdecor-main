@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import '@/styles/app-theme.css';
 import { useAuthStore } from '@/stores/authStore';
-import { useDisplayName } from '@/hooks/useProfile';
+import { isActiveSubscription, useDisplayName, useSubscription } from '@/hooks/useProfile';
 import { useCreditBalance, useGenerationsRealtime, useGenerations, titleFor } from '@/lib/generation';
 import { TEMPLATES } from '@/lib/templates';
 import { PHASE1_PLAN, pence } from '@/lib/billing';
@@ -43,6 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { signOut } = useAuthStore();
   const { firstName, fullName, initial, email } = useDisplayName();
   const { data: credits } = useCreditBalance();
+  const { data: subscription } = useSubscription();
   const { data: designs } = useGenerations();
 
   // ---- search + keyboard shortcuts ------------------------------------------
@@ -271,7 +272,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <b>{credits}</b> credits
               </span>
             )}
-            <Link to="/pricing" className="btn btn-dark upgrade">Upgrade · {INTRO}</Link>
+            {!isActiveSubscription(subscription) && (
+              <Link to="/pricing" className="btn btn-dark upgrade">Upgrade · {INTRO}</Link>
+            )}
           </header>
 
           {children}

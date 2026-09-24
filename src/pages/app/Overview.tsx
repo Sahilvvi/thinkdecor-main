@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { SEO } from '@/components/shared/SEO';
 import { StoredImage } from '@/components/app/StoredImage';
-import { useDisplayName } from '@/hooks/useProfile';
+import { isActiveSubscription, useDisplayName, useSubscription } from '@/hooks/useProfile';
 import {
   FREE_SIGNUP_CREDITS, formatDate, isSetupError, titleFor, useCreditBalance, useGenerations,
 } from '@/lib/generation';
@@ -9,6 +9,7 @@ import { TEMPLATES } from '@/lib/templates';
 
 export default function Overview() {
   const { firstName } = useDisplayName();
+  const { data: subscription } = useSubscription();
   const { data: credits, error: creditsError } = useCreditBalance();
   const { data: recent, error: recentError } = useGenerations(6);
   const { data: all } = useGenerations();
@@ -164,7 +165,7 @@ export default function Overview() {
               <h4>Your first redesign is one photo away</h4>
               <p>
                 Designs you create land here, ready to compare before and after, download, or refine with another prompt.
-                {' '}{credits !== undefined && credits > 0 ? `You have ${credits} free redesign${credits === 1 ? '' : 's'}.` : `Every account starts with ${FREE_SIGNUP_CREDITS} free redesigns.`}
+                {' '}{credits !== undefined && credits > 0 ? `You have ${credits} ${isActiveSubscription(subscription) ? 'credit' : 'free redesign'}${credits === 1 ? '' : 's'}.` : `Every account starts with ${FREE_SIGNUP_CREDITS} free redesigns.`}
               </p>
             </div>
             <Link className="btn btn-dark" to="/app/create">

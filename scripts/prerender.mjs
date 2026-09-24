@@ -99,7 +99,7 @@ async function main() {
   const server = serveDist();
 
   const slugs = await fetchPublishedPosts();
-  const routes = ['/', '/pricing', '/blog', ...slugs.map((s) => `/blog/${s}`)];
+  const routes = ['/', '/ai-room-redesign', '/pricing', '/blog', ...slugs.map((s) => `/blog/${s}`)];
 
   let browser;
   try {

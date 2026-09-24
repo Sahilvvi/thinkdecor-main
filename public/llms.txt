@@ -11,6 +11,7 @@
 ## Key pages
 
 - [Homepage](https://thinkdecor.app/): product overview, how it works, FAQ.
+- [AI Room Redesign](https://thinkdecor.app/ai-room-redesign): the complete guide — how it works, the 7 styles, Cleanup/Replace, comparison to other AI redesign tools, FAQ.
 - [Pricing](https://thinkdecor.app/pricing): plans, what's included, cancellation policy.
 - [Journal](https://thinkdecor.app/blog): articles on interior design, AI-generated visuals, and how the product works.
 

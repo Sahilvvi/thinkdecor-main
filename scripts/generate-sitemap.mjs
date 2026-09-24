@@ -13,6 +13,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 const STATIC_PAGES = [
   { loc: '/', changefreq: 'weekly', priority: '1.0' },
+  { loc: '/ai-room-redesign', changefreq: 'weekly', priority: '0.9' },
   { loc: '/pricing', changefreq: 'monthly', priority: '0.9' },
   { loc: '/blog', changefreq: 'weekly', priority: '0.8' },
   { loc: '/contact', changefreq: 'monthly', priority: '0.6' },

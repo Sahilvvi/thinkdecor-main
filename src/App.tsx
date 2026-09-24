@@ -16,6 +16,7 @@ import Home from "./pages/Home";
 import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import Pricing from "./pages/Pricing";
+import AiRoomRedesign from "./pages/AiRoomRedesign";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -110,6 +111,7 @@ function AppRoutes() {
 
         {/* Pricing + checkout */}
         <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+        <Route path="/ai-room-redesign" element={<PageTransition><AiRoomRedesign /></PageTransition>} />
         <Route path="/checkout/success" element={<PageTransition><CheckoutSuccess /></PageTransition>} />
 
         {/* Legal — Stripe expects these to be publicly reachable */}

@@ -23,7 +23,12 @@ export default function SuperAdmin() {
   const host = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>('login');
   const [message, setMessage] = useState('');
-  const [attempt, setAttempt] = useState(0);
+  // Bumped exactly when a load attempt should (re)start — sign-in success, or "Try again". Kept
+  // separate from `phase` on purpose: this same effect calls setPhase('ready') on success, and if
+  // `phase` were a dependency, that change would re-trigger the effect, run its OWN cleanup first
+  // (tearing the just-mounted panel back down via mountSuper's unmount), then immediately bail out
+  // on the `phase !== 'loading'` guard — mounting the panel for an instant and then wiping it.
+  const [loadSeq, setLoadSeq] = useState(0);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,10 +47,11 @@ export default function SuperAdmin() {
       return;
     }
     setPhase('loading');
+    setLoadSeq((n) => n + 1);
   };
 
   useEffect(() => {
-    if (phase !== 'loading') return;
+    if (loadSeq === 0) return;
     let cancelled = false;
     let unmount: (() => void) | undefined;
     (async () => {
@@ -67,7 +73,7 @@ export default function SuperAdmin() {
     };
     window.addEventListener('sa-denied', onDenied);
     return () => { cancelled = true; window.removeEventListener('sa-denied', onDenied); unmount?.(); };
-  }, [phase, attempt]);
+  }, [loadSeq]);
 
   if (phase === 'login') {
     return (
@@ -117,8 +123,8 @@ export default function SuperAdmin() {
       <div ref={host} style={{ display: phase === 'ready' ? 'block' : 'none' }} />
       {phase === 'loading' && <Shell><p>Loading live data…</p></Shell>}
       {phase === 'denied' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>No access</h1><p>{message || 'This account does not have admin access.'}</p><button onClick={() => setPhase('login')} style={btn}>Back to sign in</button></Shell>}
-      {phase === 'error' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>Couldn’t load the panel</h1><p>{message}</p><button onClick={() => setAttempt((n) => n + 1)} style={btn}>Try again</button></Shell>}
-      {phase === 'mfa' && <MfaGate onDone={() => setAttempt((n) => n + 1)} />}
+      {phase === 'error' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>Couldn’t load the panel</h1><p>{message}</p><button onClick={() => { setPhase('loading'); setLoadSeq((n) => n + 1); }} style={btn}>Try again</button></Shell>}
+      {phase === 'mfa' && <MfaGate onDone={() => { setPhase('loading'); setLoadSeq((n) => n + 1); }} />}
     </>
   );
 }

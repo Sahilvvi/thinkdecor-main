@@ -89,6 +89,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ---- refuse a second subscription for someone who already has one ---------
+    if (userId && mode === "subscription" && !isFree) {
+      const guard = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+      const { data: existing } = await guard
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", userId)
+        .in("status", ["active", "trialing"])
+        .limit(1);
+      if (existing && existing.length > 0) {
+        return json({ error: "You already have an active plan. Manage it from Settings.", code: "already_subscribed" }, 409);
+      }
+    }
+
     // ---- reuse an existing Stripe customer where we can --------------------
     let customerId: string | undefined;
     if (userId) {

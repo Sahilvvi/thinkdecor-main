@@ -12,6 +12,7 @@ import { NewsletterBand } from '@/components/motion/NewsletterBand';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { startCheckout, CheckoutError } from '@/lib/checkout';
 import { useAuthStore } from '@/stores/authStore';
+import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 import { softwareApplicationSchema, faqPageSchema, breadcrumbSchema } from '@/lib/schema';
 
 const FAQS = [
@@ -48,6 +49,7 @@ export default function Pricing() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: subscription } = useSubscription();
 
   const go = async () => {
     // Credits are granted to an account by the Stripe webhook. A buyer with no
@@ -56,6 +58,13 @@ export default function Pricing() {
     if (!user) {
       toast('Create a free account first — your plan and credits attach to it.');
       navigate('/signup', { state: { from: { pathname: '/pricing', search: location.search } } });
+      return;
+    }
+
+    // Already subscribed: a second checkout would create a second subscription and charge twice.
+    if (isActiveSubscription(subscription)) {
+      toast('You already have an active plan. You can manage it here.');
+      navigate('/app/settings?tab=plan');
       return;
     }
 

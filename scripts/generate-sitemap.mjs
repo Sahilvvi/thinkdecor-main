@@ -32,7 +32,7 @@ async function fetchPublishedSlugs() {
   const supabase = createClient(url, key);
   const { data, error } = await supabase
     .from('blog_posts')
-    .select('slug, updated_at')
+    .select('slug, title, excerpt, tag, published_at, updated_at')
     .eq('published', true);
   if (error) {
     console.warn('[sitemap] could not read blog_posts, skipping post URLs:', error.message);
@@ -59,6 +59,31 @@ async function main() {
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join('\n')}\n</urlset>\n`;
+
+  // RSS feed of the journal, so feed readers and aggregators (and crawlers that follow feeds) find new posts.
+  const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const byDate = [...posts].sort((a, b) => String(b.published_at ?? '').localeCompare(String(a.published_at ?? '')));
+  const items = byDate.map((p) => `    <item>
+      <title>${esc(p.title)}</title>
+      <link>${SITE_URL}/blog/${p.slug}</link>
+      <guid isPermaLink="true">${SITE_URL}/blog/${p.slug}</guid>
+      <description>${esc(p.excerpt)}</description>
+      ${p.tag ? `<category>${esc(p.tag)}</category>
+      ` : ''}<pubDate>${new Date(p.published_at ?? p.updated_at ?? Date.now()).toUTCString()}</pubDate>
+    </item>`);
+  const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>ThinkDecor Journal</title>
+    <link>${SITE_URL}/blog</link>
+    <atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml" />
+    <description>Interior design ideas, style guides and how AI room redesign works.</description>
+    <language>en-gb</language>
+${items.join('\n')}
+  </channel>
+</rss>
+`;
+  if (posts.length) writeFileSync(join(__dirname, '..', 'public', 'rss.xml'), rss);
 
   const outPath = join(__dirname, '..', 'public', 'sitemap.xml');
   writeFileSync(outPath, xml);

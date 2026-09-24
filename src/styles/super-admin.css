@@ -32,8 +32,9 @@
 .sa-root .side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);height:calc(100vh - 32px);display:flex;flex-direction:column;gap:14px;border-radius:28px;padding:20px 14px 14px;color:#fff;overflow:hidden;
   background:radial-gradient(90% 40% at 100% 0%,rgba(0,160,140,.38),transparent 62%),radial-gradient(80% 40% at 0% 100%,rgba(0,160,140,.18),transparent 65%),linear-gradient(170deg,#004A41,#00332C 55%,#002923)}
 .sa-root .brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 8px}
-.sa-root .brand__logo{font:600 24px/1 var(--display);letter-spacing:-.01em;color:#fff;text-decoration:none}
+.sa-root .brand__logo{display:flex;align-items:center;gap:8px;font:600 24px/1 var(--display);letter-spacing:-.01em;color:#fff;text-decoration:none}
 .sa-root .brand__logo i{color:var(--brass-lt)}
+.sa-root .brand__mark{width:24px;height:24px;border-radius:6px;flex:none}
 .sa-root .brand__tag{font:700 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#003B33;background:var(--brass-lt);padding:6px 8px;border-radius:999px;white-space:nowrap}
 .sa-root .nav{flex:1;overflow:auto;display:grid;align-content:start;gap:2px;padding:4px;margin-inline:-4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
 .sa-root .nav__grp{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:rgba(191,224,218,.6);padding:14px 12px 6px}

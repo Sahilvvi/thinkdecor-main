@@ -47,7 +47,8 @@
   background:linear-gradient(180deg,#00463D 0%,#003A32 45%,#002E28 100%);box-shadow:0 24px 50px -30px rgba(0,51,44,.6);animation:admin-fade .5s ease}
 .admin-x .side::before{content:"";position:absolute;inset:0;background:var(--grain);opacity:.07;mix-blend-mode:overlay;z-index:-1}
 .admin-x .side::after{content:"";position:absolute;left:-40%;right:-40%;top:-120px;height:260px;background:radial-gradient(closest-side,rgba(0,160,140,.28),transparent);z-index:-1}
-.admin-x .brand{display:flex;align-items:baseline;padding:0 10px}
+.admin-x .brand{display:flex;align-items:baseline;gap:8px;padding:0 10px}
+.admin-x .brand__mark{align-self:center;width:24px;height:24px;border-radius:6px;flex:none}
 .admin-x .brand b{font:500 24px/1 var(--display);letter-spacing:-.015em}
 .admin-x .brand i{font:italic 400 24px/1 var(--display);color:var(--brass-lt)}
 .admin-x .brand small{margin-left:auto;font:700 9.5px/1 var(--mono);letter-spacing:.16em;color:var(--brass-lt);padding:5px 7px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(143,227,212,.35)}

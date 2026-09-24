@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button type="button" className="side-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
             <X width={18} height={18} />
           </button>
-          <div className="brand"><b>Think</b> <i>Decor</i></div>
+          <div className="brand"><img src="/logo.png?v=5" alt="" className="brand__mark" /><b>Think</b> <i>Decor</i></div>
 
           <Link to="/app/create" className="newbtn">
             <Plus width={16} height={16} strokeWidth={2.2} />New design<kbd>N</kbd>
@@ -218,7 +218,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Menu width={20} height={20} />
             </button>
-            <Link to="/app" className="top-brand"><b>Think</b> <i>Decor</i></Link>
+            <Link to="/app" className="top-brand"><img src="/logo.png?v=5" alt="" className="brand__mark invert" /><b>Think</b> <i>Decor</i></Link>
             <div className="crumb">
               {crumb[0]}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>

@@ -52,9 +52,10 @@
   background:linear-gradient(180deg,#00463D 0%,#003A32 45%,#002E28 100%);box-shadow:0 24px 50px -30px rgba(0,51,44,.6);animation:app-fade .5s ease}
 .app-x .side::before{content:"";position:absolute;inset:0;background:var(--grain);opacity:.07;mix-blend-mode:overlay;z-index:-1}
 .app-x .side::after{content:"";position:absolute;left:-40%;right:-40%;top:-120px;height:260px;background:radial-gradient(closest-side,rgba(0,160,140,.28),transparent);z-index:-1}
-.app-x .brand{display:flex;align-items:baseline;padding:0 10px 2px}
+.app-x .brand{display:flex;align-items:baseline;gap:8px;padding:0 10px 2px}
 .app-x .brand b{font:500 24px/1 var(--display);letter-spacing:-.015em}
 .app-x .brand i{font:italic 400 24px/1 var(--display);color:var(--brass-lt)}
+.app-x .brand__mark{align-self:center;width:24px;height:24px;border-radius:6px;flex:none}
 .app-x .navgroup{margin:22px 10px 8px;font:700 10px/1 var(--mono);letter-spacing:.2em;color:rgba(191,224,218,.5)}
 .app-x .nav{display:flex;flex-direction:column;gap:2px}
 .app-x .nav a{position:relative;display:flex;align-items:center;gap:11px;padding:10px 10px;border-radius:12px;color:var(--on-dark-2);font:600 14.5px/1 var(--mono);transition:background .2s,color .2s}
@@ -512,9 +513,10 @@
 
   .app-x .top{gap:10px;height:58px;padding:0 10px}
   .app-x .menu-btn{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:var(--linen);color:var(--char);box-shadow:inset 0 0 0 1px var(--stone-2)}
-  .app-x .top-brand{display:flex;align-items:baseline;flex:none}
+  .app-x .top-brand{display:flex;align-items:baseline;gap:6px;flex:none}
   .app-x .top-brand b{font:500 21px/1 var(--display);color:var(--char);letter-spacing:-.015em}
   .app-x .top-brand i{font:italic 400 21px/1 var(--display);color:var(--brass)}
+  .app-x .top-brand .brand__mark{align-self:center;width:21px;height:21px;border-radius:5px;flex:none}
   .app-x .crumb{display:none}
 
   /* bottom tab bar: the five places people actually go */

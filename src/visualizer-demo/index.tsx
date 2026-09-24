@@ -16,7 +16,7 @@ type FileState = {
 const DEMO_BASE = 'https://viz2d-demo.vercel.app'
 
 export const config = {
-  companyLogo: '/logo.png?v=4',
+  companyLogo: '/logo.png?v=5',
   websiteUrl: '/',
   name: 'Think Decor',
   sampleFiles: [
@@ -145,7 +145,7 @@ function Main({ config }: { config: VisualizerConfig }) {
             <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
               <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-3">
-                  <img src={config.companyLogo} className="h-9 rounded-lg" alt="Think Decor" />
+                  <img src={config.companyLogo} className="h-9 invert" alt="Think Decor" />
                   <span className="text-lg font-semibold text-foreground">Think Decor</span>
                 </Link>
                 <div className="flex items-center gap-3">

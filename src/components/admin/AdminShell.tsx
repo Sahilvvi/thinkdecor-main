@@ -143,6 +143,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <X width={18} height={18} />
           </button>
           <div className="brand">
+            <img src="/logo.png?v=5" alt="" className="brand__mark" />
             <b>Think</b> <i>Decor</i><small>ADMIN</small>
           </div>
 

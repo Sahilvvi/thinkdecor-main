@@ -26,6 +26,10 @@ import { ChevronDown } from 'lucide-react';
  * its real box is measurable the instant scrubbing completes, on any
  * viewport (desktop or mobile) without this needing to know the hero's own
  * layout.
+ *
+ * topp.mp4 is encoded for scrubbing: every frame is a keyframe (a seek never
+ * has to decode a run of earlier frames first) and the index sits at the
+ * front of the file (it can start playing before it has fully downloaded).
  */
 
 // Total px of scroll it takes to play the video through, start to end.
@@ -40,18 +44,22 @@ const EASE = 0.32;
 // encoded at 24fps, so anything smaller than one frame's duration can't
 // produce a different visible frame and is a wasted decode.
 const MIN_SEEK_DELTA = 1 / 24;
+// After a swipe is released, keep gliding like a native scroll: the
+// finger's speed carries on and decays by this factor per 60fps frame.
+const TOUCH_FRICTION = 0.94;
 
 /**
- * Phones and tablets get a plain autoplay-through instead of the
- * scroll-scrubbed version: seeking a video's currentTime every animation
- * frame is cheap on a desktop GPU decoder but visibly stutters on mobile
- * hardware, and touch-scrubbing needs the same per-frame seeks. Detected
- * once up front (not on every render) via viewport width plus a coarse
- * pointer, so a touch laptop with a big screen still gets the desktop cut.
+ * Phones/tablets scrub exactly like desktop, but load and seek differently:
+ * - they stream the video instead of waiting for the whole file to download
+ *   first, so the first frame appears (and scrubbing works) almost at once
+ *   on a mobile connection;
+ * - they only ask for a new frame once the previous seek has finished —
+ *   mobile decoders fall behind if seeks are queued faster than they can
+ *   serve them, which is what made scrubbing stutter.
  */
 function detectMobile() {
   if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768 || window.matchMedia('(pointer: coarse) and (max-width: 900px)').matches;
+  return window.innerWidth < 768 || window.matchMedia('(pointer: coarse) and (max-width: 1024px)').matches;
 }
 
 export function IntroTakeover({
@@ -74,6 +82,9 @@ export function IntroTakeover({
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number | null>(null);
   const doneRef = useRef(false); // guards finish() firing more than once
+  const touchYRef = useRef<number | null>(null);
+  const touchTimeRef = useRef(0);
+  const velocityRef = useRef(0); // px per 60fps frame, for post-swipe glide
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -82,20 +93,17 @@ export function IntroTakeover({
   }, []);
 
   // Desktop: fetch the whole clip into memory up front so every scrub seek is
-  // a local, instant memory read instead of a network round-trip — on a real
-  // connection, seeking straight off a network `src` stalls mid-scrub
-  // waiting on range requests, which reads as the same stutter/lag no matter
-  // how good the easing math is.
-  //
-  // Mobile plays the video through once instead of scrubbing it (see
-  // detectMobile above), so it never needs the whole clip in memory before
-  // starting — waiting on a ~8MB blob download first is exactly the "takes
-  // time to load" delay mobile visitors were hitting. It just streams the
-  // network `src` and starts as soon as the browser has enough buffered.
+  // a local, instant memory read instead of a network round-trip.
+  // Mobile: stream it — waiting on the full download first is what made the
+  // intro slow to appear on a phone connection. The file's index is at the
+  // front, so the browser shows the first frame and knows the duration as
+  // soon as the first few KB arrive, and buffers the rest ahead of the scrub.
   useEffect(() => {
     if (isMobile) {
-      if (videoRef.current) videoRef.current.src = '/topp.mp4';
-      setReady(true);
+      if (videoRef.current) {
+        videoRef.current.src = '/topp.mp4';
+        videoRef.current.load();
+      }
       return;
     }
     let cancelled = false;
@@ -139,13 +147,10 @@ export function IntroTakeover({
   const addDelta = (delta: number) => {
     if (doneRef.current) return;
     targetProgressRef.current = Math.min(1, Math.max(0, targetProgressRef.current + delta / SCROLL_DISTANCE));
-    if (!hasStarted && targetProgressRef.current > 0.001) setHasStarted(true);
+    if (targetProgressRef.current > 0.001) setHasStarted(true);
   };
 
-  // Mobile never scrubs, so it has no use for the per-frame seek loop below.
   useEffect(() => {
-    if (isMobile) return;
-
     const loop = (time: number) => {
       rafRef.current = requestAnimationFrame(loop);
       if (doneRef.current) return;
@@ -156,10 +161,16 @@ export function IntroTakeover({
       const dt = Math.min(48, time - last) / 16.67;
       lastFrameRef.current = time;
 
+      // Post-swipe glide (touch only — wheel input already has OS momentum).
+      if (touchYRef.current == null && Math.abs(velocityRef.current) > 0.05) {
+        addDelta(velocityRef.current * dt);
+        velocityRef.current *= TOUCH_FRICTION ** dt;
+      }
+
       displayProgressRef.current += (targetProgressRef.current - displayProgressRef.current) * Math.min(1, EASE * dt);
 
       const v = videoRef.current;
-      if (v && Number.isFinite(v.duration) && v.duration > 0) {
+      if (v && Number.isFinite(v.duration) && v.duration > 0 && !(isMobile && v.seeking)) {
         const wantTime = displayProgressRef.current * v.duration;
         if (Math.abs(wantTime - v.currentTime) > MIN_SEEK_DELTA) v.currentTime = wantTime;
       }
@@ -170,16 +181,33 @@ export function IntroTakeover({
     rafRef.current = requestAnimationFrame(loop);
     return () => { if (rafRef.current != null) cancelAnimationFrame(rafRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasStarted, isMobile]);
+  }, []);
 
-  // Desktop only: scroll/touch-drag/keys scrub the video (see the rAF loop
-  // above). Mobile instead autoplays the video straight through — see the
-  // <video> element's onEnded handler — and skips this listener setup
-  // entirely so a normal touch-scroll never gets hijacked or preventDefault'd.
   useEffect(() => {
-    if (isMobile) return;
-
     const onWheel = (e: WheelEvent) => { e.preventDefault(); addDelta(e.deltaY); };
+    const onTouchStart = (e: TouchEvent) => {
+      touchYRef.current = e.touches[0]?.clientY ?? null;
+      touchTimeRef.current = performance.now();
+      velocityRef.current = 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const y = e.touches[0]?.clientY;
+      if (y == null || touchYRef.current == null) return;
+      const delta = touchYRef.current - y;
+      const now = performance.now();
+      const frames = Math.max(1, (now - touchTimeRef.current) / 16.67);
+      // Smoothed so one jittery sample doesn't fling the video.
+      velocityRef.current = velocityRef.current * 0.6 + (delta / frames) * 0.4;
+      touchTimeRef.current = now;
+      addDelta(delta);
+      touchYRef.current = y;
+    };
+    const onTouchEnd = () => {
+      // A finger that paused before lifting shouldn't glide.
+      if (performance.now() - touchTimeRef.current > 80) velocityRef.current = 0;
+      touchYRef.current = null;
+    };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
@@ -191,13 +219,21 @@ export function IntroTakeover({
     };
 
     window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isMobile]);
+  }, []);
 
   const full = { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight, borderRadius: 0 };
 
@@ -217,11 +253,9 @@ export function IntroTakeover({
         ref={videoRef}
         muted
         playsInline
-        autoPlay={isMobile}
         preload="auto"
         className="h-full w-full object-cover"
-        onPlaying={() => setHasStarted(true)}
-        onEnded={finish}
+        onLoadedData={() => setReady(true)}
       />
 
       {!ready && !shrinking && (
@@ -230,7 +264,7 @@ export function IntroTakeover({
         </div>
       )}
 
-      {!isMobile && ready && !hasStarted && !shrinking && (
+      {ready && !hasStarted && !shrinking && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -238,24 +272,11 @@ export function IntroTakeover({
           transition={{ delay: 0.6, duration: 0.5 }}
           className="pointer-events-none absolute inset-x-0 bottom-10 flex flex-col items-center gap-2 text-white/80"
         >
-          <span className="text-[11px] font-medium uppercase tracking-[0.18em]">Scroll to begin</span>
+          <span className="text-[11px] font-medium uppercase tracking-[0.18em]">{isMobile ? 'Swipe up to begin' : 'Scroll to begin'}</span>
           <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
             <ChevronDown className="h-5 w-5" />
           </motion.span>
         </motion.div>
-      )}
-
-      {isMobile && !shrinking && (
-        <motion.button
-          type="button"
-          onClick={finish}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] rounded-full bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80 backdrop-blur-sm"
-        >
-          Skip
-        </motion.button>
       )}
     </motion.div>
   );

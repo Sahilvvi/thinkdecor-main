@@ -20,6 +20,22 @@ export default defineConfig(({ mode }) => ({
       'top-level-await': true,
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Long-lived vendor files: they rarely change, so returning visitors keep them cached
+        // across deploys, and the app's own code stays small.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\/]node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler)[\/]/.test(id)) return 'vendor-react';
+          if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) return 'vendor-motion';
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          if (id.includes('@radix-ui')) return 'vendor-radix';
+          return undefined;
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -211,14 +211,14 @@ export function Comparison() {
               style={{ background: 'linear-gradient(180deg, #00B39C 0%, #00A08C 18%, #00594E 78%, #00463D 100%)' }}
             />
 
-            <div className="relative z-10 flex flex-col justify-end border-b-2 border-primary px-1 pb-4 font-label text-[12.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="relative z-10 flex flex-col justify-end px-1 pb-4 font-label text-[12.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               Basics
             </div>
-            <div className="relative z-10 mx-2 flex flex-col items-center justify-end border-b border-white/25 pb-4 text-center text-white">
+            <div className="relative z-10 mx-2 flex flex-col items-center justify-end pb-4 text-center text-white">
               <span className="font-display text-[24px] font-medium leading-[1.1]">Think <i className="not-italic text-[#8FE3D4]">Decor</i></span>
               <span className="mt-1 font-label text-[11.5px] font-bold uppercase tracking-[0.12em] text-[#8FE3D4]">Our app</span>
             </div>
-            <div className="relative z-10 flex flex-col items-center justify-end border-b border-border pb-4 text-center">
+            <div className="relative z-10 flex flex-col items-center justify-end pb-4 text-center">
               <span className="font-label text-[17px] font-bold text-foreground">Home AI</span>
               <span className="mt-1 font-label text-[11.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Competitor</span>
             </div>

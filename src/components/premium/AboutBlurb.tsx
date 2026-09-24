@@ -95,20 +95,6 @@ export function AboutBlurb() {
                     aria-hidden
                     className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.35),transparent)] mix-blend-overlay"
                   />
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.92 }}
-                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                    viewport={{ once: true, margin: '-10% 0px' }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
-                    className="absolute bottom-5 left-5 right-5 flex items-center justify-between gap-3"
-                  >
-                    <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-ink/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/85 backdrop-blur-md">
-                      <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Mantha AI
-                    </span>
-                    <span className="rounded-full border border-primary/30 bg-primary/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-foreground backdrop-blur-md">
-                      Live today
-                    </span>
-                  </motion.div>
                 </div>
               </Tilt>
             </Parallax>

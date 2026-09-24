@@ -6,9 +6,9 @@ export function Logo({ size = 'default', to = '/' }: { size?: 'default' | 'lg'; 
 
   return (
     <Link to={to} className="flex items-center gap-2 group">
-      <img src="/logo.png?v=4" alt="ThinkDecor" className={`${imgSize} rounded-lg`} />
+      <img src="/logo.png?v=4" alt="Think Decor" className={`${imgSize} rounded-lg`} />
       <span className={`${textSize} font-bold text-gradient-primary`}>
-        ThinkDecor
+        Think Decor
       </span>
     </Link>
   );

@@ -105,7 +105,7 @@ export function Testimonials() {
             Illustrative use cases · not customer reviews
           </p>
           <h2 className="mt-4 font-display text-[clamp(1.9rem,4vw,3.2rem)] font-medium leading-[1.05] text-foreground">
-            How people use <em className="text-primary not-italic font-normal italic">ThinkDecor</em>
+            How people use <em className="text-primary not-italic font-normal italic">Think Decor</em>
           </h2>
         </div>
         <div className="flex gap-2.5">

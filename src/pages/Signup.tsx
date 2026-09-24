@@ -65,7 +65,7 @@ export default function Signup() {
       setPendingEmail(email.trim());
       setIsLoading(false);
     } else {
-      toast.success('Account created — welcome to ThinkDecor');
+      toast.success('Account created — welcome to Think Decor');
       navigate(safeReturnPath(location.state), { replace: true });
     }
   };
@@ -106,15 +106,15 @@ export default function Signup() {
   return (
     <div className="flex min-h-screen bg-background">
       <SEO
-        title="Create your account | ThinkDecor"
-        description="Create a ThinkDecor account and redesign your first room with Mantha AI."
+        title="Create your account | Think Decor"
+        description="Create a Think Decor account and redesign your first room with Mantha AI."
       />
 
       {/* Left panel — the art */}
       <div className="relative hidden flex-1 items-end overflow-hidden lg:flex">
         <img
           src="/assets/samples/styled_room.png"
-          alt="A living room redesigned with ThinkDecor"
+          alt="A living room redesigned with Think Decor"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div

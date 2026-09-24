@@ -9,7 +9,7 @@ const SITE_URL = 'https://www.thinkdecor.app';
 export function organizationSchema() {
   return {
     '@type': 'Organization',
-    name: 'ThinkDecor',
+    name: 'Think Decor',
     url: SITE_URL,
     logo: `${SITE_URL}/favicon.png`,
     // Real profiles linked from the site footer. Add new ones here as they are created.
@@ -22,7 +22,7 @@ export function softwareApplicationSchema({
 }: { price: number; currency: string; description: string }) {
   return {
     '@type': 'SoftwareApplication',
-    name: 'ThinkDecor',
+    name: 'Think Decor',
     applicationCategory: 'DesignApplication',
     operatingSystem: 'Web',
     description,
@@ -32,7 +32,7 @@ export function softwareApplicationSchema({
       price: price.toFixed(2),
       priceCurrency: currency,
     },
-    brand: { '@type': 'Organization', name: 'ThinkDecor', url: SITE_URL },
+    brand: { '@type': 'Organization', name: 'Think Decor', url: SITE_URL },
   };
 }
 
@@ -65,8 +65,8 @@ export function blogPostingSchema({
     image: coverUrl ? (/^https?:\/\//i.test(coverUrl) ? coverUrl : `${SITE_URL}${coverUrl.startsWith('/') ? '' : '/'}${coverUrl}`) : undefined,
     datePublished: publishedAt ?? undefined,
     dateModified: updatedAt ?? publishedAt ?? undefined,
-    author: { '@type': 'Organization', name: authorName ?? 'ThinkDecor' },
-    publisher: { '@type': 'Organization', name: 'ThinkDecor', logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.png` } },
+    author: { '@type': 'Organization', name: authorName ?? 'Think Decor' },
+    publisher: { '@type': 'Organization', name: 'Think Decor', logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.png` } },
     mainEntityOfPage: `${SITE_URL}/blog/${slug}`,
   };
 }
@@ -87,9 +87,9 @@ export function breadcrumbSchema(items: { name: string; path: string }[]) {
 export function blogCollectionSchema(posts: { slug: string; title: string }[]) {
   return {
     '@type': 'CollectionPage',
-    name: 'ThinkDecor Journal: interior design ideas and AI room guides',
+    name: 'Think Decor Journal: interior design ideas and AI room guides',
     url: `${SITE_URL}/blog`,
-    isPartOf: { '@type': 'WebSite', name: 'ThinkDecor', url: SITE_URL },
+    isPartOf: { '@type': 'WebSite', name: 'Think Decor', url: SITE_URL },
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: posts.map((p, i) => ({

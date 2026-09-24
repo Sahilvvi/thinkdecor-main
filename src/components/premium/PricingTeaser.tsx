@@ -6,7 +6,7 @@ import { Magnetic, Reveal } from './Motion';
 /**
  * Pricing — restyled to match the design prototype's plan-card language
  * (rounded card, giant serif price, dot-bulleted features, a badge inset
- * from the corner rather than floating half outside the card). ThinkDecor
+ * from the corner rather than floating half outside the card). Think Decor
  * only sells one plan right now, so this stays a single featured card
  * instead of the prototype's three-tier grid — inventing tiers that don't
  * exist in billing.ts would mean CTAs that don't actually charge what they

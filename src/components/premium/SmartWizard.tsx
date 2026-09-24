@@ -146,7 +146,7 @@ export function SmartWizard() {
               </h2>
               <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
                 No existing project? Pick the shape, style and type of room you need and
-                ThinkDecor does the rest. In a few moments you get a professional{' '}
+                Think Decor does the rest. In a few moments you get a professional{' '}
                 <span className="text-primary">2D</span> and <span className="text-primary">3D</span>{' '}
                 design you can customise however you like.
               </p>

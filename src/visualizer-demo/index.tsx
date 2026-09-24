@@ -18,7 +18,7 @@ const DEMO_BASE = 'https://viz2d-demo.vercel.app'
 export const config = {
   companyLogo: '/logo.png?v=4',
   websiteUrl: '/',
-  name: 'ThinkDecor',
+  name: 'Think Decor',
   sampleFiles: [
     { name: 'Living Room 1', image: '/assets/samples/1.jpg', viz2dFile: `${DEMO_BASE}/assets/samples/1.viz2d` },
     { name: 'Living Room 2', image: '/assets/samples/2.jpg', viz2dFile: `${DEMO_BASE}/assets/samples/2.viz2d` },
@@ -145,8 +145,8 @@ function Main({ config }: { config: VisualizerConfig }) {
             <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
               <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-3">
-                  <img src={config.companyLogo} className="h-9 rounded-lg" alt="ThinkDecor" />
-                  <span className="text-lg font-semibold text-foreground">ThinkDecor</span>
+                  <img src={config.companyLogo} className="h-9 rounded-lg" alt="Think Decor" />
+                  <span className="text-lg font-semibold text-foreground">Think Decor</span>
                 </Link>
                 <div className="flex items-center gap-3">
                   <ConvertInfo />

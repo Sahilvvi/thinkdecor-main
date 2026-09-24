@@ -71,7 +71,7 @@ export default function BlogAdmin() {
 
   return (
     <AdminShell>
-      <SEO title="Journal admin · ThinkDecor" description="Manage ThinkDecor journal articles." />
+      <SEO title="Journal admin · Think Decor" description="Manage Think Decor journal articles." />
 
       <section className="panel">
         <div className="ph">

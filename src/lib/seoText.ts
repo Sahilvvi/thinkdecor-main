@@ -3,7 +3,7 @@
  * characters and descriptions around 155; several journal titles were 63-79 and
  * one description was 207, so they were truncated mid-word by Google.
  */
-export function seoTitle(title: string, suffix = ' | ThinkDecor', max = 60): string {
+export function seoTitle(title: string, suffix = ' | Think Decor', max = 60): string {
   const full = `${title}${suffix}`;
   if (full.length <= max) return full;
   if (title.length <= max) return title;

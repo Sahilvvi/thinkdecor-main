@@ -124,7 +124,7 @@ export default function Leads() {
 
   return (
     <AdminShell>
-      <SEO title="Leads · ThinkDecor" description="Contact form submissions." />
+      <SEO title="Leads · Think Decor" description="Contact form submissions." />
 
       <section className="panel">
         <div className="ph">
@@ -324,7 +324,7 @@ export default function Leads() {
                 </div>
 
                 <div className="grid gap-2.5">
-                  <a href={`mailto:${open.email}?subject=${encodeURIComponent('Re: your ThinkDecor enquiry')}`} className="field" style={{ height: 44 }}>
+                  <a href={`mailto:${open.email}?subject=${encodeURIComponent('Re: your Think Decor enquiry')}`} className="field" style={{ height: 44 }}>
                     <Mail width={15} height={15} style={{ color: 'var(--brass)' }} />
                     <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--ink)' }}>{open.email}</span>
                   </a>

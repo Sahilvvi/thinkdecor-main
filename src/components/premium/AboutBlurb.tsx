@@ -26,10 +26,10 @@ export function AboutBlurb() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
-              About ThinkDecor
+              About Think Decor
             </p>
             <h2 className="mt-5 text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
-              What is ThinkDecor?
+              What is Think Decor?
             </h2>
             <div className="mt-4 flex items-center gap-1.5 text-[13px] text-foreground/50">
               <MapPin className="h-3.5 w-3.5 text-primary" />
@@ -37,7 +37,7 @@ export function AboutBlurb() {
             </div>
 
             <p className="mt-6 max-w-[56ch] text-[15.5px] leading-relaxed text-foreground/62">
-              ThinkDecor lets you upload a photo of any room and see it redesigned by
+              Think Decor lets you upload a photo of any room and see it redesigned by
               Mantha AI — in the style you choose, keeping the walls and windows you
               already have. Try looks side by side, refine them in plain words, and keep
               every version in your library. Room scanning and measured floor plans are

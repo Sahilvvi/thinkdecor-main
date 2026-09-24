@@ -86,7 +86,7 @@ export default function SuperAdmin() {
   if (phase === 'login') {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-16">
-        <SEO title="Super admin | ThinkDecor" description="ThinkDecor super admin sign-in." noindex />
+        <SEO title="Super admin | Think Decor" description="Think Decor super admin sign-in." noindex />
         <div className="absolute inset-0 bg-grid opacity-[0.025]" />
         <div className="absolute left-1/2 top-1/3 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-primary/[0.10] blur-[130px]" />
         <div className="relative w-full max-w-[400px]">
@@ -127,7 +127,7 @@ export default function SuperAdmin() {
 
   return (
     <>
-      <SEO title="Super admin | ThinkDecor" description="ThinkDecor super admin." noindex />
+      <SEO title="Super admin | Think Decor" description="Think Decor super admin." noindex />
       <div ref={host} style={{ display: phase === 'ready' ? 'block' : 'none' }} />
       {phase === 'loading' && <Shell><p>Loading live data…</p></Shell>}
       {phase === 'denied' && <Shell><h1 style={{ font: '500 28px Georgia,serif' }}>No access</h1><p>{message || 'This account does not have admin access.'}</p><button onClick={() => { sessionStorage.removeItem(SESSION_KEY); setPhase('login'); }} style={btn}>Back to sign in</button></Shell>}

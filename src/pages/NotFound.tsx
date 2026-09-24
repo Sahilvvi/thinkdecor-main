@@ -6,7 +6,7 @@ import { SEO } from '@/components/shared/SEO';
 /** Shown for any URL that is not a real page. Marked noindex so mistyped or old links never get indexed. */
 const NotFound = () => (
   <div className="min-h-screen bg-background">
-    <SEO title="Page not found | ThinkDecor" description="This page doesn't exist. Head back to the ThinkDecor homepage." noindex />
+    <SEO title="Page not found | Think Decor" description="This page doesn't exist. Head back to the Think Decor homepage." noindex />
     <Navbar />
     <main className="mx-auto flex min-h-[70vh] max-w-[640px] flex-col items-center justify-center px-6 pt-24 text-center">
       <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Error 404</p>

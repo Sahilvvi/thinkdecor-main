@@ -104,8 +104,8 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Terms of Service | ThinkDecor"
-        description="The terms that govern your use of ThinkDecor — accounts, billing, acceptable use and your rights."
+        title="Terms of Service | Think Decor"
+        description="The terms that govern your use of Think Decor — accounts, billing, acceptable use and your rights."
         canonical="https://www.thinkdecor.app/terms"
       />
       <Navbar />

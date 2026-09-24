@@ -33,7 +33,7 @@ const SHELL = (me: any) => `
 <div class="app">
   <div class="sidebackdrop" id="sidebackdrop"></div>
   <aside class="side" id="side" aria-label="Super admin navigation">
-    <div class="brand"><a class="brand__logo" href="#dashboard">Think<i>Decor</i></a><span class="brand__tag">Super admin</span><button class="iconbtn navclose" id="navclose" aria-label="Close menu"><span data-ic="x"></span></button></div>
+    <div class="brand"><a class="brand__logo" href="#dashboard">Think <i>Decor</i></a><span class="brand__tag">Super admin</span><button class="iconbtn navclose" id="navclose" aria-label="Close menu"><span data-ic="x"></span></button></div>
     <nav class="nav" id="nav"></nav>
     <div class="me">
       <div class="me__row"><span class="av">${esc(initials(me.name))}</span><div style="min-width:0"><b>${esc(me.name.split('@')[0])}</b><small id="me-role"></small></div></div>

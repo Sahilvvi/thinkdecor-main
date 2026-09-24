@@ -16,7 +16,7 @@ const industries = ['Furniture', 'Home Decor', 'Flooring', 'Wallpaper', 'Interio
 const regions = ['United Kingdom', 'Europe', 'North America', 'Asia Pacific', 'Middle East', 'Africa', 'Latin America', 'India'];
 
 const reasons = [
-  { icon: Building2, label: 'Brand partnership', desc: 'Bring ThinkDecor to your product line' },
+  { icon: Building2, label: 'Brand partnership', desc: 'Bring Think Decor to your product line' },
   { icon: Headphones, label: 'Product support', desc: 'Help with an existing account' },
   { icon: BookOpen, label: 'Media & press', desc: 'Press kits, interviews, collaborations' },
   { icon: HelpCircle, label: 'Something else', desc: 'Questions, feedback, or just curious' },
@@ -134,8 +134,8 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Contact ThinkDecor | AI Room Design App, UK"
-        description="Questions, partnerships or early access? Email the ThinkDecor team in Northampton. We reply within a day."
+        title="Contact Think Decor | AI Room Design App, UK"
+        description="Questions, partnerships or early access? Email the Think Decor team in Northampton. We reply within a day."
         canonical="https://www.thinkdecor.app/contact"
       />
       <Navbar />

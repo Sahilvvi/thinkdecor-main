@@ -126,7 +126,7 @@ export default function BlogEditor() {
     const payload: Partial<BlogPost> = {
       title: title.trim(), slug: slug || slugify(title), excerpt: excerpt.trim() || null,
       cover_url: cover.trim() || null, tag, content, read_minutes: readingTime(content),
-      author_name: user?.user_metadata?.name || 'ThinkDecor', published: willPublish, layout,
+      author_name: user?.user_metadata?.name || 'Think Decor', published: willPublish, layout,
     };
     try {
       if (isNew) {
@@ -166,7 +166,7 @@ export default function BlogEditor() {
 
   return (
     <div className="admin-x">
-      <SEO title={`${isNew ? 'New article' : 'Edit article'} · ThinkDecor`} description="Write a ThinkDecor journal article." />
+      <SEO title={`${isNew ? 'New article' : 'Edit article'} · Think Decor`} description="Write a Think Decor journal article." />
 
       <header className="ebar">
         <Link to="/admin/blog" className="back" aria-label="Back to articles"><ArrowLeft width={16} height={16} /> <span className="lbl">Articles</span></Link>
@@ -363,7 +363,7 @@ export default function BlogEditor() {
               <div className="serp">
                 <div className="u">
                   <i>T</i>
-                  <div>ThinkDecor<br /><span style={{ color: '#6B7270' }}>thinkdecor.app › blog › {slug || '…'}</span></div>
+                  <div>Think Decor<br /><span style={{ color: '#6B7270' }}>thinkdecor.app › blog › {slug || '…'}</span></div>
                 </div>
                 <div className="t">{title || 'Untitled article'}</div>
                 <div className="d">{excerpt || 'No excerpt yet — add one so search results show something useful.'}</div>

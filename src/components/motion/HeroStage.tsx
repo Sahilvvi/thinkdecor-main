@@ -206,7 +206,7 @@ export function HeroStage({ onStageBoxMount }: { onStageBoxMount?: (el: HTMLDivE
 
           <Reveal delay={0.55}>
             <p className="max-w-[48ch] border-t border-white/[0.14] pt-[18px] text-[15px] text-white/70">
-              <b className="font-semibold text-white">We are ThinkDecor</b>, a home-design app
+              <b className="font-semibold text-white">We are Think Decor</b>, a home-design app
               built around Mantha AI. We help homeowners, renters and designers make décor
               decisions with their eyes open: the real room, the real light, the real price.
             </p>

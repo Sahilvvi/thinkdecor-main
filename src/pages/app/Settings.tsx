@@ -201,7 +201,7 @@ export default function Settings() {
 
   return (
     <>
-      <SEO title="Settings | ThinkDecor" description="Manage your ThinkDecor account." />
+      <SEO title="Settings | Think Decor" description="Manage your Think Decor account." />
 
       <section className="panel">
         <div className="ph">
@@ -371,7 +371,7 @@ export default function Settings() {
                     {active && <span className="dot" />}
                     {active ? (
                       <div>
-                        <b>ThinkDecor plan · active</b>
+                        <b>Think Decor plan · active</b>
                         {periodEnd && (
                           <span>
                             {subscription?.cancel_at_period_end ? `Ends ${periodEnd}` : `Renews ${periodEnd}`} · {PHASE1_PLAN.credits} credits each month

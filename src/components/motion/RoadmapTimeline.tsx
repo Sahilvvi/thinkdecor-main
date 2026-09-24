@@ -15,7 +15,7 @@ const STAGES: Stage[] = [
 ];
 
 /* ------------------------------------------------------------------ *
- *  Where ThinkDecor goes next — a centred header over a true vertical
+ *  Where Think Decor goes next — a centred header over a true vertical
  *  spine, stages alternating left and right of it on wide screens (one
  *  column, spine on the left, on phones). The spine's own fill tracks
  *  real scroll progress through the list, not a canned timer.
@@ -44,7 +44,7 @@ export function RoadmapTimeline() {
             On the roadmap
           </p>
           <h2 className="mx-auto mt-5 max-w-[22ch] text-[clamp(1.9rem,4vw,3.2rem)] font-bold leading-[1.08] tracking-[-0.03em] text-foreground">
-            Where ThinkDecor goes next.
+            Where Think Decor goes next.
           </h2>
           <p className="mx-auto mt-5 max-w-[46ch] text-[15.5px] leading-relaxed text-foreground/55">
             Photo redesigns are live today. Room scanning, measured plans and exports are in development.

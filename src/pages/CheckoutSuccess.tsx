@@ -101,7 +101,7 @@ export default function CheckoutSuccess() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO title="Payment complete | ThinkDecor" description="Your ThinkDecor purchase is confirmed." />
+      <SEO title="Payment complete | Think Decor" description="Your Think Decor purchase is confirmed." />
       <Navbar />
 
       <main className="relative pt-28">

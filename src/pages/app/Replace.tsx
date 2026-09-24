@@ -4,7 +4,7 @@ import { MaskEditFlow } from '@/components/app/MaskEditFlow';
 export default function Replace() {
   return (
     <>
-      <SEO title="Replace | ThinkDecor" description="Paint over an object in a room photo and tell Mantha AI what to put there instead." />
+      <SEO title="Replace | Think Decor" description="Paint over an object in a room photo and tell Mantha AI what to put there instead." />
       <MaskEditFlow
         mode="replace"
         kicker="Replace"

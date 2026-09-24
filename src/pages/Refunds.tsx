@@ -17,7 +17,7 @@ const sections = [
   {
     title: '14-day refund on your first payment',
     content: [
-      'If ThinkDecor does not work for your rooms, email us within 14 days of your first payment and we will refund it in full.',
+      'If Think Decor does not work for your rooms, email us within 14 days of your first payment and we will refund it in full.',
       'This applies to the first payment on a new account. It is not a rolling monthly guarantee.',
       'You do not need to give a reason, though telling us what went wrong genuinely helps us fix it.',
     ],
@@ -60,8 +60,8 @@ export default function Refunds() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Refund Policy | ThinkDecor"
-        description="How cancellations and refunds work at ThinkDecor — 14-day refund on your first payment, pro rata refunds on unused credit packs."
+        title="Refund Policy | Think Decor"
+        description="How cancellations and refunds work at Think Decor — 14-day refund on your first payment, pro rata refunds on unused credit packs."
         canonical="https://www.thinkdecor.app/refunds"
       />
       <Navbar />

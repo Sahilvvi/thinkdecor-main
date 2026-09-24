@@ -1,4 +1,4 @@
-/* ThinkDecor Studio — dedicated design system for the customer /app/*.
+/* Think Decor Studio — dedicated design system for the customer /app/*.
  * Scoped entirely under .app-x so it never leaks into the admin panel or
  * marketing site, which have their own token sets. Fonts (Newsreader, Plus
  * Jakarta Sans, Urbanist) are already loaded site-wide in index.html.

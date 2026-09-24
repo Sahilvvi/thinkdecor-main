@@ -26,7 +26,7 @@ const FAQS = [
   },
   {
     q: 'Is there a refund policy?',
-    a: 'If ThinkDecor does not work for your rooms, email us within 14 days of your first payment and we will refund it in full.',
+    a: 'If Think Decor does not work for your rooms, email us within 14 days of your first payment and we will refund it in full.',
   },
   {
     q: 'Do I need any special equipment?',
@@ -85,7 +85,7 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Pricing: AI Room Design From 69p | ThinkDecor"
+        title="Pricing: AI Room Design From 69p | Think Decor"
         description="Start for 69p, then £4.99 a month. Upload a photo of any room and Mantha AI redesigns it in the style you choose — 20 designs a month. Cancel anytime."
         canonical="https://www.thinkdecor.app/pricing"
         image="/og-pricing.png"

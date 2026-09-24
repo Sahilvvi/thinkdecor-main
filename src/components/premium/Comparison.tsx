@@ -10,7 +10,7 @@ import { useInViewOrStacked } from '../motion/StackPanels';
 /**
  * Comparison — rebuilt to match the design prototype's layout closely: a
  * light card, a score ring for each side, and a feature grid with the
- * ThinkDecor column picked out as a solid teal band running the full
+ * Think Decor column picked out as a solid teal band running the full
  * height of the table (not a dark glass panel, which is the old look).
  */
 
@@ -132,7 +132,7 @@ export function Comparison() {
           </Reveal>
 
           <Reveal delay={0.1} className="flex items-center gap-4">
-            <ScoreRing label="ThinkDecor" value={usScore} total={ROWS.length} hero />
+            <ScoreRing label="Think Decor" value={usScore} total={ROWS.length} hero />
             <span className="grid h-[42px] w-[42px] place-items-center rounded-full bg-background font-display text-[18px] italic text-primary shadow-[inset_2px_2px_5px_rgba(0,60,52,0.18),inset_-2px_-2px_5px_#fff]">
               vs
             </span>
@@ -165,7 +165,7 @@ export function Comparison() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <div className="flex items-center justify-between gap-2 rounded-xl bg-[#00594E] px-3 py-2">
-                    <span className="font-label text-[11.5px] font-bold uppercase tracking-[0.08em] text-[#8FE3D4]">ThinkDecor</span>
+                    <span className="font-label text-[11.5px] font-bold uppercase tracking-[0.08em] text-[#8FE3D4]">Think Decor</span>
                     <VerdictMark verdict={row.us} play={play} delay={0.04 + i * 0.05} />
                   </div>
                   <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2">
@@ -204,7 +204,7 @@ export function Comparison() {
 
         <div className="relative mt-10 hidden overflow-x-auto pb-2 pt-4 md:block">
           <div className="relative grid min-w-[560px] grid-cols-[1.7fr_1fr_1fr]">
-            {/* teal band behind the ThinkDecor column, full table height */}
+            {/* teal band behind the Think Decor column, full table height */}
             <div
               aria-hidden
               className="absolute inset-y-[-16px] left-[calc(41.7%+8px)] right-[calc(25%+8px)] -z-0 rounded-[26px] shadow-[0_30px_50px_-24px_rgba(0,89,78,0.75),inset_0_1px_0_rgba(255,255,255,0.35)]"
@@ -215,7 +215,7 @@ export function Comparison() {
               Basics
             </div>
             <div className="relative z-10 mx-2 flex flex-col items-center justify-end border-b border-white/25 pb-4 text-center text-white">
-              <span className="font-display text-[24px] font-medium leading-[1.1]">Think<i className="not-italic text-[#8FE3D4]">Decor</i></span>
+              <span className="font-display text-[24px] font-medium leading-[1.1]">Think <i className="not-italic text-[#8FE3D4]">Decor</i></span>
               <span className="mt-1 font-label text-[11.5px] font-bold uppercase tracking-[0.12em] text-[#8FE3D4]">Our app</span>
             </div>
             <div className="relative z-10 flex flex-col items-center justify-end border-b border-border pb-4 text-center">

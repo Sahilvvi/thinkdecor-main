@@ -120,11 +120,11 @@ function PassFace({ back = false }: { back?: boolean }) {
       )}
     >
       <span className="flex items-center justify-between px-1 pb-2 pt-0.5 font-mono text-[9.5px] uppercase tracking-[0.18em] text-foreground/45">
-        <span>ThinkDecor</span>
+        <span>Think Decor</span>
         <span className={back ? 'text-foreground/60' : 'text-primary'}>{back ? 'Before' : 'After'}</span>
       </span>
       <span className="relative block min-h-0 flex-1 overflow-hidden rounded-[14px]">
-        <img src={back ? BEFORE : AFTER} alt={back ? 'Living room before AI redesign' : 'Same living room after ThinkDecor AI redesign'} loading="lazy" className="h-full w-full object-cover" />
+        <img src={back ? BEFORE : AFTER} alt={back ? 'Living room before AI redesign' : 'Same living room after Think Decor AI redesign'} loading="lazy" className="h-full w-full object-cover" />
       </span>
       <span className="block px-1 pt-2.5">
         <span className="block text-[15px] font-bold">{back ? 'Your photo' : 'Your room · Modern'}</span>

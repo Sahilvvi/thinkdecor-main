@@ -9,7 +9,7 @@ import { Reveal, Magnetic } from './Motion';
 
 const STEPS = [
   { n: 1, icon: UserPlus,  time: '3 min',  lead: 'Sign up',            rest: 'Create your account — photo redesigns work today.' },
-  { n: 2, icon: Download,  time: '30 sec', lead: 'Get the app',        rest: 'Log in and download ThinkDecor to your phone.' },
+  { n: 2, icon: Download,  time: '30 sec', lead: 'Get the app',        rest: 'Log in and download Think Decor to your phone.' },
   { n: 3, icon: ScanLine,  time: '5 min',  lead: 'Scan the property',  rest: 'Walk through the space once, then upload.' },
   { n: 4, icon: FileDown,  time: '10 sec', lead: 'Download',           rest: 'Your measured plans and 3D design, ready to use.' },
 ];
@@ -75,7 +75,7 @@ function Stage({ n }: { n: number }) {
             >
               <Download className="h-6 w-6 text-primary-foreground" />
             </motion.span>
-            <span className="text-[11.5px] font-medium text-foreground/70">ThinkDecor</span>
+            <span className="text-[11.5px] font-medium text-foreground/70">Think Decor</span>
           </div>
           <div className="absolute inset-x-7 bottom-7 h-[3px] overflow-hidden rounded-full bg-foreground/[0.07]">
             <motion.div
@@ -178,7 +178,7 @@ export function FourSteps() {
             Floor plans in four steps.
           </h2>
           <p className="mx-auto mt-5 flex flex-wrap items-center justify-center gap-2 text-[15.5px] leading-relaxed text-foreground/55">
-            How room scanning will work when the ThinkDecor app launches
+            How room scanning will work when the Think Decor app launches
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.07] px-3 py-1 text-[12.5px] font-medium text-primary">
               <Clock className="h-3 w-3" /> In development
             </span>

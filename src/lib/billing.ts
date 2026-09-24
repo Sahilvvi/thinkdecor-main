@@ -1,5 +1,5 @@
 /**
- * Single source of truth for what ThinkDecor sells.
+ * Single source of truth for what Think Decor sells.
  *
  * IMPORTANT: nothing here controls what a customer is charged. The edge
  * function looks the real price up in Stripe by product key — the browser
@@ -56,7 +56,7 @@ export const PHASE1_KEY = 'phase1';
 export const PLANS: Plan[] = [
   {
     key: 'phase1',
-    name: 'ThinkDecor',
+    name: 'Think Decor',
     tagline: 'Everything, one simple plan',
     monthly: 4.99,
     yearly: 59.88, // display only; no yearly price is sold in Phase 1

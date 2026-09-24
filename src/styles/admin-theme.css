@@ -1,4 +1,4 @@
-/* ThinkDecor Admin — dedicated design system for /admin/*.
+/* Think Decor Admin — dedicated design system for /admin/*.
  * Scoped entirely under .admin-x so it never leaks into the customer app or
  * marketing site, which have their own token set. Fonts (Newsreader, Plus
  * Jakarta Sans, Urbanist) are already loaded site-wide in index.html.

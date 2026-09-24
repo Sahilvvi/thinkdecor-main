@@ -21,7 +21,7 @@ export default function Overview() {
 
   return (
     <>
-      <SEO title="Overview | ThinkDecor" description="Your ThinkDecor workspace." />
+      <SEO title="Overview | Think Decor" description="Your Think Decor workspace." />
 
       <section className="panel">
         <div className="ph">

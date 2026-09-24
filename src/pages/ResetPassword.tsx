@@ -57,7 +57,7 @@ export default function ResetPassword() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <SEO title="Set a new password | ThinkDecor" description="Choose a new password for your ThinkDecor account." />
+      <SEO title="Set a new password | Think Decor" description="Choose a new password for your Think Decor account." />
 
       <div className="w-full max-w-md">
         <div className="mb-8">

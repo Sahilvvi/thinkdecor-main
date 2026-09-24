@@ -50,7 +50,7 @@ const TOOLS = [
 const FAQS = [
   {
     q: 'Does AI room redesign actually keep my real room, or invent a new one?',
-    a: 'ThinkDecor keeps your real walls, windows and layout fixed and only changes the surfaces and furnishings you ask it to. That’s a deliberate difference from tools that regenerate the whole room from a text prompt and can move architecture that was never meant to change.',
+    a: 'Think Decor keeps your real walls, windows and layout fixed and only changes the surfaces and furnishings you ask it to. That’s a deliberate difference from tools that regenerate the whole room from a text prompt and can move architecture that was never meant to change.',
   },
   {
     q: 'How long does a redesign take?',
@@ -74,7 +74,7 @@ export default function AiRoomRedesign() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="AI Room Redesign From One Photo | ThinkDecor"
+        title="AI Room Redesign From One Photo | Think Decor"
         description="Upload one photo of a room and Mantha AI redesigns it in the style you choose — real walls, real windows, real layout, only the surfaces change. Free to try."
         canonical="https://www.thinkdecor.app/ai-room-redesign"
         image="/og-ai-room-redesign.png"
@@ -268,7 +268,7 @@ export default function AiRoomRedesign() {
             <Stagger className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" gap={0.06}>
               {[
                 { slug: 'how-does-ai-interior-design-work', title: 'How AI room redesign actually works' },
-                { slug: 'thinkdecor-vs-roomgpt-vs-interior-ai', title: "ThinkDecor vs RoomGPT vs Interior AI" },
+                { slug: 'thinkdecor-vs-roomgpt-vs-interior-ai', title: "Think Decor vs RoomGPT vs Interior AI" },
                 { slug: 'scandinavian-living-room-ideas', title: 'Scandinavian living room ideas, with AI' },
                 { slug: 'small-living-room-ai-redesign', title: 'Small living room, big change' },
                 { slug: 'remove-clutter-room-photo-ai', title: 'Remove clutter before you redesign' },

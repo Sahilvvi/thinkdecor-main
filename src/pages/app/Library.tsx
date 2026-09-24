@@ -80,7 +80,7 @@ export default function Library() {
 
   return (
     <>
-      <SEO title="Projects | ThinkDecor" description="Every room you've redesigned." />
+      <SEO title="Projects | Think Decor" description="Every room you've redesigned." />
 
       <section className="panel">
         <div className="ph">

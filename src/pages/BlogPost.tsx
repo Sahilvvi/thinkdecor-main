@@ -55,8 +55,8 @@ export default function BlogPostPage() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title={post ? seoTitle(post.title) : 'Article | ThinkDecor'}
-        description={seoDescription(post?.excerpt, 'An article from the ThinkDecor journal.')}
+        title={post ? seoTitle(post.title) : 'Article | Think Decor'}
+        description={seoDescription(post?.excerpt, 'An article from the Think Decor journal.')}
         canonical={`https://www.thinkdecor.app/blog/${slug}`}
         type="article"
         image={post?.cover_url}
@@ -126,7 +126,7 @@ export default function BlogPostPage() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-[12px] font-semibold text-primary">
                       {(post.author_name ?? 'T').slice(0, 1)}
                     </span>
-                    <span className="text-[13.5px] text-foreground/65">{post.author_name ?? 'ThinkDecor'}</span>
+                    <span className="text-[13.5px] text-foreground/65">{post.author_name ?? 'Think Decor'}</span>
                     {post.updated_at && post.published_at && new Date(post.updated_at).getTime() - new Date(post.published_at).getTime() > 86400000 && (
                       <span className="ml-auto text-[12.5px] text-foreground/45">Updated {fmt(post.updated_at)}</span>
                     )}
@@ -190,7 +190,7 @@ export default function BlogPostPage() {
                   <div className="relative">
                     <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary-foreground/60">Early access</p>
                     <h2 className="mx-auto mt-4 max-w-[20ch] text-[clamp(1.6rem,3vw,2.4rem)] font-bold leading-[1.1] tracking-[-0.03em] text-primary-foreground">
-                      Redesign your first room with ThinkDecor.
+                      Redesign your first room with Think Decor.
                     </h2>
                     <p className="mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed text-primary-foreground/70">
                       Join the waitlist and we&apos;ll send you an early build as soon as your region opens up.

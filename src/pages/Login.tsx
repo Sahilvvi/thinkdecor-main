@@ -69,7 +69,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <SEO title="Sign in | ThinkDecor" description="Sign in to your ThinkDecor account." />
+      <SEO title="Sign in | Think Decor" description="Sign in to your Think Decor account." />
 
       {/* Left panel — the form */}
       <div
@@ -234,7 +234,7 @@ export default function Login() {
       <div className="relative hidden flex-1 items-end overflow-hidden lg:flex">
         <img
           src="/assets/samples/styled_room.png"
-          alt="A living room redesigned with ThinkDecor"
+          alt="A living room redesigned with Think Decor"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div

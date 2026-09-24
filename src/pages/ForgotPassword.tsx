@@ -39,7 +39,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <SEO title="Reset your password | ThinkDecor" description="Reset your ThinkDecor password." />
+      <SEO title="Reset your password | Think Decor" description="Reset your Think Decor password." />
 
       <div className="w-full max-w-md">
         <Link

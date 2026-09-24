@@ -4,7 +4,7 @@ import { MaskEditFlow } from '@/components/app/MaskEditFlow';
 export default function Cleanup() {
   return (
     <>
-      <SEO title="Cleanup | ThinkDecor" description="Paint over anything in a room photo and Mantha AI erases it cleanly." />
+      <SEO title="Cleanup | Think Decor" description="Paint over anything in a room photo and Mantha AI erases it cleanly." />
       <MaskEditFlow
         mode="cleanup"
         kicker="Cleanup"

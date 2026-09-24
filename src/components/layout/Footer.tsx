@@ -151,7 +151,7 @@ export function Footer() {
         aria-hidden
         className="pointer-events-none relative -mb-[0.2em] select-none text-center text-[clamp(4rem,16vw,15rem)] font-bold leading-none tracking-[-0.06em] text-foreground/[0.04]"
       >
-        ThinkDecor
+        Think Decor
       </div>
     </footer>
   );

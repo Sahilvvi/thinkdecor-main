@@ -24,7 +24,7 @@ export default function Templates() {
 
   return (
     <>
-      <SEO title="Templates | ThinkDecor" description="Interior styles to start a redesign from." />
+      <SEO title="Templates | Think Decor" description="Interior styles to start a redesign from." />
 
       <section className="panel">
         <div className="ph">

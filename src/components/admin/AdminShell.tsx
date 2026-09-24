@@ -143,7 +143,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <X width={18} height={18} />
           </button>
           <div className="brand">
-            <b>Think</b><i>Decor</i><small>ADMIN</small>
+            <b>Think</b> <i>Decor</i><small>ADMIN</small>
           </div>
 
           <div className="navgroup">WORKSPACE</div>

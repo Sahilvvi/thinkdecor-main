@@ -56,8 +56,8 @@ export default function Blog() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Interior Design Ideas & AI Room Guides | ThinkDecor"
-        description="Room-by-room design ideas, style guides and how AI room redesign works, from the ThinkDecor team."
+        title="Interior Design Ideas & AI Room Guides | Think Decor"
+        description="Room-by-room design ideas, style guides and how AI room redesign works, from the Think Decor team."
         canonical="https://www.thinkdecor.app/blog"
         image="/og-journal.png"
         schema={[

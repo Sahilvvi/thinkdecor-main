@@ -177,7 +177,7 @@ export default function Create() {
 
   return (
     <>
-      <SEO title="Create | ThinkDecor" description="Redesign a room with Mantha AI." />
+      <SEO title="Create | Think Decor" description="Redesign a room with Mantha AI." />
 
       <section className="panel">
         <div className="ph">

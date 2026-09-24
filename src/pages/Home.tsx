@@ -55,19 +55,19 @@ const FAQS = [
   },
   {
     q: 'How do credits work?',
-    a: `Every account starts with ${FREE_SIGNUP_CREDITS} free redesigns, and each design or regeneration uses one credit. The ThinkDecor plan adds ${PHASE1_PLAN.credits} credits every month — ${INTRO} for your first month, then ${MONTHLY}.`,
+    a: `Every account starts with ${FREE_SIGNUP_CREDITS} free redesigns, and each design or regeneration uses one credit. The Think Decor plan adds ${PHASE1_PLAN.credits} credits every month — ${INTRO} for your first month, then ${MONTHLY}.`,
   },
   {
     q: 'What is Mantha AI?',
-    a: 'Mantha is the design intelligence inside ThinkDecor. Give it a photo, a style and a few words about what you want, and it restyles your actual room — keeping the walls, windows and layout you already have.',
+    a: 'Mantha is the design intelligence inside Think Decor. Give it a photo, a style and a few words about what you want, and it restyles your actual room — keeping the walls, windows and layout you already have.',
   },
   {
     q: 'Can I change what the AI creates?',
     a: 'Yes. Regenerate for a new variation, or describe what to change — "lighter floors", "a green velvet sofa" — and Mantha refines the same photo. Every design is saved to your library to compare and download.',
   },
   {
-    q: 'Can ThinkDecor measure my room?',
-    a: 'Not yet. Room scanning with measured floor plans — and PDF, SVG and CAD exports — is in development. Today, ThinkDecor redesigns rooms from a photo.',
+    q: 'Can Think Decor measure my room?',
+    a: 'Not yet. Room scanning with measured floor plans — and PDF, SVG and CAD exports — is in development. Today, Think Decor redesigns rooms from a photo.',
   },
   {
     q: 'Can I cancel any time?',
@@ -114,7 +114,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="ThinkDecor | AI Interior Design From a Photo"
+        title="Think Decor | AI Interior Design From a Photo"
         description={`Upload a photo of any room and Mantha AI redesigns it in the style you choose. Start with ${FREE_SIGNUP_CREDITS} free redesigns, then ${INTRO} for your first month.`}
         canonical="https://www.thinkdecor.app/"
         schema={[
@@ -296,9 +296,9 @@ export default function Home() {
                       AI Measurement
                     </h2>
                     <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
-                      Record a room with your phone and ThinkDecor returns a precise, editable
+                      Record a room with your phone and Think Decor returns a precise, editable
                       floor plan — wall lengths, room dimensions, doors, windows and total area.
-                      In minutes, not site visits — arriving with the ThinkDecor scanning app.
+                      In minutes, not site visits — arriving with the Think Decor scanning app.
                     </p>
                   </Reveal>
                 </div>

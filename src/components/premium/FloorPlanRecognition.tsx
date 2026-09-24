@@ -149,7 +149,7 @@ export function FloorPlanRecognition() {
                 AI Floor Plan Recognition
               </h2>
               <p className="mt-6 max-w-[46ch] text-[16px] leading-relaxed text-foreground/58">
-                Already have a plan on paper? Upload the image and ThinkDecor reads it —
+                Already have a plan on paper? Upload the image and Think Decor reads it —
                 walls, rooms, doors and windows — then rebuilds it as a furnished 3D home
                 you can walk through and edit.
               </p>

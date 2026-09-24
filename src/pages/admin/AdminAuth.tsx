@@ -50,7 +50,7 @@ export default function AdminAuth() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-16">
-      <SEO title="Admin · ThinkDecor" description="ThinkDecor content administration." />
+      <SEO title="Admin · Think Decor" description="Think Decor content administration." />
       <div className="absolute inset-0 bg-grid opacity-[0.025]" />
       <div className="absolute left-1/2 top-1/3 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-primary/[0.10] blur-[130px]" />
 

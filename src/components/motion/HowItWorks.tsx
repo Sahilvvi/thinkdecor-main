@@ -298,7 +298,7 @@ function ScreenSaved({ phase }: { phase: Phase }) {
           animate={{ clipPath: saving ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)' }}
           transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1], delay: saving ? 0.3 : 0 }}
         >
-          <img src={AFTER_PHOTO} alt="Same room after ThinkDecor AI redesign" className="h-full w-full object-cover" />
+          <img src={AFTER_PHOTO} alt="Same room after Think Decor AI redesign" className="h-full w-full object-cover" />
         </motion.div>
         <motion.div
           className="absolute inset-x-2 bottom-2 flex items-center gap-1.5 rounded-[10px] bg-[#00594E] px-2.5 py-1.5 text-[9.5px] text-white"
@@ -374,7 +374,7 @@ export function HowItWorks() {
           How it <em className="italic text-[#00A08C]">works</em>
         </h2>
         <p className="max-w-[52ch] text-[18px] text-muted-foreground">
-          Three screens from the ThinkDecor app. Snap your room, pick a look, and keep the result.
+          Three screens from the Think Decor app. Snap your room, pick a look, and keep the result.
           That&rsquo;s the whole flow.
         </p>
       </Reveal>

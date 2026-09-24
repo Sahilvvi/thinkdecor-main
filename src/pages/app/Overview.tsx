@@ -72,7 +72,7 @@ export default function Overview() {
             </div>
           </div>
           <div className="dip">
-            <figure><img src="/assets/samples/room_before.jpg" alt="Room before" onError={(e) => { e.currentTarget.src = '/assets/samples/1.jpg'; }} /></figure>
+            <figure><img src="/assets/samples/empty_room.png" alt="Room before" /></figure>
             <figure className="af"><img src="/assets/samples/styled_room.png" alt="Same room redesigned in Modern" /></figure>
             <span className="seam" />
             <span className="knob">

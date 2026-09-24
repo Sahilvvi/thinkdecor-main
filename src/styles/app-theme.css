@@ -534,9 +534,11 @@
   .app-x .turn-card{grid-template-columns:1fr;gap:16px}
   .app-x .turn-side{padding:2px 4px 6px}
   .app-x .set{grid-template-columns:1fr;gap:16px;margin-top:22px}
-  .app-x .set-nav{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px;margin:0 -2px;scrollbar-width:none}
-  .app-x .set-nav::-webkit-scrollbar{display:none}
-  .app-x .set-nav button{flex:none;white-space:nowrap;padding:12px 15px}
+  /* A 2-column grid, not a single scrolling row: every tab is visible and
+     reachable with a tap, no hidden-scrollbar swipe needed to reach the
+     ones that don't fit. */
+  .app-x .set-nav{position:static;display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+  .app-x .set-nav button{white-space:nowrap;padding:12px 10px;justify-content:center}
   .app-x .set-nav .who{display:none}
 }
 @media (max-width: 860px) {

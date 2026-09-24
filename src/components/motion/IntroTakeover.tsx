@@ -41,6 +41,19 @@ const EASE = 0.32;
 // produce a different visible frame and is a wasted decode.
 const MIN_SEEK_DELTA = 1 / 24;
 
+/**
+ * Phones and tablets get a plain autoplay-through instead of the
+ * scroll-scrubbed version: seeking a video's currentTime every animation
+ * frame is cheap on a desktop GPU decoder but visibly stutters on mobile
+ * hardware, and touch-scrubbing needs the same per-frame seeks. Detected
+ * once up front (not on every render) via viewport width plus a coarse
+ * pointer, so a touch laptop with a big screen still gets the desktop cut.
+ */
+function detectMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768 || window.matchMedia('(pointer: coarse) and (max-width: 900px)').matches;
+}
+
 export function IntroTakeover({
   onShrinkStart, onDone, getTargetRect,
 }: {
@@ -53,6 +66,7 @@ export function IntroTakeover({
   const [target, setTarget] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [ready, setReady] = useState(false);
+  const [isMobile] = useState(detectMobile);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const targetProgressRef = useRef(0); // 0..1 — exact position raw scroll input has accumulated to
@@ -60,7 +74,6 @@ export function IntroTakeover({
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number | null>(null);
   const doneRef = useRef(false); // guards finish() firing more than once
-  const touchYRef = useRef<number | null>(null);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -68,12 +81,23 @@ export function IntroTakeover({
     return () => { document.body.style.overflow = prevOverflow; };
   }, []);
 
-  // Fetch the whole clip into memory up front so every scrub seek is a local,
-  // instant memory read instead of a network round-trip — on a real
+  // Desktop: fetch the whole clip into memory up front so every scrub seek is
+  // a local, instant memory read instead of a network round-trip — on a real
   // connection, seeking straight off a network `src` stalls mid-scrub
   // waiting on range requests, which reads as the same stutter/lag no matter
   // how good the easing math is.
+  //
+  // Mobile plays the video through once instead of scrubbing it (see
+  // detectMobile above), so it never needs the whole clip in memory before
+  // starting — waiting on a ~8MB blob download first is exactly the "takes
+  // time to load" delay mobile visitors were hitting. It just streams the
+  // network `src` and starts as soon as the browser has enough buffered.
   useEffect(() => {
+    if (isMobile) {
+      if (videoRef.current) videoRef.current.src = '/topp.mp4';
+      setReady(true);
+      return;
+    }
     let cancelled = false;
     let objectUrl: string | null = null;
     fetch('/topp.mp4')
@@ -95,7 +119,7 @@ export function IntroTakeover({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, []);
+  }, [isMobile]);
 
   const finish = () => {
     if (doneRef.current) return;
@@ -118,7 +142,10 @@ export function IntroTakeover({
     if (!hasStarted && targetProgressRef.current > 0.001) setHasStarted(true);
   };
 
+  // Mobile never scrubs, so it has no use for the per-frame seek loop below.
   useEffect(() => {
+    if (isMobile) return;
+
     const loop = (time: number) => {
       rafRef.current = requestAnimationFrame(loop);
       if (doneRef.current) return;
@@ -143,18 +170,16 @@ export function IntroTakeover({
     rafRef.current = requestAnimationFrame(loop);
     return () => { if (rafRef.current != null) cancelAnimationFrame(rafRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasStarted]);
+  }, [hasStarted, isMobile]);
 
+  // Desktop only: scroll/touch-drag/keys scrub the video (see the rAF loop
+  // above). Mobile instead autoplays the video straight through — see the
+  // <video> element's onEnded handler — and skips this listener setup
+  // entirely so a normal touch-scroll never gets hijacked or preventDefault'd.
   useEffect(() => {
+    if (isMobile) return;
+
     const onWheel = (e: WheelEvent) => { e.preventDefault(); addDelta(e.deltaY); };
-    const onTouchStart = (e: TouchEvent) => { touchYRef.current = e.touches[0]?.clientY ?? null; };
-    const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
-      const y = e.touches[0]?.clientY;
-      if (y == null || touchYRef.current == null) return;
-      addDelta(touchYRef.current - y);
-      touchYRef.current = y;
-    };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
@@ -166,17 +191,13 @@ export function IntroTakeover({
     };
 
     window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
       window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, []);
+  }, [isMobile]);
 
   const full = { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight, borderRadius: 0 };
 
@@ -196,8 +217,11 @@ export function IntroTakeover({
         ref={videoRef}
         muted
         playsInline
+        autoPlay={isMobile}
         preload="auto"
         className="h-full w-full object-cover"
+        onPlaying={() => setHasStarted(true)}
+        onEnded={finish}
       />
 
       {!ready && !shrinking && (
@@ -206,7 +230,7 @@ export function IntroTakeover({
         </div>
       )}
 
-      {ready && !hasStarted && !shrinking && (
+      {!isMobile && ready && !hasStarted && !shrinking && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -219,6 +243,19 @@ export function IntroTakeover({
             <ChevronDown className="h-5 w-5" />
           </motion.span>
         </motion.div>
+      )}
+
+      {isMobile && !shrinking && (
+        <motion.button
+          type="button"
+          onClick={finish}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] rounded-full bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80 backdrop-blur-sm"
+        >
+          Skip
+        </motion.button>
       )}
     </motion.div>
   );

@@ -342,7 +342,7 @@ export function MaskEditFlow({
                     </div>
                   )}
 
-                  <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <button type="button" className="btn btn-line" onClick={startOver}>
                       <RotateCcw width={14} height={14} /> Different photo
                     </button>

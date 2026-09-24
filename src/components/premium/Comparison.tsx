@@ -140,7 +140,69 @@ export function Comparison() {
           </Reveal>
         </div>
 
-        <div ref={viewRef} className="relative mt-10 overflow-x-auto pb-2 pt-4">
+        {/* Mobile: a stacked card per feature — the desktop 3-column table
+            below reads fine on a wide screen, but forcing the same
+            560px-min grid into a narrow viewport meant either a squashed,
+            misaligned table or a horizontal scrollbar. A card per row with
+            the two verdicts side by side needs no min-width and never
+            scrolls sideways. Both variants share one ref (on the wrapper
+            below) so the in-view animation trigger works regardless of
+            which one is actually visible at the current width. */}
+        <div ref={viewRef}>
+        <div className="mt-8 flex flex-col gap-3 md:hidden">
+          {ROWS.map((row, i) => {
+            const Icon = row.icon;
+            return (
+              <div key={row.feature} className="rounded-2xl border border-border bg-background px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-[linear-gradient(145deg,#FFFFFF,#E3F2EF)] text-primary shadow-[inset_0_0_0_1px_#D3E6E2,0_6px_14px_-8px_rgba(0,89,78,0.35)]">
+                    <Icon className="h-[19px] w-[19px]" strokeWidth={1.7} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <b className="block font-label text-[14px] font-bold leading-tight text-foreground">{row.feature}</b>
+                    <small className="block text-[12.5px] text-muted-foreground">{row.detail}</small>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="flex items-center justify-between gap-2 rounded-xl bg-[#00594E] px-3 py-2">
+                    <span className="font-label text-[11.5px] font-bold uppercase tracking-[0.08em] text-[#8FE3D4]">ThinkDecor</span>
+                    <VerdictMark verdict={row.us} play={play} delay={0.04 + i * 0.05} />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2">
+                    <span className="font-label text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Home AI</span>
+                    <VerdictMark verdict={row.them} play={play} delay={0.06 + i * 0.05} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="mt-1 flex flex-wrap items-center gap-4 px-1 font-label text-[12.5px] font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-2">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-primary shadow-[inset_0_0_0_1.5px_#00594E]">
+                <Check className="h-2.5 w-2.5" strokeWidth={3} />
+              </span>
+              Yes
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="h-5 w-5 rounded-full" style={{ background: 'conic-gradient(#00A08C 0 50%, transparent 0)', boxShadow: 'inset 0 0 0 1.5px #00A08C' }} />
+              Partly
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Minus className="h-3.5 w-3.5 text-[#9DBDB7]" />
+              No
+            </span>
+          </div>
+
+          <Link
+            to="/pricing"
+            className="mt-2 flex items-center justify-center rounded-full bg-primary px-5 py-3 text-center font-label text-[14.5px] font-bold text-primary-foreground shadow-[0_8px_18px_-8px_rgba(0,0,0,0.45)]"
+          >
+            Try it for 69p
+          </Link>
+        </div>
+
+        <div className="relative mt-10 hidden overflow-x-auto pb-2 pt-4 md:block">
           <div className="relative grid min-w-[560px] grid-cols-[1.7fr_1fr_1fr]">
             {/* teal band behind the ThinkDecor column, full table height */}
             <div
@@ -212,6 +274,7 @@ export function Comparison() {
               {Math.round(themScore)} of {ROWS.length}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </section>

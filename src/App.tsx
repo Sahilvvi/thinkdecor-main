@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,30 +17,30 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import Pricing from "./pages/Pricing";
 import AiRoomRedesign from "./pages/AiRoomRedesign";
-import CheckoutSuccess from "./pages/CheckoutSuccess";
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Refunds from "./pages/Refunds";
 import BlogPostPage from "./pages/BlogPost";
-import AdminAuth from "./pages/admin/AdminAuth";
-import BlogAdmin from "./pages/admin/BlogAdmin";
-import BlogEditor from "./pages/admin/BlogEditor";
-import Leads from "./pages/admin/Leads";
-import AdminOverview from "./pages/admin/Overview";
-import AdminAccounts from "./pages/admin/Accounts";
-import AdminSupport from "./pages/admin/Support";
-import Viz2dDemo from "./visualizer-demo";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Overview from "./pages/app/Overview";
-import Templates from "./pages/app/Templates";
-import Library from "./pages/app/Library";
-import Create from "./pages/app/Create";
-import Cleanup from "./pages/app/Cleanup";
-import Replace from "./pages/app/Replace";
-import Settings from "./pages/app/Settings";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
+const AdminAuth = lazy(() => import("./pages/admin/AdminAuth"));
+const BlogAdmin = lazy(() => import("./pages/admin/BlogAdmin"));
+const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
+const Leads = lazy(() => import("./pages/admin/Leads"));
+const AdminOverview = lazy(() => import("./pages/admin/Overview"));
+const AdminAccounts = lazy(() => import("./pages/admin/Accounts"));
+const AdminSupport = lazy(() => import("./pages/admin/Support"));
+const Viz2dDemo = lazy(() => import("./visualizer-demo"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Overview = lazy(() => import("./pages/app/Overview"));
+const Templates = lazy(() => import("./pages/app/Templates"));
+const Library = lazy(() => import("./pages/app/Library"));
+const Create = lazy(() => import("./pages/app/Create"));
+const Cleanup = lazy(() => import("./pages/app/Cleanup"));
+const Replace = lazy(() => import("./pages/app/Replace"));
+const Settings = lazy(() => import("./pages/app/Settings"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const queryClient = new QueryClient();
 
@@ -102,6 +102,7 @@ function AppRoutes() {
 
   return (
     <AnimatePresence mode="wait">
+      <Suspense fallback={<div className="min-h-screen bg-background" aria-hidden="true" />}>
       <Routes location={location} key={location.pathname}>
         {/* Home - AI Measurement + Mantha AI */}
         <Route path="/" element={<PageTransition><Home /></PageTransition>} />
@@ -156,6 +157,7 @@ function AppRoutes() {
         {/* Everything else → landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </AnimatePresence>
   );
 }

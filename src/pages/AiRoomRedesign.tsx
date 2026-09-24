@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 import { TEMPLATES } from '@/lib/templates';
 import { FREE_SIGNUP_CREDITS } from '@/lib/generation';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
-import { softwareApplicationSchema, faqPageSchema } from '@/lib/schema';
+import { softwareApplicationSchema, faqPageSchema, breadcrumbSchema } from '@/lib/schema';
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
@@ -78,6 +78,7 @@ export default function AiRoomRedesign() {
         description="Upload one photo of a room and Mantha AI redesigns it in the style you choose — real walls, real windows, real layout, only the surfaces change. Free to try."
         canonical="https://thinkdecor.app/ai-room-redesign"
         schema={[
+          breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'AI Room Redesign', path: '/ai-room-redesign' }]),
           softwareApplicationSchema({
             price: PHASE1_PLAN.introPrice ?? 0.69,
             currency: 'GBP',

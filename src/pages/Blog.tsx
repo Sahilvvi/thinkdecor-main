@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { SEO } from '@/components/shared/SEO';
 import { Reveal, Stagger, staggerItem } from '@/components/premium/Motion';
 import { listPublished, type BlogPost } from '@/lib/blog';
+import { blogCollectionSchema, breadcrumbSchema } from '@/lib/schema';
 import { supabase } from '@/integrations/supabase/client';
 
 const FALLBACK_COVER = '/assets/samples/styled_room.png';
@@ -58,6 +59,10 @@ export default function Blog() {
         title="Interior Design Ideas & AI Room Guides | ThinkDecor"
         description="Room-by-room design ideas, style guides and how AI room redesign works, from the ThinkDecor team."
         canonical="https://thinkdecor.app/blog"
+        schema={[
+          breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Journal', path: '/blog' }]),
+          ...(posts.length ? [blogCollectionSchema(posts)] : []),
+        ]}
       />
       <Navbar />
 

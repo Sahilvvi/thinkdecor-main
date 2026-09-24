@@ -69,3 +69,34 @@ export function blogPostingSchema({
     mainEntityOfPage: `${SITE_URL}/blog/${slug}`,
   };
 }
+
+export function breadcrumbSchema(items: { name: string; path: string }[]) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      item: `${SITE_URL}${it.path}`,
+    })),
+  };
+}
+
+/** The /blog index: a CollectionPage whose mainEntity lists every article, so crawlers can enumerate them. */
+export function blogCollectionSchema(posts: { slug: string; title: string }[]) {
+  return {
+    '@type': 'CollectionPage',
+    name: 'ThinkDecor Journal: interior design ideas and AI room guides',
+    url: `${SITE_URL}/blog`,
+    isPartOf: { '@type': 'WebSite', name: 'ThinkDecor', url: SITE_URL },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: posts.map((p, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `${SITE_URL}/blog/${p.slug}`,
+        name: p.title,
+      })),
+    },
+  };
+}

@@ -9,7 +9,7 @@ import { Reveal } from '@/components/premium/Motion';
 import {
   getBySlug, listPublished, postBodyClassName, renderMarkdown, type BlogPost as Post,
 } from '@/lib/blog';
-import { blogPostingSchema } from '@/lib/schema';
+import { blogPostingSchema, breadcrumbSchema } from '@/lib/schema';
 import { seoDescription, seoTitle } from '@/lib/seoText';
 
 const FALLBACK_COVER = '/assets/samples/styled_room.png';
@@ -45,7 +45,9 @@ export default function BlogPostPage() {
       }
 
       setPost(found);
-      setMore(found ? siblings.filter((x) => x.slug !== found!.slug).slice(0, 3) : []);
+      // Same-topic articles first: better for readers and gives each post strong internal links.
+      setMore(found ? siblings.filter((x) => x.slug !== found!.slug)
+        .sort((a, b) => Number(b.tag === found!.tag) - Number(a.tag === found!.tag)).slice(0, 3) : []);
       setLoading(false);
     })();
   }, [slug]);
@@ -61,7 +63,7 @@ export default function BlogPostPage() {
         publishedTime={post?.published_at}
         modifiedTime={post?.updated_at}
         noindex={!loading && !post}
-        schema={post && slug ? blogPostingSchema({
+        schema={post && slug ? [breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Journal', path: '/blog' }, { name: post.title, path: `/blog/${slug}` }]), blogPostingSchema({
           title: post.title,
           excerpt: post.excerpt,
           slug,
@@ -69,7 +71,7 @@ export default function BlogPostPage() {
           publishedAt: post.published_at,
           updatedAt: post.updated_at,
           authorName: post.author_name,
-        }) : undefined}
+        })] : undefined}
       />
       <motion.div style={{ scaleX: bar }} className="fixed left-0 right-0 top-0 z-[60] h-[3px] origin-left bg-gradient-to-r from-primary to-[hsl(160_84%_45%)]" />
       <Navbar />
@@ -145,6 +147,12 @@ export default function BlogPostPage() {
                   className={postBodyClassName(post.layout)}
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
                 />
+                <aside className="mt-12 rounded-2xl border border-foreground/[0.1] bg-card p-6">
+                  <p className="font-display text-[20px] text-foreground">See it in your own room</p>
+                  <p className="mt-2 text-[15px] leading-relaxed text-foreground/70">
+                    Upload one photo and get a redesign in seconds. Read how <Link to="/ai-room-redesign" className="text-primary underline underline-offset-2">AI room redesign works</Link>, or <Link to="/pricing" className="text-primary underline underline-offset-2">start from 69p</Link>.
+                  </p>
+                </aside>
               </div>
             </article>
 

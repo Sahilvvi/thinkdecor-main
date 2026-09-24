@@ -68,7 +68,7 @@ If you want to see it rather than read about it, [start with a photo of your own
 
 ## Price, without the credit-pack maths
 
-RoomGPT sells credits: $9 for 30, scaling up from there. Collov starts around $27/month for 60 credits. Spacely is $19/month, aimed at working designers who need masking and material-override controls most homeowners will never touch.
+RoomGPT sells credits: $9 for 30, scaling up from there. (Competitor prices were checked in September 2026 and change often, so confirm on their own pricing pages.) Collov's entry plan is listed at $19/month for 60 photo credits. Spacely's paid plans start at roughly $15/month, aimed at working designers who need masking and material-override controls most homeowners will never touch.
 
 ThinkDecor's first month is 69p, then £4.99/month for 20 designs. That's not a promotional gimmick to get you in the door and then charge RoomGPT-level prices later — £4.99 is the actual ongoing price. If you just want to try one redesign before deciding anything, the barrier to entry is a fraction of what a credit pack costs.
 
@@ -214,17 +214,17 @@ Two free redesigns come with every new account — enough to try Japandi and one
     cover_url: '/assets/samples/styled_room.png',
     read_minutes: 4,
     published_at: daysAgo(37),
-    content: `"Free trial" in this category almost always means "a small number of free credits, then a paid tier that starts somewhere between $9 and $30." Worth being specific about what that actually costs once you want to use the thing properly, not just once.
+    content: `"Free trial" in this category almost always means "a small number of free credits, then a paid tier that starts somewhere between $9 and $20." Worth being specific about what that actually costs once you want to use the thing properly, not just once.
 
 ## What "free" actually gets you, across the category
 
-RoomGPT's paid credits start at $9 for 30 — workable, but you're paying up front for a batch you may not use. Interior AI's paid plans start around $19/month. Collov starts near $27/month for 60 credits, aimed more at professional and e-commerce use than casual redesign. Remodel AI currently offers 3 free designs with no card required, which is a genuinely low-friction way to test the category before spending anything.
+RoomGPT's paid credits start at $9 for 30 — workable, but you're paying up front for a batch you may not use. Collov's entry plan is listed at $19/month for 60 photo credits, aimed more at professional and e-commerce use than casual redesign. Remodel AI currently offers 3 free designs with no card required, which is a genuinely low-friction way to test the category before spending anything.
 
 ## Where ThinkDecor sits
 
 New accounts get 2 free redesigns, no card required — enough to try one room in one style and judge the quality for yourself. Past that, it's 69p for the first month, then £4.99/month for 20 designs. That first-month price isn't a permanently discounted "founding member" rate that quietly reverts to something higher later — £4.99 is the standing price after it.
 
-Twenty designs a month works out to roughly 25p per redesign if you use all of them, which is meaningfully below the per-credit cost of RoomGPT's cheapest pack and well below Collov's professional-tier pricing.
+Twenty designs a month works out to roughly 25p per redesign if you use all of them, which is in the same range as RoomGPT's cheapest pack (about 30 cents a credit) but as a flat monthly price, and well below Collov's higher tiers.
 
 ## What "cheap" doesn't mean here
 

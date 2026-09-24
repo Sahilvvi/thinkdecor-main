@@ -1,41 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Reveal, staggerItem } from './Motion';
 import { useInViewOrStacked } from '@/components/motion/StackPanels';
 
-/** Sample quotes, not verified reviews — labelled as such, same as elsewhere on the site. */
+/**
+ * Illustrative scenarios, NOT customer reviews. This used to be invented quotes with first names and
+ * star ratings, which reads as fabricated reviews (a misleading-advertising risk in the UK and a trust
+ * problem). Each card is now an honest "here is how people use it" scenario with no name or rating.
+ * Swap in real, permissioned customer quotes here once there are some.
+ */
 const SLIDES = [
-  {
-    image: '/assets/rooms/t-teal.jpg', caption: 'Harbour Teal · Living room', stars: 5,
-    quote: "I was about to buy four litres of teal on a hunch. Saw it on my own wall first and went two shades lighter. Best 69p I've spent.",
-    name: 'Priya', role: 'Homeowner, Leeds',
-  },
-  {
-    image: '/assets/rooms/room-bedroom.jpg', caption: 'Evening Noir · Bedroom', stars: 5,
-    quote: 'Tapping the bed to see what it cost was the bit that sold me. I priced the whole room before leaving the sofa.',
-    name: 'Tom', role: 'Renter, Bristol',
-  },
-  {
-    image: '/assets/rooms/s-scandi.jpg', caption: 'Scandinavian · Dining', stars: 5,
-    quote: 'I send clients a preview instead of a mood board now. They say yes faster because it\'s their room, not a stock photo.',
-    name: 'Aisha', role: 'Interior designer, London',
-  },
-  {
-    image: '/assets/rooms/room-kitchen.jpg', caption: 'Warm Oak · Kitchen', stars: 4,
-    quote: 'The floor swap is uncanny. The tiles follow the angle of the room, and the chairs stayed exactly where they were.',
-    name: 'Daniel', role: 'Homeowner, Manchester',
-  },
-  {
-    image: '/assets/rooms/tpl-wallpaper.jpg', caption: 'Star wallpaper · Nursery', stars: 5,
-    quote: 'Wallpaper is expensive to get wrong. Being able to try three patterns on the nursery wall saved us a very awkward weekend.',
-    name: 'Meera', role: 'Parent, Birmingham',
-  },
-  {
-    image: '/assets/rooms/room-hall.jpg', caption: 'Maximalism · Hall', stars: 5,
-    quote: "My hallway is tiny, so I wanted to be sure dark walls wouldn't shrink it. They didn't. Painted it the next Saturday.",
-    name: 'Hannah', role: 'Homeowner, Glasgow',
-  },
+  { image: '/assets/rooms/t-teal.jpg', caption: 'Harbour Teal · Living room', name: 'Repainting', role: 'Try paint colours on your own wall',
+    quote: 'See a bold colour like teal on your own wall for 69p before you buy four litres, and go a shade lighter if it is too much.' },
+  { image: '/assets/rooms/room-bedroom.jpg', caption: 'Evening Noir · Bedroom', name: 'Furnishing', role: 'Price a whole room before you buy',
+    quote: 'Tap a piece in the redesign to see what it costs, and price the whole room without leaving the sofa.' },
+  { image: '/assets/rooms/s-scandi.jpg', caption: 'Scandinavian · Dining', name: 'Client previews', role: 'For interior designers',
+    quote: 'Send a client a preview of their actual room instead of a mood board of stock photos.' },
+  { image: '/assets/rooms/room-kitchen.jpg', caption: 'Warm Oak · Kitchen', name: 'Flooring', role: 'Swap floors, keep the furniture',
+    quote: 'Swap the floor and the new material follows the angle of the room while your furniture stays put.' },
+  { image: '/assets/rooms/tpl-wallpaper.jpg', caption: 'Star wallpaper · Nursery', name: 'Wallpaper', role: 'Compare patterns before you commit',
+    quote: 'Wallpaper is expensive to get wrong. Try three patterns on the same wall first.' },
+  { image: '/assets/rooms/room-hall.jpg', caption: 'Maximalism · Hall', name: 'Small spaces', role: 'Check dark walls will not shrink a room',
+    quote: 'Not sure dark walls suit a tiny hallway? Preview them on your own photo before picking up a brush.' },
 ];
 
 /**
@@ -105,7 +92,7 @@ export function Testimonials() {
     <section
       id="testimonials"
       aria-roledescription="carousel"
-      aria-label="Testimonials"
+      aria-label="Example use cases"
       className="relative scroll-mt-24 overflow-hidden py-16 lg:py-20"
     >
       <Reveal className="container relative z-10 mx-auto flex max-w-[1200px] flex-wrap items-end justify-between gap-6 px-6 sm:px-8">
@@ -115,17 +102,17 @@ export function Testimonials() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
-            From early users · sample quotes
+            Illustrative use cases · not customer reviews
           </p>
           <h2 className="mt-4 font-display text-[clamp(1.9rem,4vw,3.2rem)] font-medium leading-[1.05] text-foreground">
-            Testimo<em className="text-primary not-italic font-normal italic">nials</em>
+            How people use <em className="text-primary not-italic font-normal italic">ThinkDecor</em>
           </h2>
         </div>
         <div className="flex gap-2.5">
           <button
             type="button"
             onClick={() => go(-1)}
-            aria-label="Previous testimonial"
+            aria-label="Previous example"
             className="grid h-[52px] w-[52px] place-items-center rounded-full bg-card text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary))] transition-colors hover:bg-primary hover:text-primary-foreground"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -133,7 +120,7 @@ export function Testimonials() {
           <button
             type="button"
             onClick={() => go(1)}
-            aria-label="Next testimonial"
+            aria-label="Next example"
             className="grid h-[52px] w-[52px] place-items-center rounded-full bg-card text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary))] transition-colors hover:bg-primary hover:text-primary-foreground"
           >
             <ChevronRight className="h-5 w-5" />
@@ -174,13 +161,8 @@ export function Testimonials() {
                 </figcaption>
               </figure>
               <div className="flex flex-1 flex-col gap-3.5 p-6">
-                <p aria-label={`${s.stars} out of 5`} className="flex gap-0.5 text-primary">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5" fill={i < s.stars ? 'currentColor' : 'none'} />
-                  ))}
-                </p>
                 <blockquote className="flex-1 font-display text-[20px] leading-[1.35] text-primary">
-                  &ldquo;{s.quote}&rdquo;
+                  {s.quote}
                 </blockquote>
                 <div className="flex items-center gap-3 border-t border-border pt-3.5">
                   <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-display text-[18px] text-white">

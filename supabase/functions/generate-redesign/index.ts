@@ -93,7 +93,13 @@ type GeminiImageResult =
  * retry, and everything Google gave us is logged so a refusal is
  * diagnosable from the Supabase function logs alone.
  */
-async function callGeminiImage(model: string, fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+async function callGeminiImage(
+  model: string,
+  fullPrompt: string,
+  inputB64: string,
+  inputMimeType: string,
+  referenceImage?: { b64: string; mimeType: string },
+): Promise<GeminiImageResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
   try {
@@ -107,6 +113,7 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
             parts: [
               { text: fullPrompt },
               { inlineData: { mimeType: inputMimeType, data: inputB64 } },
+              ...(referenceImage ? [{ inlineData: { mimeType: referenceImage.mimeType, data: referenceImage.b64 } }] : []),
             ],
           }],
           generationConfig: { responseModalities: ["IMAGE"] },
@@ -165,11 +172,12 @@ async function generateImage(
   inputMimeType: string,
   models: string[],
   onAttempt: (a: AttemptRecord) => void,
+  referenceImage?: { b64: string; mimeType: string },
 ): Promise<GeminiImageResult> {
   let last: GeminiImageResult = { ok: false, hardError: "No image model available" };
   for (const model of models) {
     const started = Date.now();
-    let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType);
+    let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType, referenceImage);
     if (!attempt.ok && attempt.refusalReason) {
       console.error("generate-redesign: refused, retrying with softened framing", { model, refusalReason: attempt.refusalReason });
       attempt = await callGeminiImage(
@@ -177,6 +185,7 @@ async function generateImage(
         `${fullPrompt} This is a professional interior-design photo-editing request for a legitimate home-renovation context.`,
         inputB64,
         inputMimeType,
+        referenceImage,
       );
     }
     onAttempt({
@@ -356,7 +365,7 @@ Deno.serve(async (req) => {
   if (blocked) return json({ error: blocked.message, code: blocked.code }, blocked.status);
   const models = imageModels(settings, Deno.env.get("GEMINI_IMAGE_MODEL"));
 
-  const { inputPath, maskedPath, templateKey, roomType, roomLabel, stylePrompt, prompt, detectedLabel, mode: rawMode } = body as {
+  const { inputPath, maskedPath, templateKey, roomType, roomLabel, stylePrompt, prompt, detectedLabel, mode: rawMode, referencePath, referenceNote } = body as {
     inputPath?: string;
     /** Cleanup/Replace: the red-marked copy the model edits. inputPath stays the clean "before". */
     maskedPath?: string;
@@ -367,6 +376,10 @@ Deno.serve(async (req) => {
     prompt?: string;
     detectedLabel?: string;
     mode?: string;
+    /** Redesign only — a product photo (e.g. extracted from a pasted Pinterest link) to bring into the room. */
+    referencePath?: string;
+    /** What to do with the reference product — "put this armchair by the window", etc. */
+    referenceNote?: string;
   };
   const mode: Mode = rawMode === "cleanup" || rawMode === "replace" ? rawMode : "redesign";
 
@@ -376,6 +389,9 @@ Deno.serve(async (req) => {
     typeof p === "string" && p.startsWith(`${user.id}/`) && !p.includes("..");
   if (!ownPath(inputPath) || (maskedPath !== undefined && !ownPath(maskedPath))) {
     return json({ error: "That photo couldn't be used. Please upload it again.", code: "bad_image" }, 400);
+  }
+  if (referencePath !== undefined && !ownPath(referencePath)) {
+    return json({ error: "That reference image couldn't be used. Please add it again.", code: "bad_reference_image" }, 400);
   }
   // The model edits the red-marked copy when there is one (older clients sent
   // only a masked inputPath, which still works).
@@ -390,6 +406,21 @@ Deno.serve(async (req) => {
   }
   if (sourceBlob.type && !ALLOWED_TYPES.includes(sourceBlob.type)) {
     return json({ error: "Please use a JPG, PNG or WebP photo.", code: "bad_image_type" }, 415);
+  }
+
+  let referenceBlob: Blob | null = null;
+  if (mode === "redesign" && referencePath) {
+    const { data: refBlob, error: refDownloadError } = await admin.storage.from(BUCKET).download(referencePath);
+    if (refDownloadError || !refBlob) {
+      return json({ error: "That reference image couldn't be found. Please add it again.", code: "bad_reference_image" }, 400);
+    }
+    if (refBlob.size > MAX_INPUT_BYTES) {
+      return json({ error: "That reference image is too large.", code: "reference_image_too_large" }, 413);
+    }
+    if (refBlob.type && !ALLOWED_TYPES.includes(refBlob.type)) {
+      return json({ error: "That reference image isn't a usable format.", code: "bad_reference_image_type" }, 415);
+    }
+    referenceBlob = refBlob;
   }
 
   // ---- 2. spend (while the prompt gets tidied, so the rewrite costs no extra wait)
@@ -443,12 +474,22 @@ Deno.serve(async (req) => {
           "Keep the room's architecture, windows, doors, camera angle and perspective exactly the same, but the",
           "redesign itself must be clearly and obviously visible — change the wall color or finish and the",
           "flooring as part of the style, not just minor styling touches.",
+          referenceBlob
+            ? "A second reference image is also provided, showing a specific real product. " +
+              (typeof referenceNote === "string" && referenceNote.trim()
+                ? `Use it as instructed: ${referenceNote.trim().replace(/[.\s]+$/, "")}.`
+                : "Bring this exact product into the room in a natural, fitting spot.") +
+              " Match its real colour, material, shape and proportions as closely as possible — don't invent a different item."
+            : "",
         ].filter(Boolean).join(" ");
 
     const inputMimeType = sourceBlob.type || "image/png";
     const inputB64 = toBase64(new Uint8Array(await sourceBlob.arrayBuffer()));
+    const referenceImage = referenceBlob
+      ? { b64: toBase64(new Uint8Array(await referenceBlob.arrayBuffer())), mimeType: referenceBlob.type || "image/png" }
+      : undefined;
 
-    const attempt = await generateImage(fullPrompt, inputB64, inputMimeType, models, (a) => attempts.push(a));
+    const attempt = await generateImage(fullPrompt, inputB64, inputMimeType, models, (a) => attempts.push(a), referenceImage);
     if (!attempt.ok) {
       throw new Error(
         attempt.hardError ??
@@ -489,10 +530,12 @@ Deno.serve(async (req) => {
     if (insertError) throw insertError;
     await flushAttempts(generation?.id);
 
-    // The red-marked copy was only an instruction for the model. Best effort.
-    if (modelPath !== inputPath) {
-      const { error: removeError } = await admin.storage.from(BUCKET).remove([modelPath]);
-      if (removeError) console.error("generate-redesign: couldn't remove masked copy", removeError);
+    // The red-marked copy and any pasted-in reference product photo were only
+    // instructions for the model, not part of the saved design. Best effort.
+    const toClean = [modelPath !== inputPath ? modelPath : null, referencePath ?? null].filter((p): p is string => !!p);
+    if (toClean.length) {
+      const { error: removeError } = await admin.storage.from(BUCKET).remove(toClean);
+      if (removeError) console.error("generate-redesign: couldn't remove temporary reference files", removeError);
     }
 
     return json({ generation });

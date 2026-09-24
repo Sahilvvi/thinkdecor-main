@@ -239,6 +239,35 @@ export interface GenerateRequest {
   prompt?: string;
   /** Increments on each regenerate of the same photo, so placeholder variations differ. */
   attempt?: number;
+  /** Bucket path of a product photo (e.g. from extractPinImage) to bring into the room. */
+  referencePath?: string;
+  /** What to do with the reference product — "put this armchair by the window", etc. */
+  referenceNote?: string;
+}
+
+export class ExtractionError extends Error {
+  code: string;
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = 'ExtractionError';
+    this.code = code;
+  }
+}
+
+/**
+ * Pulls a usable product photo out of a pasted Pinterest link (see
+ * supabase/functions/extract-pin-image) and stores it under the caller's own
+ * path, ready to pass as GenerateRequest.referencePath. Every failure mode —
+ * bad link, private pin, no image found, download failure — comes back as a
+ * distinct ExtractionError.code so the UI can say exactly what went wrong.
+ */
+export async function extractPinImage(url: string): Promise<{ path: string; title: string | null; sourceUrl: string }> {
+  const { data, error } = await supabase.functions.invoke('extract-pin-image', { body: { url } });
+  if (error) {
+    const payload = await readFunctionError(error);
+    throw new ExtractionError(payload?.error ?? "Couldn't read that link. Please try again.", payload?.code ?? 'unknown');
+  }
+  return data as { path: string; title: string | null; sourceUrl: string };
 }
 
 /**
@@ -289,6 +318,8 @@ export async function generateRedesign({
   roomType,
   prompt,
   attempt = 0,
+  referencePath,
+  referenceNote,
 }: GenerateRequest): Promise<Generation> {
   // 1. The source photo — uploaded once to the private bucket, then reused by
   //    every refinement of the same room.
@@ -316,6 +347,8 @@ export async function generateRedesign({
         roomLabel: roomLabel(roomType),
         stylePrompt: template?.prompt,
         prompt: prompt?.trim() || undefined,
+        referencePath: referencePath || undefined,
+        referenceNote: referenceNote?.trim() || undefined,
       },
     });
     if (error) {

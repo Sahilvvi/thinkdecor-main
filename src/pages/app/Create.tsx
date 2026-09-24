@@ -3,7 +3,7 @@ import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowRight, Check, Download, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2,
+  ArrowRight, Check, Download, ImagePlus, Link2, Loader2, Mic, MicOff, RefreshCw, Wand2, X,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
@@ -11,8 +11,8 @@ import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useAuthStore } from '@/stores/authStore';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
 import {
-  GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
-  downloadStoredImage, fileNameFor, isSetupError, type Generation, useCreditBalance, useGenerate,
+  ExtractionError, GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
+  downloadStoredImage, extractPinImage, fileNameFor, isSetupError, useStoredImageUrl, type Generation, useCreditBalance, useGenerate,
 } from '@/lib/generation';
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
@@ -64,6 +64,11 @@ export default function Create() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [dragging, setDragging] = useState(false);
 
+  const [pinUrl, setPinUrl] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [reference, setReference] = useState<{ path: string; title: string | null } | null>(null);
+  const referencePreview = useStoredImageUrl(reference?.path);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const voice = useVoiceInput({
@@ -103,6 +108,7 @@ export default function Create() {
     prompt: string;
     attempt: number;
     restorePromptOnError?: boolean;
+    referencePath?: string;
   }) => {
     const id = crypto.randomUUID();
     setTurns((prev) => [
@@ -126,6 +132,8 @@ export default function Create() {
         roomType: args.roomType,
         prompt: args.prompt,
         attempt: args.attempt,
+        referencePath: args.referencePath,
+        referenceNote: args.referencePath ? args.prompt : undefined,
       });
       setTurns((prev) =>
         prev.map((t) => (t.id === id ? { ...t, status: 'done', result, sourceRef: result.input_image_url } : t)),
@@ -156,8 +164,29 @@ export default function Create() {
       prompt: prompt.trim(),
       attempt: 0,
       restorePromptOnError: true,
+      referencePath: reference?.path,
     });
     setPrompt('');
+    // The edge function deletes the reference photo from storage once it's used
+    // (like the mask overlay), so it can't be reused for a later send — clear it
+    // here rather than let a second click reference an already-deleted file.
+    setReference(null);
+    setPinUrl('');
+  };
+
+  const extractPin = async () => {
+    const url = pinUrl.trim();
+    if (!url) return;
+    setExtracting(true);
+    try {
+      const result = await extractPinImage(url);
+      setReference({ path: result.path, title: result.title });
+      toast.success('Got it — mention what to do with it below.');
+    } catch (err) {
+      toast.error(err instanceof ExtractionError ? err.message : "Couldn't read that link. Please try again.");
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const regenerate = (turn: Turn) => {
@@ -359,6 +388,58 @@ export default function Create() {
             <span className="sel"><img src={selectedTemplate?.image} alt="" />{selectedTemplate?.label}</span>
             <span className="sel">{roomLabel(roomType)}</span>
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 10px' }}>
+            {reference ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px 6px 6px', borderRadius: 999, background: 'var(--paper-2, #F2F2EE)', boxShadow: 'inset 0 0 0 1px var(--stone, #E4E1D8)' }}>
+                {referencePreview && (
+                  <img src={referencePreview} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                )}
+                <span style={{ fontSize: 12.5, fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {reference.title || 'Product from Pinterest'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setReference(null); setPinUrl(''); }}
+                  aria-label="Remove product reference"
+                  style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: '50%', border: 0, background: 'transparent', cursor: 'pointer', color: 'var(--muted-foreground, #8A8A80)' }}
+                >
+                  <X width={13} height={13} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 260px', minWidth: 200 }}>
+                  <Link2 width={14} height={14} style={{ flexShrink: 0, opacity: 0.55 }} />
+                  <input
+                    type="url"
+                    value={pinUrl}
+                    onChange={(e) => setPinUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); extractPin(); } }}
+                    placeholder="Paste a Pinterest link to add that product…"
+                    disabled={extracting}
+                    style={{ flex: 1, minWidth: 0, border: 0, borderBottom: '1px solid var(--stone, #E4E1D8)', background: 'transparent', font: 'inherit', fontSize: 13, padding: '4px 2px', outline: 'none' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={extractPin}
+                  disabled={extracting || !pinUrl.trim()}
+                  className="btn btn-line btn-sm"
+                  style={{ flexShrink: 0 }}
+                >
+                  {extracting ? <Loader2 className="animate-spin" width={13} height={13} /> : <Link2 width={13} height={13} />}
+                  {extracting ? 'Reading…' : 'Add'}
+                </button>
+              </>
+            )}
+          </div>
+          {reference && (
+            <p className="muted" style={{ fontSize: 12, margin: '-6px 0 10px' }}>
+              Mention what to do with it below — e.g. "put this armchair by the window".
+            </p>
+          )}
+
           <div className="ta">
             <textarea
               value={prompt}

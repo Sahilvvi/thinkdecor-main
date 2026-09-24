@@ -127,6 +127,9 @@ export default function BlogPostPage() {
                       {(post.author_name ?? 'T').slice(0, 1)}
                     </span>
                     <span className="text-[13.5px] text-foreground/65">{post.author_name ?? 'ThinkDecor'}</span>
+                    {post.updated_at && post.published_at && new Date(post.updated_at).getTime() - new Date(post.published_at).getTime() > 86400000 && (
+                      <span className="ml-auto text-[12.5px] text-foreground/45">Updated {fmt(post.updated_at)}</span>
+                    )}
                   </div>
                 </Reveal>
               </header>

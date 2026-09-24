@@ -136,6 +136,23 @@ export default function AiRoomRedesign() {
           </div>
         </section>
 
+        {/* ---------------- DEFINITION (answer-first block: what search engines and AI answers quote) ---------------- */}
+        <section className="px-3 pt-14 sm:px-4">
+          <div className="container mx-auto max-w-[760px] px-6 sm:px-8">
+            <h2 className="font-display text-[clamp(1.6rem,3vw,2.2rem)] font-medium text-foreground">What is AI room redesign?</h2>
+            <p className="mt-4 text-[17px] leading-relaxed text-foreground/80">
+              AI room redesign is a tool that takes a photo of a real room and shows it restyled in a new colour scheme or
+              design style, such as Scandinavian or Japandi. You upload one photo, pick a style, and the AI returns a
+              redesigned image in seconds so you can compare options before you paint or buy furniture.
+            </p>
+            <p className="mt-3 text-[15px] text-foreground/60">
+              Curious about the technology? Read <Link to="/blog/how-does-ai-interior-design-work" className="text-primary underline underline-offset-2">how AI interior design works</Link>, or browse{' '}
+              <Link to="/blog/living-room-decor-ideas" className="text-primary underline underline-offset-2">living room decor ideas</Link> and{' '}
+              <Link to="/blog/interior-design-styles-explained" className="text-primary underline underline-offset-2">interior design styles</Link> to pick a direction first.
+            </p>
+          </div>
+        </section>
+
         {/* ---------------- HOW IT WORKS ---------------- */}
         <section className="px-3 py-14 sm:px-4">
           <div className="container mx-auto max-w-[1100px] px-6 sm:px-8">

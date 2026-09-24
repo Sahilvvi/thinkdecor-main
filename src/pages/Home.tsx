@@ -30,6 +30,7 @@ import { HangingCta } from '@/components/motion/HangingCta';
 import { NewsletterBand } from '@/components/motion/NewsletterBand';
 import { FREE_SIGNUP_CREDITS } from '@/lib/generation';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
+import { organizationSchema, softwareApplicationSchema, faqPageSchema } from '@/lib/schema';
 
 /* ---------------------------------------------------------------- *
  *  Homepage — a motion-led layout: 3D hero, a pinned "how it works"
@@ -87,14 +88,23 @@ const FAQS = [
 // product decision, but it was never meant to replay on every route change.
 let introPlayedThisSession = false;
 
+// Puppeteer, Playwright and every other automated browser set this flag —
+// real visitors never have it. The prerender script (scripts/prerender.mjs)
+// needs the actual page content in the DOM, not a paused video it has no
+// way to scroll through, so an automated browser is treated the same as a
+// returning visitor and skips straight past the intro.
+const isAutomatedBrowser = typeof navigator !== 'undefined' && navigator.webdriver === true;
+
 export default function Home() {
   // Page content stays invisible until the intro's video starts shrinking,
   // so it "arrives" alongside the video settling into the hero rather than
   // popping in only once the whole takeover finishes. Skipped entirely if
   // the intro already played earlier in this same browser session (see
-  // `introPlayedThisSession` above).
-  const [pageVisible, setPageVisible] = useState(introPlayedThisSession);
-  const [introDone, setIntroDone] = useState(introPlayedThisSession);
+  // `introPlayedThisSession` above), or for an automated browser (see
+  // `isAutomatedBrowser` above).
+  const skipIntro = introPlayedThisSession || isAutomatedBrowser;
+  const [pageVisible, setPageVisible] = useState(skipIntro);
+  const [introDone, setIntroDone] = useState(skipIntro);
   // The hero's own room photo, mounted underneath the intro the whole time
   // (just invisible) — its real on-screen box is what the video shrinks
   // into, measured live rather than guessed, so the handoff lines up on
@@ -107,6 +117,15 @@ export default function Home() {
         title="ThinkDecor | AI Interior Design From a Photo"
         description={`Upload a photo of any room and Mantha AI redesigns it in the style you choose. Start with ${FREE_SIGNUP_CREDITS} free redesigns, then ${INTRO} for your first month.`}
         canonical="https://thinkdecor.app/"
+        schema={[
+          organizationSchema(),
+          softwareApplicationSchema({
+            price: PHASE1_PLAN.introPrice ?? 0.69,
+            currency: 'GBP',
+            description: 'Upload a photo of any room and Mantha AI redesigns it in the style you choose, keeping the walls, windows and layout you already have.',
+          }),
+          faqPageSchema(FAQS),
+        ]}
       />
 
       {!introDone && (

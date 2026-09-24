@@ -103,7 +103,7 @@ export function HeroStage({ onStageBoxMount }: { onStageBoxMount?: (el: HTMLDivE
         {/* ---------------- copy ---------------- */}
         <div className="flex flex-col gap-[22px] pt-2">
           <span className="font-label text-[11px] font-bold uppercase tracking-[0.16em] text-[#8FE3D4]">
-            Room visualiser · Paint · Wallpaper · Floor
+            AI Room Redesign · Paint · Wallpaper · Floor
           </span>
 
           <h1 className="font-display text-[clamp(2.75rem,6.2vw,5.5rem)] font-medium leading-[0.98] text-white">

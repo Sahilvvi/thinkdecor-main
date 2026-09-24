@@ -9,6 +9,7 @@ import { Reveal } from '@/components/premium/Motion';
 import {
   getBySlug, listPublished, postBodyClassName, renderMarkdown, type BlogPost as Post,
 } from '@/lib/blog';
+import { blogPostingSchema } from '@/lib/schema';
 
 const FALLBACK_COVER = '/assets/samples/styled_room.png';
 
@@ -54,6 +55,15 @@ export default function BlogPostPage() {
         title={post ? `${post.title} | ThinkDecor` : 'Article | ThinkDecor'}
         description={post?.excerpt ?? 'An article from the ThinkDecor journal.'}
         canonical={`https://thinkdecor.app/blog/${slug}`}
+        schema={post && slug ? blogPostingSchema({
+          title: post.title,
+          excerpt: post.excerpt,
+          slug,
+          coverUrl: post.cover_url,
+          publishedAt: post.published_at,
+          updatedAt: post.updated_at,
+          authorName: post.author_name,
+        }) : undefined}
       />
       <motion.div style={{ scaleX: bar }} className="fixed left-0 right-0 top-0 z-[60] h-[3px] origin-left bg-gradient-to-r from-primary to-[hsl(160_84%_45%)]" />
       <Navbar />
@@ -117,7 +127,7 @@ export default function BlogPostPage() {
               <Reveal delay={0.1} y={30} className="mt-12">
                 <div className="container mx-auto max-w-[980px] px-6 sm:px-8">
                   <div className="overflow-hidden rounded-[26px] border border-foreground/[0.10]">
-                    <img src={post.cover_url || FALLBACK_COVER} alt="" className="aspect-[16/9] w-full object-cover" />
+                    <img src={post.cover_url || FALLBACK_COVER} alt={post.title} className="aspect-[16/9] w-full object-cover" />
                   </div>
                 </div>
               </Reveal>
@@ -141,7 +151,7 @@ export default function BlogPostPage() {
                     {more.map((p) => (
                       <Link key={p.id} to={`/blog/${p.slug}`} className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-foreground/[0.08] bg-card shadow-[0_8px_26px_-20px_hsl(168_20%_10%/0.4)] transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/28 hover:shadow-[0_26px_56px_-34px_hsl(168_60%_15%/0.32)]">
                         <div className="relative aspect-[16/10] overflow-hidden">
-                          <img src={p.cover_url || FALLBACK_COVER} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          <img src={p.cover_url || FALLBACK_COVER} alt={p.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         </div>
                         <div className="p-5">
                           <p className="text-[14.5px] font-medium leading-snug text-foreground transition-colors group-hover:text-primary">{p.title}</p>

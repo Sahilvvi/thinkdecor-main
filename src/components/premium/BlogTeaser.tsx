@@ -76,7 +76,7 @@ export function BlogTeaser() {
                 <figure className="relative m-0 aspect-video overflow-hidden">
                   <img
                     src={p.cover_url || FALLBACK_COVER}
-                    alt=""
+                    alt={p.title}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                   />

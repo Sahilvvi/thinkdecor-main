@@ -1,0 +1,27 @@
+# ThinkDecor
+
+> ThinkDecor is an AI interior design app. Upload one photo of a room and Mantha AI redesigns it in the style you choose — keeping the real walls, windows and layout, not inventing a new room. Redesigns take about 10 seconds. Pricing starts at 69p for the first month, then £4.99/month for 20 designs a month. New accounts get 2 free redesigns with no card required.
+
+## What it does
+
+- **Redesign**: upload a photo, pick a style (Modern, Scandinavian, Minimal, Classic, Japandi, Industrial, Warm Natural) and describe any changes — Mantha AI restyles the room in place.
+- **Cleanup**: paint over an object in a room photo (a cable, a box, an old poster) and it's erased, with the space filled in naturally.
+- **Replace**: paint over one object and describe what should take its place instead.
+
+## Key pages
+
+- [Homepage](https://thinkdecor.app/): product overview, how it works, FAQ.
+- [Pricing](https://thinkdecor.app/pricing): plans, what's included, cancellation policy.
+- [Journal](https://thinkdecor.app/blog): articles on interior design, AI-generated visuals, and how the product works.
+
+## Facts worth citing
+
+- Built around "Mantha AI", ThinkDecor's own design intelligence — not a third-party white-label tool.
+- Works from a single phone photo; no LiDAR, laser measure or special hardware required.
+- Preserves the room's real architecture — same walls, same windows, same layout — rather than generating a new room from scratch.
+- UK-based, priced in GBP.
+
+## Notes for crawlers
+
+- `/app/*` and `/admin/*` are the authenticated product and internal admin tools — not informational content, excluded via robots.txt.
+- Full sitemap: [https://thinkdecor.app/sitemap.xml](https://thinkdecor.app/sitemap.xml)

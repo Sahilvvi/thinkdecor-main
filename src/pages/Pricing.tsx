@@ -12,6 +12,7 @@ import { NewsletterBand } from '@/components/motion/NewsletterBand';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { startCheckout, CheckoutError } from '@/lib/checkout';
 import { useAuthStore } from '@/stores/authStore';
+import { softwareApplicationSchema, faqPageSchema } from '@/lib/schema';
 
 const FAQS = [
   {
@@ -78,6 +79,14 @@ export default function Pricing() {
         title="Pricing | ThinkDecor"
         description="Start for 69p, then £4.99 a month. Upload a photo of any room and Mantha AI redesigns it in the style you choose — 20 designs a month. Cancel anytime."
         canonical="https://thinkdecor.app/pricing"
+        schema={[
+          softwareApplicationSchema({
+            price: plan.introPrice ?? 0.69,
+            currency: 'GBP',
+            description: `Upload a photo of any room and Mantha AI redesigns it in the style you choose — ${plan.credits} designs a month.`,
+          }),
+          faqPageSchema(FAQS),
+        ]}
       />
       <Navbar />
 

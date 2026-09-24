@@ -166,7 +166,7 @@ export function Testimonials() {
               <figure className="relative m-0 aspect-video overflow-hidden">
                 <img
                   src={s.image}
-                  alt=""
+                  alt={s.caption}
                   className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                 />
                 <figcaption className="absolute bottom-3 left-3 rounded-full bg-[hsl(168_100%_17%/0.8)] px-2.5 py-1.5 font-label text-[10.5px] font-medium uppercase tracking-[0.08em] text-white">

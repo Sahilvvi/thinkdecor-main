@@ -185,7 +185,7 @@ export default function Blog() {
                   <figure className="relative m-0 min-h-[300px] overflow-hidden lg:min-h-[420px]">
                     <img
                       src={lead.cover_url || FALLBACK_COVER}
-                      alt=""
+                      alt={lead.title}
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                     />
                   </figure>
@@ -224,7 +224,7 @@ export default function Blog() {
                     <figure className="relative m-0 aspect-[16/10] overflow-hidden">
                       <img
                         src={p.cover_url || FALLBACK_COVER}
-                        alt=""
+                        alt={p.title}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />

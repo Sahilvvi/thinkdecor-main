@@ -9,6 +9,7 @@ import { SEO } from '@/components/shared/SEO';
 import { useAuthStore } from '@/stores/authStore';
 import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 import { useCreditBalance } from '@/lib/generation';
+import { syncBilling } from '@/lib/checkout';
 
 /** How long to wait for the Stripe webhook before showing the "still activating" message. */
 const CONFIRM_TIMEOUT_S = 20;
@@ -39,6 +40,22 @@ export default function CheckoutSuccess() {
     }, 1000);
     return () => clearInterval(timer);
   }, [polling, queryClient]);
+
+  // Don't rely on the Stripe webhook alone: ask the server to pull the subscription and credits
+  // straight from Stripe. Immediately, then every 4s until the plan shows as active.
+  useEffect(() => {
+    if (!user || active) return;
+    let cancelled = false;
+    const run = async () => {
+      const res = await syncBilling();
+      if (cancelled || !res) return;
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+    };
+    run();
+    const id = setInterval(run, 4000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [user, active, queryClient]);
 
   useEffect(() => {
     if (active || elapsed >= CONFIRM_TIMEOUT_S) setPolling(false);

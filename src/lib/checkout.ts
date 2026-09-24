@@ -132,3 +132,23 @@ export async function openBillingPortal() {
 
   window.location.href = data.url as string;
 }
+
+/**
+ * Asks the server to pull this customer's subscription, payments and credits from Stripe
+ * and save them. This is what upgrades an account right after paying even if Stripe's
+ * webhook is late or misconfigured. Safe to call repeatedly. Returns null on failure
+ * (callers treat it as best-effort).
+ */
+export async function syncBilling(): Promise<{ subscriptions: number; creditsGranted: number; payments: number } | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('sync-billing', { body: {} });
+    if (error || !data?.ok) {
+      console.warn('[sync-billing] failed', error ?? data);
+      return null;
+    }
+    return data as { subscriptions: number; creditsGranted: number; payments: number };
+  } catch (e) {
+    console.warn('[sync-billing] network failure', e);
+    return null;
+  }
+}

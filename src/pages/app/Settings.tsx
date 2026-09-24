@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Camera, ExternalLink, Loader2, Lock, LogOut, Mail, User, Zap, LifeBuoy, CreditCard, Check,
 } from 'lucide-react';
@@ -12,7 +13,7 @@ import {
 } from '@/hooks/useProfile';
 import { formatDate, isSetupError, useCreditBalance } from '@/lib/generation';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
-import { CheckoutError, openBillingPortal } from '@/lib/checkout';
+import { CheckoutError, openBillingPortal, syncBilling } from '@/lib/checkout';
 import { uploadAvatar, UploadError } from '@/lib/upload';
 import { useMyTickets, useRaiseTicket } from '@/lib/support';
 
@@ -43,6 +44,7 @@ export default function Settings() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const { data: credits } = useCreditBalance();
+  const queryClient = useQueryClient();
   const { data: subscription } = useSubscription();
   const { data: tickets } = useMyTickets();
   const raiseTicket = useRaiseTicket();
@@ -161,6 +163,26 @@ export default function Settings() {
     await signOut();
     navigate('/login', { replace: true });
   };
+
+  const [refreshingBilling, setRefreshingBilling] = useState(false);
+  const refreshBilling = async () => {
+    setRefreshingBilling(true);
+    const res = await syncBilling();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+      queryClient.invalidateQueries({ queryKey: ['credits'] }),
+    ]);
+    setRefreshingBilling(false);
+    if (!res) toast.error("Couldn't check billing right now. Please try again in a minute.");
+    else if (res.subscriptions === 0 && res.payments === 0) toast.message('No payment found for this email yet.');
+    else toast.success('Billing refreshed.');
+  };
+
+  // Opening the Plan tab re-checks Stripe once, so a plan bought a moment ago shows up without a manual step.
+  useEffect(() => {
+    if (tab === 'plan' && !isActiveSubscription(subscription)) void refreshBilling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const manageBilling = async () => {
     setOpeningPortal(true);
@@ -367,6 +389,11 @@ export default function Settings() {
                   <div className="acts">
                     {!active && (
                       <Link to="/pricing" className="btn btn-w">Upgrade — {INTRO} first month, then {MONTHLY}</Link>
+                    )}
+                    {!active && (
+                      <button type="button" className="btn btn-g" onClick={refreshBilling} disabled={refreshingBilling}>
+                        {refreshingBilling && <Spinner />} Paid already? Refresh
+                      </button>
                     )}
                     {subscription && (
                       <button type="button" className="btn btn-g" onClick={manageBilling} disabled={openingPortal}>

@@ -31,8 +31,9 @@ const ROUTES = [
 
 const SHELL = (me: any) => `
 <div class="app">
+  <div class="sidebackdrop" id="sidebackdrop"></div>
   <aside class="side" id="side" aria-label="Super admin navigation">
-    <div class="brand"><a class="brand__logo" href="#dashboard">Think<i>Decor</i></a><span class="brand__tag">Super admin</span></div>
+    <div class="brand"><a class="brand__logo" href="#dashboard">Think<i>Decor</i></a><span class="brand__tag">Super admin</span><button class="iconbtn navclose" id="navclose" aria-label="Close menu"><span data-ic="x"></span></button></div>
     <nav class="nav" id="nav"></nav>
     <div class="me">
       <div class="me__row"><span class="av">${esc(initials(me.name))}</span><div style="min-width:0"><b>${esc(me.name.split('@')[0])}</b><small id="me-role"></small></div></div>
@@ -183,6 +184,7 @@ export function mountSuper(host: HTMLElement) {
     if (au) { const a = D.audit.find((x: any) => x.id === au.dataset.audit); a && showDrawer(a); return; }
     if (e.target.closest('#bell')) { showAlerts(); return; }
     if (e.target.closest('#menubtn')) { root.classList.toggle('navopen'); return; }
+    if (e.target.closest('#navclose') || e.target.closest('#sidebackdrop')) { root.classList.remove('navopen'); return; }
     if (e.target.closest('[data-close]')) { $('#drawer').innerHTML = ''; return; }
     if (e.target === $('#modal') && !S.locked) closeModal();
   };
@@ -196,7 +198,7 @@ export function mountSuper(host: HTMLElement) {
   });
   const onKey = (e: any) => {
     if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) { e.preventDefault(); $('#gsearch').focus(); }
-    if (e.key === 'Escape') { if (!S.locked) closeModal(); $('#drawer').innerHTML = ''; }
+    if (e.key === 'Escape') { if (!S.locked) closeModal(); $('#drawer').innerHTML = ''; root.classList.remove('navopen'); }
   };
   document.addEventListener('keydown', onKey);
   const onHash = () => { render(); window.scrollTo(0, 0); };

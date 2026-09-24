@@ -99,21 +99,34 @@ Deno.serve(async (req) => {
     let authUsers: { users: Awaited<ReturnType<typeof listAllAuthUsers>> };
     let profiles: Awaited<ReturnType<typeof fetchAllRows>>;
     let roles: Awaited<ReturnType<typeof fetchAllRows>>;
+    let subs: Awaited<ReturnType<typeof fetchAllRows>>;
     try {
-      const [users, p, r] = await Promise.all([
+      const [users, p, r, sb] = await Promise.all([
         listAllAuthUsers(admin),
         fetchAllRows(admin, "profiles", "user_id, name, phone, banned_at, plan"),
         fetchAllRows(admin, "user_roles", "user_id, role"),
+        fetchAllRows(admin, "subscriptions", "user_id, status, plan_key"),
       ]);
       authUsers = { users };
       profiles = p;
       roles = r;
+      subs = sb;
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : "Couldn't load accounts." }, 500);
     }
 
     const profileById = new Map((profiles ?? []).map((p) => [p.user_id, p]));
     const adminIds = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.user_id));
+
+    // The plan a customer is on comes from Stripe-backed subscriptions, not the legacy profiles.plan
+    // column (which nothing updates any more, so everyone read as "free").
+    const PLAN_NAMES: Record<string, string> = { phase1: "ThinkDecor", access: "Early access", studio: "Studio", scale: "Scale" };
+    const planByUser = new Map<string, string>();
+    for (const sub of subs ?? []) {
+      if (sub.status === "active" || sub.status === "trialing") {
+        planByUser.set(sub.user_id, PLAN_NAMES[sub.plan_key as string] ?? (sub.plan_key as string) ?? "paid");
+      }
+    }
 
     const users = authUsers.users.map((u) => {
       const profile = profileById.get(u.id);
@@ -122,7 +135,7 @@ Deno.serve(async (req) => {
         email: u.email,
         name: profile?.name ?? null,
         phone: profile?.phone ?? null,
-        plan: profile?.plan ?? "free",
+        plan: planByUser.get(u.id) ?? "free",
         isAdmin: adminIds.has(u.id),
         bannedAt: profile?.banned_at ?? null,
         createdAt: u.created_at,

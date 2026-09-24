@@ -42,7 +42,7 @@ begin
         group by 1
       ) g
     ),
-    'revenuePence',        (select coalesce(sum(amount_total), 0) from public.payments where status = 'paid'),
+    'revenuePence',        (select coalesce(sum(amount_total), 0) from public.payments where status = 'paid' and left(id, 8) <> 'cs_test_'),
     'activeSubscriptions', (select count(*) from public.subscriptions where status = 'active'),
     'openTickets',         (select count(*) from public.support_tickets where status = 'open'),
     'dailyViews',          (

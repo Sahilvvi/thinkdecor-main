@@ -68,7 +68,7 @@ export function Footer() {
                 <Instagram className="h-4 w-4" />
               </a>
               <a
-                href="https://www.linkedin.com/company/thinkdecor/?viewAsMember=true"
+                href="https://www.linkedin.com/company/thinkdecor/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full border border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary-foreground hover:bg-primary hover:border-primary hover:scale-110 transition-all duration-300"

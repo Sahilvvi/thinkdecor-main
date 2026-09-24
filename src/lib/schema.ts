@@ -12,7 +12,8 @@ export function organizationSchema() {
     name: 'ThinkDecor',
     url: SITE_URL,
     logo: `${SITE_URL}/favicon.png`,
-    sameAs: [] as string[],
+    // Real profiles linked from the site footer. Add new ones here as they are created.
+    sameAs: ['https://www.instagram.com/thinkdecor.app/', 'https://www.linkedin.com/company/thinkdecor/'],
   };
 }
 

@@ -73,12 +73,12 @@ export default function Blog() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <Reveal>
               <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-primary">Journal</p>
-              <h1 className="mt-3.5 max-w-[16ch] font-display text-[clamp(3.5rem,9vw,8.75rem)] font-normal leading-[0.88] tracking-[-0.02em] text-foreground">
-                Notes on <em className="italic text-primary">spatial</em> intelligence.
+              <h1 className="mt-3.5 max-w-[18ch] font-display text-[clamp(2.75rem,7.2vw,6.5rem)] font-normal leading-[0.92] tracking-[-0.02em] text-foreground">
+                Interior design ideas &amp; <em className="italic text-primary">AI room</em> guides.
               </h1>
               <p className="mt-5 max-w-[42ch] text-[17px] text-muted-foreground">
-                How AI is changing the way rooms get measured, designed and sold — written by the
-                people building it.
+                Room-by-room decor ideas, style guides, and how AI room redesign works, written by
+                the people building it.
               </p>
             </Reveal>
           </div>

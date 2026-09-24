@@ -14,6 +14,7 @@ import { usePageViewTracking } from "@/lib/analytics";
 // Pages — single-page B2B landing + product demo + app
 import Home from "./pages/Home";
 import Blog from "./pages/Blog";
+import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Pricing from "./pages/Pricing";
 import AiRoomRedesign from "./pages/AiRoomRedesign";
@@ -155,7 +156,7 @@ function AppRoutes() {
         <Route path="/app/*" element={<Navigate to="/app" replace />} />
 
         {/* Everything else → landing */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
     </AnimatePresence>

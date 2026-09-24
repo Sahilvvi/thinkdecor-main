@@ -460,9 +460,9 @@ export function DesignGenerator() {
                     id="demo-prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    rows={1}
-                    placeholder="Optional — describe the style (e.g. 'warm Scandinavian, oak floors')"
-                    className="block w-full resize-none rounded-xl border border-foreground/[0.1] bg-[hsl(168_28%_97%)] px-3.5 py-2.5 text-[13.5px] text-foreground outline-none placeholder:text-foreground/40 focus:border-primary/40"
+                    rows={2}
+                    placeholder="Optional: describe the style, e.g. warm Scandinavian, oak floors"
+                    className="block w-full resize-none rounded-xl border border-foreground/25 bg-white px-3.5 py-3 text-base leading-snug text-foreground shadow-sm outline-none placeholder:text-foreground/55 focus:border-primary focus:ring-2 focus:ring-primary/25 sm:text-[14px]"
                   />
                 </div>
               )}
@@ -497,7 +497,7 @@ export function DesignGenerator() {
                           {phase === 'generating' ? 'Mantha is working on it' : 'See a before / after in seconds'}
                         </span>
                       </span>
-                      <span className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-full bg-background/15">
+                      <span className="relative flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-full bg-background/15">
                         <ArrowRight className="h-4 w-4 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-7" />
                         <ArrowRight className="absolute h-4 w-4 -translate-x-7 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0" />
                       </span>

@@ -61,7 +61,7 @@ export function blogPostingSchema({
     '@type': 'BlogPosting',
     headline: title,
     description: excerpt ?? undefined,
-    image: coverUrl ?? undefined,
+    image: coverUrl ? (/^https?:\/\//i.test(coverUrl) ? coverUrl : `${SITE_URL}${coverUrl.startsWith('/') ? '' : '/'}${coverUrl}`) : undefined,
     datePublished: publishedAt ?? undefined,
     dateModified: updatedAt ?? publishedAt ?? undefined,
     author: { '@type': 'Organization', name: authorName ?? 'ThinkDecor' },

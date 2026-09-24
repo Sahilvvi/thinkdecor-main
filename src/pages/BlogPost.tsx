@@ -10,6 +10,7 @@ import {
   getBySlug, listPublished, postBodyClassName, renderMarkdown, type BlogPost as Post,
 } from '@/lib/blog';
 import { blogPostingSchema } from '@/lib/schema';
+import { seoDescription, seoTitle } from '@/lib/seoText';
 
 const FALLBACK_COVER = '/assets/samples/styled_room.png';
 
@@ -52,9 +53,14 @@ export default function BlogPostPage() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title={post ? `${post.title} | ThinkDecor` : 'Article | ThinkDecor'}
-        description={post?.excerpt ?? 'An article from the ThinkDecor journal.'}
+        title={post ? seoTitle(post.title) : 'Article | ThinkDecor'}
+        description={seoDescription(post?.excerpt, 'An article from the ThinkDecor journal.')}
         canonical={`https://thinkdecor.app/blog/${slug}`}
+        type="article"
+        image={post?.cover_url}
+        publishedTime={post?.published_at}
+        modifiedTime={post?.updated_at}
+        noindex={!loading && !post}
         schema={post && slug ? blogPostingSchema({
           title: post.title,
           excerpt: post.excerpt,

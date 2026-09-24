@@ -35,6 +35,11 @@ export function Navbar({ floating = false }: { floating?: boolean }) {
   }, []);
 
   const raised = floating || scrolled || mobileOpen;
+  // Before the page scrolls, the pill is transparent and sits directly on the
+  // dark hero — the usual dark nav-link/logo colours lose contrast there, so
+  // this state alone goes light-on-dark. Once raised (scrolled, or the menu is
+  // open), the pill is a solid white card again and the normal dark text returns.
+  const light = !raised;
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
@@ -47,7 +52,7 @@ export function Navbar({ floating = false }: { floating?: boolean }) {
         )}
       >
         <div className="flex h-14 items-center justify-between">
-          <Logo />
+          <Logo inverted={light} />
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
@@ -55,7 +60,10 @@ export function Navbar({ floating = false }: { floating?: boolean }) {
               <Link
                 key={link.href}
                 to={link.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className={cn(
+                  'text-sm font-medium transition-colors',
+                  light ? 'text-white/85 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+                )}
               >
                 {link.label}
               </Link>
@@ -66,7 +74,10 @@ export function Navbar({ floating = false }: { floating?: boolean }) {
           <div className="hidden md:flex items-center gap-3">
             <Link
               to={account.to}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className={cn(
+                'text-sm font-medium transition-colors',
+                light ? 'text-white/85 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+              )}
             >
               {account.label}
             </Link>
@@ -79,7 +90,7 @@ export function Navbar({ floating = false }: { floating?: boolean }) {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-foreground"
+            className={cn('md:hidden p-2 transition-colors', light ? 'text-white' : 'text-foreground')}
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

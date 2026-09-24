@@ -83,14 +83,13 @@ export function AboutBlurb() {
           <Reveal y={30} blur={14} delay={0.1}>
             <Parallax amount={22}>
               <Tilt max={5} innerClassName="rounded-[26px]">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[26px] border border-foreground/[0.08] shadow-[0_30px_70px_-30px_hsl(168_30%_15%/0.4)] sm:aspect-[5/4] lg:aspect-[4/5]">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-[26px] border border-foreground/[0.08] shadow-[0_30px_70px_-30px_hsl(168_30%_15%/0.4)]">
                   <img
-                    src="/assets/samples/4.jpg"
-                    alt="A bathroom redesigned by Mantha AI, with marble walls and brass fixtures"
+                    src="/assets/about-repaint.jpg"
+                    alt="Mantha Repaint previewing Harbour Teal on a living room wall, same room and light, on a phone held up to the real room"
                     loading="lazy"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-transparent" />
                   <div
                     aria-hidden
                     className="shine-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/4 -skew-x-12 bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.35),transparent)] mix-blend-overlay"

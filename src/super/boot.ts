@@ -210,6 +210,14 @@ export function mountSuper(host: HTMLElement) {
 
   render();
   S.lastPull = Date.now();
+  // Charts measure their container's pixel width the moment they draw. On first mount that can
+  // happen just before this route's own stylesheet or web fonts have finished settling layout,
+  // so they briefly draw oversized against an unstyled/wider container and never self-correct
+  // (nothing else re-measures them). Re-run the same redraw the resize handler uses, a few times
+  // shortly after mount, once layout has actually caught up.
+  requestAnimationFrame(() => requestAnimationFrame(() => CH.forEach((f: any) => f())));
+  document.fonts?.ready?.then(() => CH.forEach((f: any) => f()));
+  [400, 1200, 2500].forEach((ms) => setTimeout(() => CH.forEach((f: any) => f()), ms));
 
   const timer = setInterval(tick, 1000);
   // live data: refresh every 12s while the tab is visible and nobody is typing or has a dialog open

@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
+import { lazyPage, prefetchPages } from "@/lib/lazyPage";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,31 +21,31 @@ import NotFound from "./pages/NotFound";
 import Contact from "./pages/Contact";
 import Pricing from "./pages/Pricing";
 import AiRoomRedesign from "./pages/AiRoomRedesign";
-const SuperAdmin = lazy(() => import("./pages/super/SuperAdmin"));
-const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const SuperAdmin = lazyPage(() => import("./pages/super/SuperAdmin"));
+const CheckoutSuccess = lazyPage(() => import("./pages/CheckoutSuccess"));
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Refunds from "./pages/Refunds";
 import BlogPostPage from "./pages/BlogPost";
-const AdminAuth = lazy(() => import("./pages/admin/AdminAuth"));
-const BlogAdmin = lazy(() => import("./pages/admin/BlogAdmin"));
-const BlogEditor = lazy(() => import("./pages/admin/BlogEditor"));
-const Leads = lazy(() => import("./pages/admin/Leads"));
-const AdminOverview = lazy(() => import("./pages/admin/Overview"));
-const AdminAccounts = lazy(() => import("./pages/admin/Accounts"));
-const AdminSupport = lazy(() => import("./pages/admin/Support"));
-const Viz2dDemo = lazy(() => import("./visualizer-demo"));
-const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/Signup"));
-const Overview = lazy(() => import("./pages/app/Overview"));
-const Templates = lazy(() => import("./pages/app/Templates"));
-const Library = lazy(() => import("./pages/app/Library"));
-const Create = lazy(() => import("./pages/app/Create"));
-const Cleanup = lazy(() => import("./pages/app/Cleanup"));
-const Replace = lazy(() => import("./pages/app/Replace"));
-const Settings = lazy(() => import("./pages/app/Settings"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AdminAuth = lazyPage(() => import("./pages/admin/AdminAuth"));
+const BlogAdmin = lazyPage(() => import("./pages/admin/BlogAdmin"));
+const BlogEditor = lazyPage(() => import("./pages/admin/BlogEditor"));
+const Leads = lazyPage(() => import("./pages/admin/Leads"));
+const AdminOverview = lazyPage(() => import("./pages/admin/Overview"));
+const AdminAccounts = lazyPage(() => import("./pages/admin/Accounts"));
+const AdminSupport = lazyPage(() => import("./pages/admin/Support"));
+const Viz2dDemo = lazyPage(() => import("./visualizer-demo"));
+const Login = lazyPage(() => import("./pages/Login"));
+const Signup = lazyPage(() => import("./pages/Signup"));
+const Overview = lazyPage(() => import("./pages/app/Overview"));
+const Templates = lazyPage(() => import("./pages/app/Templates"));
+const Library = lazyPage(() => import("./pages/app/Library"));
+const Create = lazyPage(() => import("./pages/app/Create"));
+const Cleanup = lazyPage(() => import("./pages/app/Cleanup"));
+const Replace = lazyPage(() => import("./pages/app/Replace"));
+const Settings = lazyPage(() => import("./pages/app/Settings"));
+const ForgotPassword = lazyPage(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazyPage(() => import("./pages/ResetPassword"));
 
 const queryClient = new QueryClient();
 
@@ -107,7 +109,6 @@ function AppRoutes() {
     <>
     <MaintenanceBanner />
     <AnimatePresence mode="wait">
-      <Suspense fallback={<div className="min-h-screen bg-background" aria-hidden="true" />}>
       <Routes location={location} key={location.pathname}>
         {/* Home - AI Measurement + Mantha AI */}
         <Route path="/" element={<PageTransition><Home /></PageTransition>} />
@@ -163,13 +164,17 @@ function AppRoutes() {
         {/* Everything else → landing */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      </Suspense>
     </AnimatePresence>
     </>
   );
 }
 
 const App = () => {
+  useEffect(() => {
+    // Warm the pages people open next (sign in / sign up), so the click never waits on the network.
+    prefetchPages([() => import("./pages/Login"), () => import("./pages/Signup"), () => import("./pages/ForgotPassword")]);
+  }, []);
+
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
       console.error("Unhandled rejection:", event.reason);
@@ -185,7 +190,9 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppRoutes />
+          <ErrorBoundary>
+            <AppRoutes />
+          </ErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

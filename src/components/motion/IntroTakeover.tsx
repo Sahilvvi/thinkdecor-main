@@ -270,9 +270,9 @@ export function IntroTakeover({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
-          className="pointer-events-none absolute inset-x-0 bottom-10 flex flex-col items-center gap-2 text-white/80"
+          className={`pointer-events-none absolute inset-x-0 flex flex-col items-center gap-2.5 text-white/70 [text-shadow:0_1px_6px_rgba(0,0,0,0.4)] ${isMobile ? 'top-1/2 -translate-y-1/2' : 'bottom-10'}`}
         >
-          <span className="text-[11px] font-medium uppercase tracking-[0.18em]">{isMobile ? 'Swipe up to begin' : 'Scroll to begin'}</span>
+          <span className="text-[11px] font-normal uppercase tracking-[0.18em]">{isMobile ? 'Swipe up to begin' : 'Scroll to begin'}</span>
           <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
             <ChevronDown className="h-5 w-5" />
           </motion.span>

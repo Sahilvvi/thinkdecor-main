@@ -227,7 +227,7 @@ export function Comparison() {
               const Icon = row.icon;
               return (
                 <div key={row.feature} className="contents">
-                  <div className="relative z-10 flex items-center gap-3.5 border-b border-border px-1 py-4">
+                  <div className="relative z-10 flex items-center gap-3.5 px-1 py-4">
                     <span className="grid h-[42px] w-[42px] flex-none place-items-center rounded-[13px] bg-[linear-gradient(145deg,#FFFFFF,#E3F2EF)] text-primary shadow-[inset_0_0_0_1px_#D3E6E2,0_6px_14px_-8px_rgba(0,89,78,0.35)]">
                       <Icon className="h-[21px] w-[21px]" strokeWidth={1.7} />
                     </span>
@@ -236,17 +236,17 @@ export function Comparison() {
                       <small className="hidden text-[13.5px] text-muted-foreground sm:block">{row.detail}</small>
                     </span>
                   </div>
-                  <div className="relative z-10 mx-2 flex items-center justify-center border-b border-white/15 py-4">
+                  <div className="relative z-10 mx-2 flex items-center justify-center py-4">
                     <VerdictMark verdict={row.us} play={play} delay={0.08 + i * 0.08} />
                   </div>
-                  <div className="relative z-10 flex items-center justify-center border-b border-border py-4">
+                  <div className="relative z-10 flex items-center justify-center py-4">
                     <VerdictMark verdict={row.them} play={play} delay={0.12 + i * 0.08} />
                   </div>
                 </div>
               );
             })}
 
-            <div className="relative z-10 flex flex-wrap items-center gap-4 px-1 pt-5 font-label text-[13px] font-semibold text-muted-foreground">
+            <div className="relative z-10 flex flex-wrap items-center gap-4 px-1 pt-7 font-label text-[13px] font-semibold text-muted-foreground">
               <span className="inline-flex items-center gap-2">
                 <span className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white text-primary shadow-[inset_0_0_0_1.5px_#00594E]">
                   <Check className="h-2.5 w-2.5" strokeWidth={3} />
@@ -262,15 +262,15 @@ export function Comparison() {
                 No
               </span>
             </div>
-            <div className="relative z-10 mx-2 flex items-center justify-center pt-5">
+            <div className="relative z-10 mx-2 flex items-center justify-center pt-7">
               <Link
                 to="/pricing"
-                className="whitespace-nowrap rounded-full bg-white px-4.5 py-3 font-label text-[14.5px] font-bold text-primary shadow-[0_8px_18px_-8px_rgba(0,0,0,0.45)] transition-transform duration-200 hover:-translate-y-0.5"
+                className="whitespace-nowrap rounded-full bg-white px-6 py-3 font-label text-[14.5px] font-bold text-primary shadow-[0_10px_22px_-10px_rgba(0,20,17,0.55)] transition-transform duration-200 hover:-translate-y-0.5"
               >
                 Try it for 69p
               </Link>
             </div>
-            <div className="relative z-10 flex items-center justify-center pt-5 font-label text-[12px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            <div className="relative z-10 flex items-center justify-center pt-7 font-label text-[12px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
               {Math.round(themScore)} of {ROWS.length}
             </div>
           </div>

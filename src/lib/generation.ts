@@ -139,6 +139,10 @@ export function useCreditBalance() {
     queryKey: ['credits', user?.id],
     enabled: !!user,
     retry: retryUnlessSetup,
+    // A purchase or refund is granted server-side by the Stripe webhook, not by
+    // anything the browser does — poll so the balance catches up on its own
+    // instead of only refreshing when the user happens to navigate.
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await db.rpc('credit_balance', { _user_id: user!.id });
       if (error) throw error;

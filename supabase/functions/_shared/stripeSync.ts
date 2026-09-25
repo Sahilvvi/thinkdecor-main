@@ -35,6 +35,16 @@ async function grantCredits(admin: Admin, userId: string, amount: number, reason
 export async function syncUserBilling(admin: Admin, stripe: Stripe, userId: string, email: string): Promise<SyncSummary> {
   const summary: SyncSummary = { subscriptions: 0, creditsGranted: 0, payments: 0, customers: 0 };
 
+  // Claim any subscription the webhook recorded but couldn't attach to an account
+  // (checkout wasn't signed in, or the Stripe customer's email wasn't registered yet
+  // at the time) whose customer email matches this account. Safe to run every time —
+  // once claimed, user_id is no longer null so this matches nothing on later syncs.
+  await admin
+    .from("subscriptions")
+    .update({ user_id: userId, updated_at: new Date().toISOString() })
+    .is("user_id", null)
+    .ilike("customer_email", email);
+
   // The user's Stripe customers: linked one first, then anyone with this email, then any recent
   // checkout session that carries this user's id (the payer's email can differ from the account email).
   const customerIds = new Set<string>();

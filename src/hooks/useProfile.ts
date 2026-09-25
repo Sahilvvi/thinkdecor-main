@@ -106,7 +106,10 @@ export function useSubscription(options: { refetchInterval?: number | false } = 
   return useQuery({
     queryKey: ['subscription', user?.id],
     enabled: !!user,
-    refetchInterval: options.refetchInterval,
+    // Same reasoning as useCreditBalance: this row is written by the Stripe webhook,
+    // not by any client action, so it needs to poll to catch up on its own. Callers
+    // (e.g. CheckoutSuccess) can still pass a tighter interval, or false to disable.
+    refetchInterval: options.refetchInterval ?? 15000,
     queryFn: async () => {
       const { data, error } = await db
         .from('subscriptions')

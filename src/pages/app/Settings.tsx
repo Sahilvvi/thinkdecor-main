@@ -371,10 +371,10 @@ export default function Settings() {
                     {active && <span className="dot" />}
                     {active ? (
                       <div>
-                        <b>Think Decor plan · active</b>
+                        <b>Think Decor plan · {subscription?.cancel_at_period_end ? 'cancelling' : 'active'}</b>
                         {periodEnd && (
                           <span>
-                            {subscription?.cancel_at_period_end ? `Ends ${periodEnd}` : `Renews ${periodEnd}`} · {PHASE1_PLAN.credits} credits each month
+                            {subscription?.cancel_at_period_end ? `Cancels ${periodEnd}` : `Renews ${periodEnd}`} · {PHASE1_PLAN.credits} credits each month
                           </span>
                         )}
                       </div>

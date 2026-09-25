@@ -81,6 +81,31 @@ async function grantCredits(
   }
 }
 
+/**
+ * Reverses whatever credits a given ledger reference granted — looked up rather than
+ * passed in, so a refund can't over- or under-claw-back. Writes under a derived
+ * reference, so this is replay-safe the same way grantCredits is.
+ */
+async function reverseCredits(userId: string, originalReference: string) {
+  const { data: grant } = await admin
+    .from("credit_ledger")
+    .select("delta")
+    .eq("reference", originalReference)
+    .maybeSingle();
+  if (!grant || grant.delta <= 0) return;
+
+  const { error } = await admin.from("credit_ledger").insert({
+    user_id: userId,
+    delta: -grant.delta,
+    reason: "refund",
+    reference: `${originalReference}:refund`,
+  });
+  if (error && error.code !== "23505") {
+    console.error("credit reversal failed:", error);
+    throw error;
+  }
+}
+
 Deno.serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
@@ -156,16 +181,20 @@ Deno.serve(async (req) => {
         }
 
         const userId = await resolveUser(sub.metadata?.user_id || undefined, customerId, email);
+        if (userId && customerId) await linkCustomer(userId, customerId, email);
         if (!userId) {
-          console.warn("No user for subscription", sub.id);
-          break;
+          // Checkout wasn't signed in, or the Stripe customer's email doesn't match any
+          // account. Record it anyway — user_id stays null — so a matching account can
+          // claim it later via sync-billing instead of the payment vanishing silently.
+          console.warn("No user for subscription — recording as unclaimed", sub.id);
         }
-        if (customerId) await linkCustomer(userId, customerId, email);
 
         const item = sub.items.data[0];
         await admin.from("subscriptions").upsert({
           id: sub.id,
           user_id: userId,
+          customer_email: email,
+          stripe_customer_id: customerId,
           status: sub.status,
           price_id: item?.price?.id ?? null,
           plan_key: sub.metadata?.product_key ?? null,
@@ -207,6 +236,74 @@ Deno.serve(async (req) => {
       case "invoice.payment_failed": {
         const inv = event.data.object as Stripe.Invoice;
         console.warn("Payment failed for invoice", inv.id, inv.customer_email);
+        break;
+      }
+
+      /* --------------------------------- refund issued from the Stripe dashboard */
+      // Refunding money doesn't by itself cancel a subscription or claw back the
+      // credits it granted — Stripe treats those as separate actions. This makes
+      // a full refund behave the way a refund is meant to: access and credits
+      // are taken back immediately, and the subscription is cancelled outright
+      // rather than left running to the end of a period nobody paid for.
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        if (!charge.refunded) break; // partial refund — leave entitlements alone
+
+        let userId: string | null = null;
+        let reference: string | null = null;
+        let subscriptionId: string | null = null;
+        const customerId = typeof charge.customer === "string" ? charge.customer : null;
+        const piId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id ?? null;
+
+        // The Charge object doesn't reliably carry `invoice` (e.g. the first charge of a
+        // new subscription created via Checkout comes back with no `invoice` field at
+        // all) — the PaymentIntent does, so fall back to that before giving up on it.
+        let invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice?.id ?? null;
+        if (!invoiceId && piId) {
+          const pi = await stripe.paymentIntents.retrieve(piId);
+          invoiceId = typeof pi.invoice === "string" ? pi.invoice : pi.invoice?.id ?? null;
+        }
+
+        if (invoiceId) {
+          const inv = await stripe.invoices.retrieve(invoiceId);
+          reference = inv.id;
+          if (inv.subscription) {
+            subscriptionId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
+          }
+          userId = await resolveUser(undefined, customerId, inv.customer_email ?? charge.billing_details?.email ?? null);
+        } else if (piId) {
+          // Not tied to any invoice — a one-off pack purchase, credited under the checkout session id.
+          const sessions = await stripe.checkout.sessions.list({ payment_intent: piId, limit: 1 });
+          const session = sessions.data[0];
+          if (session) {
+            reference = session.id;
+            userId = await resolveUser(
+              session.metadata?.user_id || undefined,
+              customerId,
+              session.customer_details?.email ?? charge.billing_details?.email ?? null,
+            );
+          }
+        }
+
+        console.log("charge.refunded resolved:", { chargeId: charge.id, invoiceId, reference, userId, subscriptionId });
+        if (userId && reference) await reverseCredits(userId, reference);
+
+        if (subscriptionId) {
+          try {
+            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            if (sub.status !== "canceled") await stripe.subscriptions.cancel(subscriptionId);
+          } catch (e) {
+            console.warn("Could not cancel subscription after refund:", subscriptionId, e);
+          }
+          // The cancel call above also fires its own customer.subscription.deleted event,
+          // which will upsert this same row — updating it here too means the dashboard
+          // reflects the cancellation immediately rather than waiting for that retry.
+          await admin.from("subscriptions").update({
+            status: "canceled",
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          }).eq("id", subscriptionId);
+        }
         break;
       }
 

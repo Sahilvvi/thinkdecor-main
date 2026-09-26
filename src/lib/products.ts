@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { RoomType } from '@/lib/templates';
@@ -66,6 +66,11 @@ export function useProducts(roomType?: RoomType, category?: ProductCategory, bud
       if (error) throw error;
       return (data ?? []) as Product[];
     },
+    // Typing into a budget field re-keys this query on every keystroke —
+    // keep showing the last result while the new one loads instead of
+    // flashing to empty, which was unmounting (and defocusing) the input
+    // sitting right next to the grid.
+    placeholderData: keepPreviousData,
   });
 }
 

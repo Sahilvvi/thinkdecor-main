@@ -503,7 +503,7 @@ export default function Create() {
                 ))}
               </div>
             </div>
-            {(!!productChoices.length || searchingProducts) && (
+            {(!!productChoices.length || searchingProducts || catalogProducts !== undefined) && (
               <div className="box r" style={{ ['--i' as string]: 6 }}>
                 <h5>
                   <span className="n">3</span>
@@ -531,6 +531,9 @@ export default function Create() {
                 </div>
                 {searchingProducts && productChoices.length === 0 && (
                   <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
+                )}
+                {!searchingProducts && productChoices.length === 0 && (
+                  <p className="muted" style={{ fontSize: 12 }}>Nothing in that budget — try widening it.</p>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
                   {(showAllProducts ? productChoices : productChoices.slice(0, INITIAL_VISIBLE_PRODUCTS)).map((p) => {
@@ -595,7 +598,7 @@ export default function Create() {
 
         <div className="comp r" style={{ ['--i' as string]: 7 }}>
           <div className="top1">
-            <span className="kicker" style={{ fontSize: 10 }}>{productChoices.length || searchingProducts ? '4' : '3'} · Describe it</span>
+            <span className="kicker" style={{ fontSize: 10 }}>{productChoices.length || searchingProducts || catalogProducts !== undefined ? '4' : '3'} · Describe it</span>
             <span className="sel"><img src={selectedTemplate?.image} alt="" />{selectedTemplate?.label}</span>
             <span className="sel">{roomLabel(roomType)}</span>
           </div>

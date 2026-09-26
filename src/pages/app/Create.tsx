@@ -17,6 +17,7 @@ import {
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
 } from '@/lib/templates';
+import { useProducts, MAX_PRODUCTS_PER_GENERATION } from '@/lib/products';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -33,6 +34,7 @@ interface Turn {
   result?: Generation;
   error?: string;
   attempt: number;
+  productIds?: string[];
 }
 
 interface PrefillState {
@@ -63,6 +65,19 @@ export default function Create() {
   const [prompt, setPrompt] = useState(prefill?.prompt ?? '');
   const [turns, setTurns] = useState<Turn[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const { data: catalogProducts } = useProducts(roomType);
+
+  const toggleProduct = (id: string) => {
+    setSelectedProductIds((prev) => {
+      if (prev.includes(id)) return prev.filter((p) => p !== id);
+      if (prev.length >= MAX_PRODUCTS_PER_GENERATION) {
+        toast.error(`Up to ${MAX_PRODUCTS_PER_GENERATION} products per design for now.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,6 +118,7 @@ export default function Create() {
     prompt: string;
     attempt: number;
     restorePromptOnError?: boolean;
+    productIds?: string[];
   }) => {
     const id = crypto.randomUUID();
     setTurns((prev) => [
@@ -115,6 +131,7 @@ export default function Create() {
         prompt: args.prompt,
         status: 'pending',
         attempt: args.attempt,
+        productIds: args.productIds,
       },
     ]);
 
@@ -126,6 +143,7 @@ export default function Create() {
         roomType: args.roomType,
         prompt: args.prompt,
         attempt: args.attempt,
+        productIds: args.productIds,
       });
       setTurns((prev) =>
         prev.map((t) => (t.id === id ? { ...t, status: 'done', result, sourceRef: result.input_image_url } : t)),
@@ -156,6 +174,7 @@ export default function Create() {
       prompt: prompt.trim(),
       attempt: 0,
       restorePromptOnError: true,
+      productIds: selectedProductIds.length ? selectedProductIds : undefined,
     });
     setPrompt('');
   };
@@ -170,6 +189,7 @@ export default function Create() {
       roomType: turn.roomType,
       prompt: turn.prompt,
       attempt: turn.attempt + 1,
+      productIds: turn.productIds,
     });
   };
 
@@ -350,12 +370,48 @@ export default function Create() {
                 ))}
               </div>
             </div>
+            {!!catalogProducts?.length && (
+              <div className="box r" style={{ ['--i' as string]: 6 }}>
+                <h5>
+                  <span className="n">3</span>Real products <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
+                </h5>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
+                  {catalogProducts.map((p) => {
+                    const on = selectedProductIds.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        title={p.name}
+                        onClick={() => toggleProduct(p.id)}
+                        style={{
+                          position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', padding: 0,
+                          boxShadow: on ? '0 0 0 2px var(--brass)' : 'inset 0 0 0 1px var(--stone-2)',
+                        }}
+                      >
+                        <img src={p.display_image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {on && (
+                          <span style={{ position: 'absolute', top: 4, right: 4, background: 'var(--brass)', borderRadius: 999, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Check width={11} height={11} color="#fff" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedProductIds.length > 0 && (
+                  <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+                    {selectedProductIds.length} selected — these exact products will appear in the design.
+                  </p>
+                )}
+              </div>
+            )}
           </aside>
         </div>
 
         <div className="comp r" style={{ ['--i' as string]: 7 }}>
           <div className="top1">
-            <span className="kicker" style={{ fontSize: 10 }}>3 · Describe it</span>
+            <span className="kicker" style={{ fontSize: 10 }}>{catalogProducts?.length ? '4' : '3'} · Describe it</span>
             <span className="sel"><img src={selectedTemplate?.image} alt="" />{selectedTemplate?.label}</span>
             <span className="sel">{roomLabel(roomType)}</span>
           </div>

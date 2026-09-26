@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, FileText, Inbox, Users, MessageSquare, Search, Bell, ExternalLink, LogOut, Menu, X,
-  CornerDownLeft,
+  CornerDownLeft, Sofa,
 } from 'lucide-react';
 import '@/styles/admin-theme.css';
 import { useAuthStore } from '@/stores/authStore';
@@ -16,6 +16,7 @@ const CRUMB: Record<string, string> = {
   '/admin/overview': 'Overview',
   '/admin/blog': 'Articles',
   '/admin/leads': 'Leads',
+  '/admin/products': 'Products',
   '/admin/accounts': 'Accounts',
   '/admin/support': 'Support',
 };
@@ -25,6 +26,7 @@ const PAGES = [
   { label: 'Articles', sub: 'The journal', to: '/admin/blog' },
   { label: 'New article', sub: 'Write and publish', to: '/admin/blog/new' },
   { label: 'Leads', sub: 'Contact form and newsletter sign-ups', to: '/admin/leads' },
+  { label: 'Products', sub: 'Real-product catalog for redesigns', to: '/admin/products' },
   { label: 'Accounts', sub: 'People and plans', to: '/admin/accounts' },
   { label: 'Support', sub: 'Customer queries', to: '/admin/support' },
 ];
@@ -163,6 +165,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <Inbox /> Leads
               {!!leadsSummary?.unread && <span className="n hot">{leadsSummary.unread}</span>}
               {!leadsSummary?.unread && <span className="n">{leadsSummary?.total ?? '—'}</span>}
+            </NavLink>
+            <NavLink to="/admin/products" className={({ isActive }) => (isActive ? 'on' : '')}>
+              <Sofa /> Products
             </NavLink>
           </nav>
 

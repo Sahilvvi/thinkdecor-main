@@ -75,6 +75,12 @@ function toBase64(bytes: Uint8Array): string {
 const BUCKET = "generations";
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+// A real catalog product per reference image, on top of the room photo. Kept
+// small — Gemini's per-image fidelity degrades as more references pile into
+// one call, so this is a deliberate v1 cap, not a technical ceiling (the
+// model itself accepts far more).
+const MAX_PRODUCTS = 3;
+const PRODUCT_FETCH_TIMEOUT_MS = 8_000;
 // Per attempt. Two models + one refusal retry still fits the 150s edge limit.
 const GEMINI_TIMEOUT_MS = 40_000;
 const BEAUTIFY_TIMEOUT_MS = 4_000;
@@ -93,7 +99,13 @@ type GeminiImageResult =
  * retry, and everything Google gave us is logged so a refusal is
  * diagnosable from the Supabase function logs alone.
  */
-async function callGeminiImage(model: string, fullPrompt: string, inputB64: string, inputMimeType: string): Promise<GeminiImageResult> {
+async function callGeminiImage(
+  model: string,
+  fullPrompt: string,
+  inputB64: string,
+  inputMimeType: string,
+  referenceImages?: { b64: string; mimeType: string }[],
+): Promise<GeminiImageResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
   try {
@@ -107,6 +119,7 @@ async function callGeminiImage(model: string, fullPrompt: string, inputB64: stri
             parts: [
               { text: fullPrompt },
               { inlineData: { mimeType: inputMimeType, data: inputB64 } },
+              ...(referenceImages ?? []).map((r) => ({ inlineData: { mimeType: r.mimeType, data: r.b64 } })),
             ],
           }],
           generationConfig: { responseModalities: ["IMAGE"] },
@@ -165,11 +178,12 @@ async function generateImage(
   inputMimeType: string,
   models: string[],
   onAttempt: (a: AttemptRecord) => void,
+  referenceImages?: { b64: string; mimeType: string }[],
 ): Promise<GeminiImageResult> {
   let last: GeminiImageResult = { ok: false, hardError: "No image model available" };
   for (const model of models) {
     const started = Date.now();
-    let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType);
+    let attempt = await callGeminiImage(model, fullPrompt, inputB64, inputMimeType, referenceImages);
     if (!attempt.ok && attempt.refusalReason) {
       console.error("generate-redesign: refused, retrying with softened framing", { model, refusalReason: attempt.refusalReason });
       attempt = await callGeminiImage(
@@ -177,6 +191,7 @@ async function generateImage(
         `${fullPrompt} This is a professional interior-design photo-editing request for a legitimate home-renovation context.`,
         inputB64,
         inputMimeType,
+        referenceImages,
       );
     }
     onAttempt({
@@ -307,6 +322,62 @@ function replacePrompt(userPrompt: string | undefined, detectedLabel: string | u
     "exactly as it was.";
 }
 
+interface CatalogProduct {
+  id: string;
+  name: string;
+  category: string;
+  composite_image_url: string;
+}
+
+/** Downloads one product's reference photo and base64-encodes it. Returns
+ *  null (never throws) on any failure — one bad product image should drop
+ *  that product, not fail the whole redesign. */
+async function fetchProductReference(
+  product: CatalogProduct,
+): Promise<{ b64: string; mimeType: string } | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PRODUCT_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(product.composite_image_url, { signal: controller.signal });
+    if (!res.ok) {
+      console.error("generate-redesign: product image fetch failed", { productId: product.id, status: res.status });
+      return null;
+    }
+    const contentType = res.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";
+    if (!ALLOWED_TYPES.includes(contentType)) {
+      console.error("generate-redesign: product image has unusable content type", { productId: product.id, contentType });
+      return null;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.byteLength > MAX_INPUT_BYTES) {
+      console.error("generate-redesign: product image too large", { productId: product.id, bytes: bytes.byteLength });
+      return null;
+    }
+    return { b64: toBase64(bytes), mimeType: contentType };
+  } catch (err) {
+    console.error("generate-redesign: product image fetch errored", { productId: product.id, err });
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Names each product reference image by position, generalizing the wording
+ *  from the earlier (reverted) single-reference "paste a Pinterest link"
+ *  feature to N products: tells the model exactly which reference image is
+ *  which real product, and to match it faithfully rather than invent a
+ *  similar-looking item. `startIndex` is 2 when there's a room photo first
+ *  (reference image 1), matching how Gemini receives the parts. */
+function productReferenceNote(products: CatalogProduct[], startIndex: number): string {
+  if (!products.length) return "";
+  const lines = products.map((p, i) =>
+    `reference image ${startIndex + i} is the exact ${p.category.replace(/_/g, " ")} named "${p.name}"`,
+  );
+  return " " + lines.join("; ") + (products.length > 1 ? "." : ".") +
+    " Bring each of these exact products into the room in a natural, fitting spot, replacing whatever currently occupies that role. " +
+    "Match each one's real colour, material, shape and proportions as closely as possible — don't invent a different item.";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -356,7 +427,7 @@ Deno.serve(async (req) => {
   if (blocked) return json({ error: blocked.message, code: blocked.code }, blocked.status);
   const models = imageModels(settings, Deno.env.get("GEMINI_IMAGE_MODEL"));
 
-  const { inputPath, maskedPath, templateKey, roomType, roomLabel, stylePrompt, prompt, detectedLabel, mode: rawMode } = body as {
+  const { inputPath, maskedPath, templateKey, roomType, roomLabel, stylePrompt, prompt, detectedLabel, mode: rawMode, productIds: rawProductIds } = body as {
     inputPath?: string;
     /** Cleanup/Replace: the red-marked copy the model edits. inputPath stays the clean "before". */
     maskedPath?: string;
@@ -367,8 +438,13 @@ Deno.serve(async (req) => {
     prompt?: string;
     detectedLabel?: string;
     mode?: string;
+    /** Redesign/Replace only — real catalog products (see public.products) to bring into the room. */
+    productIds?: string[];
   };
   const mode: Mode = rawMode === "cleanup" || rawMode === "replace" ? rawMode : "redesign";
+  const productIds = mode !== "cleanup" && Array.isArray(rawProductIds)
+    ? [...new Set(rawProductIds.filter((id): id is string => typeof id === "string"))].slice(0, MAX_PRODUCTS)
+    : [];
 
   // ---- 1. check the photo before any credit is spent ------------------------
   // Only ever read the caller's own uploads.
@@ -432,10 +508,36 @@ Deno.serve(async (req) => {
 
   try {
     // ---- 3. generate ------------------------------------------------------
+    // Real catalog products to bring into the room, if any were chosen. Looked
+    // up fresh from the DB (never trust a client-supplied image URL) and
+    // fetched in parallel; a product that fails to load is silently dropped
+    // rather than failing the whole redesign — it's an enhancement, not the
+    // primary photo.
+    let usedProducts: CatalogProduct[] = [];
+    let productReferenceImages: { b64: string; mimeType: string }[] = [];
+    if (productIds.length) {
+      const { data: catalogProducts } = await admin
+        .from("products")
+        .select("id, name, category, composite_image_url")
+        .eq("active", true)
+        .in("id", productIds);
+      if (catalogProducts?.length) {
+        const fetched = await Promise.all(
+          catalogProducts.map(async (p) => ({ product: p as CatalogProduct, image: await fetchProductReference(p as CatalogProduct) })),
+        );
+        for (const { product, image } of fetched) {
+          if (image) {
+            usedProducts.push(product);
+            productReferenceImages.push(image);
+          }
+        }
+      }
+    }
+
     const fullPrompt = mode === "cleanup"
       ? CLEANUP_PROMPT
       : mode === "replace"
-        ? replacePrompt(beautified, detectedLabel)
+        ? replacePrompt(beautified, detectedLabel) + productReferenceNote(usedProducts, 2)
         : [
           `Redesign this ${roomLabel ?? "room"} as a photorealistic interior photograph.`,
           stylePrompt ? `Style: ${stylePrompt}.` : "",
@@ -443,12 +545,12 @@ Deno.serve(async (req) => {
           "Keep the room's architecture, windows, doors, camera angle and perspective exactly the same, but the",
           "redesign itself must be clearly and obviously visible — change the wall color or finish and the",
           "flooring as part of the style, not just minor styling touches.",
-        ].filter(Boolean).join(" ");
+        ].filter(Boolean).join(" ") + productReferenceNote(usedProducts, 2);
 
     const inputMimeType = sourceBlob.type || "image/png";
     const inputB64 = toBase64(new Uint8Array(await sourceBlob.arrayBuffer()));
 
-    const attempt = await generateImage(fullPrompt, inputB64, inputMimeType, models, (a) => attempts.push(a));
+    const attempt = await generateImage(fullPrompt, inputB64, inputMimeType, models, (a) => attempts.push(a), productReferenceImages);
     if (!attempt.ok) {
       throw new Error(
         attempt.hardError ??
@@ -488,6 +590,13 @@ Deno.serve(async (req) => {
       .single();
     if (insertError) throw insertError;
     await flushAttempts(generation?.id);
+
+    if (usedProducts.length && generation?.id) {
+      const { error: gpError } = await admin
+        .from("generation_products")
+        .insert(usedProducts.map((p) => ({ generation_id: generation.id, product_id: p.id })));
+      if (gpError) console.error("generate-redesign: couldn't record generation_products", gpError);
+    }
 
     // The red-marked copy was only an instruction for the model. Best effort.
     if (modelPath !== inputPath) {

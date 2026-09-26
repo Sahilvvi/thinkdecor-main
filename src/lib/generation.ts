@@ -243,6 +243,8 @@ export interface GenerateRequest {
   prompt?: string;
   /** Increments on each regenerate of the same photo, so placeholder variations differ. */
   attempt?: number;
+  /** Real catalog products (see `products` table) to bring into the room, up to 3. */
+  productIds?: string[];
 }
 
 /**
@@ -293,6 +295,7 @@ export async function generateRedesign({
   roomType,
   prompt,
   attempt = 0,
+  productIds,
 }: GenerateRequest): Promise<Generation> {
   // 1. The source photo — uploaded once to the private bucket, then reused by
   //    every refinement of the same room.
@@ -320,6 +323,7 @@ export async function generateRedesign({
         roomLabel: roomLabel(roomType),
         stylePrompt: template?.prompt,
         prompt: prompt?.trim() || undefined,
+        productIds: productIds?.length ? productIds : undefined,
       },
     });
     if (error) {

@@ -31,6 +31,7 @@ const AdminAuth = lazyPage(() => import("./pages/admin/AdminAuth"));
 const BlogAdmin = lazyPage(() => import("./pages/admin/BlogAdmin"));
 const BlogEditor = lazyPage(() => import("./pages/admin/BlogEditor"));
 const Leads = lazyPage(() => import("./pages/admin/Leads"));
+const AdminProducts = lazyPage(() => import("./pages/admin/Products"));
 const AdminOverview = lazyPage(() => import("./pages/admin/Overview"));
 const AdminAccounts = lazyPage(() => import("./pages/admin/Accounts"));
 const AdminSupport = lazyPage(() => import("./pages/admin/Support"));
@@ -137,6 +138,7 @@ function AppRoutes() {
         <Route path="/admin/blog" element={<AdminRoute><BlogAdmin /></AdminRoute>} />
         <Route path="/admin/blog/:id" element={<AdminRoute><BlogEditor /></AdminRoute>} />
         <Route path="/admin/leads" element={<AdminRoute><Leads /></AdminRoute>} />
+        <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
         <Route path="/admin/accounts" element={<AdminRoute><AdminAccounts /></AdminRoute>} />
         <Route path="/admin/support" element={<AdminRoute><AdminSupport /></AdminRoute>} />
 

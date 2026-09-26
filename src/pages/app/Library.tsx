@@ -180,7 +180,7 @@ export default function Library() {
                 Created {formatDate(viewing.created_at)} — drag to compare your photo with the result.
               </DialogDescription>
               <div className="overflow-hidden rounded-2xl border border-border/70">
-                <StoredCompare before={viewing.input_image_url} after={viewing.output_image_url} />
+                <StoredCompare before={viewing.input_image_url} after={viewing.output_image_url} generationId={viewing.id} />
               </div>
               {viewing.prompt && (
                 <p className="rounded-xl bg-secondary px-4 py-3 text-[13.5px] text-foreground/70">

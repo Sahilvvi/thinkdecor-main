@@ -1,6 +1,7 @@
 import type { ImgHTMLAttributes } from 'react';
 import { BeforeAfterSlider } from '@/components/shared/BeforeAfterSlider';
 import { useStoredImageUrl } from '@/lib/generation';
+import { useGenerationProducts } from '@/lib/products';
 import { cn } from '@/lib/utils';
 
 type StoredImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
@@ -20,13 +21,18 @@ export function StoredCompare({
   before,
   after,
   aspectRatio = 'aspect-[4/3]',
+  generationId,
 }: {
   before: string;
   after?: string | null;
   aspectRatio?: string;
+  /** When given, shows a clickable "shop this" dot for any real product that
+   *  was composited into this result and could be located in the image. */
+  generationId?: string | null;
 }) {
   const beforeUrl = useStoredImageUrl(before);
   const afterUrl = useStoredImageUrl(after ?? before);
+  const { data: hotspots } = useGenerationProducts(generationId);
 
   if (!beforeUrl || !afterUrl) {
     return <div className={cn('w-full animate-pulse bg-secondary', aspectRatio)} aria-hidden />;
@@ -39,6 +45,7 @@ export function StoredCompare({
       beforeAlt="Your original photo"
       afterAlt="The redesigned room"
       aspectRatio={aspectRatio}
+      hotspots={hotspots}
     />
   );
 }

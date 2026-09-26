@@ -508,7 +508,7 @@ export function MaskEditFlow({
         ) : cleanBeforeRef && (
           <div className="card r" style={{ ['--i' as string]: 3, marginTop: 20, overflow: 'hidden' }}>
             <div style={{ maxWidth: 'min(100%, calc(70vh * 1.3334))', margin: '0 auto' }}>
-              <StoredCompare before={cleanBeforeRef} after={result.output_image_url} />
+              <StoredCompare before={cleanBeforeRef} after={result.output_image_url} generationId={result.id} />
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 16 }}>
               <span className="muted" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>

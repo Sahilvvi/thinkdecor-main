@@ -284,7 +284,7 @@ export default function Create() {
                     </div>
                   )}
                   {turn.status === 'done' && turn.result && (
-                    <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} />
+                    <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} generationId={turn.result.id} />
                   )}
                   {turn.status === 'error' && (
                     <div className="note" style={{ margin: 0, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>

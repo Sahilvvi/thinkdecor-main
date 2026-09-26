@@ -1,11 +1,21 @@
 import { useRef, useState, useCallback } from 'react';
 
+interface Hotspot {
+  x: number;
+  y: number;
+  name: string;
+  source_url: string | null;
+}
+
 interface BeforeAfterSliderProps {
   beforeSrc: string;
   afterSrc: string;
   beforeAlt?: string;
   afterAlt?: string;
   aspectRatio?: string;
+  /** Real products detected in the "after" image — a small clickable dot per
+   *  item, linking to where it's sold. Only ones with a source_url show. */
+  hotspots?: Hotspot[];
 }
 
 export function BeforeAfterSlider({
@@ -14,6 +24,7 @@ export function BeforeAfterSlider({
   beforeAlt = "Before",
   afterAlt = "After",
   aspectRatio = "aspect-[16/9]",
+  hotspots,
 }: BeforeAfterSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [sliderPos, setSliderPos] = useState(50);
@@ -72,6 +83,25 @@ export function BeforeAfterSlider({
       <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-primary/80 backdrop-blur-sm text-primary-foreground text-xs font-medium z-10 pointer-events-none">
         After
       </div>
+
+      {/* Real-product "shop this" dots — painted before the before-clip div
+          so dragging the slider left naturally covers ones on that side. */}
+      {hotspots?.filter((h) => h.source_url).map((h, i) => (
+        <a
+          key={i}
+          href={h.source_url ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Shop: ${h.name}`}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-pointer touch-auto"
+          style={{ left: `${h.x * 100}%`, top: `${h.y * 100}%` }}
+        >
+          <span className="absolute inset-0 animate-ping rounded-full bg-white/70" />
+          <span className="absolute inset-0 rounded-full bg-white shadow-lg ring-2 ring-primary" />
+        </a>
+      ))}
 
       {/* Before (clipped) */}
       <div

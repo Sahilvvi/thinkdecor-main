@@ -62,6 +62,38 @@ export function useProducts(roomType?: RoomType, category?: ProductCategory) {
   });
 }
 
+export interface GenerationProductHotspot {
+  x: number;
+  y: number;
+  name: string;
+  source_url: string | null;
+}
+
+/** Where each real product landed in a finished redesign, for a "shop this"
+ *  dot overlay on the result image (see generate-redesign's detectProductPosition).
+ *  RLS already scopes generation_products to the caller's own generations. */
+export function useGenerationProducts(generationId?: string | null) {
+  return useQuery({
+    queryKey: ['generation-products', generationId],
+    enabled: !!generationId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('generation_products')
+        .select('position_x, position_y, products(name, source_url)')
+        .eq('generation_id', generationId as string);
+      if (error) throw error;
+      return (data ?? [])
+        .filter((r): r is typeof r & { position_x: number; position_y: number } => r.position_x != null && r.position_y != null)
+        .map((r) => ({
+          x: r.position_x,
+          y: r.position_y,
+          name: (r.products as unknown as { name: string } | null)?.name ?? 'Product',
+          source_url: (r.products as unknown as { source_url: string | null } | null)?.source_url ?? null,
+        })) as GenerationProductHotspot[];
+    },
+  });
+}
+
 /** Prompt-driven suggestions — given the free text someone typed in Create or
  *  Replace, returns real products matching what they described (see
  *  supabase/functions/search-products). Any signed-in user can call this. */

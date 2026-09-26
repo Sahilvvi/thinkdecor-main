@@ -389,6 +389,62 @@ function productReferenceNote(products: CatalogProduct[], startIndex: number): s
     "This requirement overrides any general style direction below if the two ever conflict. ";
 }
 
+const POSITION_TIMEOUT_MS = 8_000;
+
+/** Best-effort: asks a Gemini vision call where a just-placed product ended
+ *  up in the finished image, as a normalized (0-1, top-left origin) center
+ *  point — so the UI can drop a clickable "shop this" dot on it. Returns
+ *  null (never throws) on any failure; a miss just means no dot for that
+ *  item, not a failed generation. */
+async function detectProductPosition(
+  outputB64: string,
+  outputMimeType: string,
+  category: string,
+): Promise<{ x: number; y: number } | null> {
+  const prompt =
+    `This image contains a ${category.replace(/_/g, " ")}. Reply with ONLY a JSON object ` +
+    `{"x": <number>, "y": <number>} giving the normalized center point of that ${category.replace(/_/g, " ")} ` +
+    "in the image, where x and y are each between 0 and 1 (0,0 is the top-left corner, 1,1 is the bottom-right). " +
+    "No other text, no markdown, no code fences.";
+  for (const model of TEXT_MODELS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), POSITION_TIMEOUT_MS);
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: outputMimeType, data: outputB64 } },
+            ],
+          }],
+        }),
+        signal: controller.signal,
+      });
+      if (!res.ok) continue;
+      const j = await res.json().catch(() => ({}));
+      const text: string = (j?.candidates?.[0]?.content?.parts ?? [])
+        .map((p: { text?: string }) => p.text ?? "")
+        .join("")
+        .trim()
+        .replace(/^```(?:json)?\s*|\s*```$/g, "");
+      const parsed = JSON.parse(text);
+      const x = Number(parsed?.x);
+      const y = Number(parsed?.y);
+      if (Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+        return { x, y };
+      }
+    } catch {
+      // try the next model
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -612,9 +668,20 @@ Deno.serve(async (req) => {
     await flushAttempts(generation?.id);
 
     if (usedProducts.length && generation?.id) {
+      // Best-effort — figures out where each product actually landed in the
+      // finished image so the UI can drop a clickable "shop this" dot on it.
+      // A miss here never blocks recording the generation itself.
+      const positions = await Promise.all(
+        usedProducts.map((p) => detectProductPosition(b64, outputMimeType, p.category)),
+      );
       const { error: gpError } = await admin
         .from("generation_products")
-        .insert(usedProducts.map((p) => ({ generation_id: generation.id, product_id: p.id })));
+        .insert(usedProducts.map((p, i) => ({
+          generation_id: generation.id,
+          product_id: p.id,
+          position_x: positions[i]?.x ?? null,
+          position_y: positions[i]?.y ?? null,
+        })));
       if (gpError) console.error("generate-redesign: couldn't record generation_products", gpError);
     }
 

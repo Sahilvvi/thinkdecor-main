@@ -304,8 +304,10 @@ const CLEANUP_PROMPT =
   "highlight strictly as a location marker for editing, not as a color or design " +
   "element: remove everything under each marked area completely and fill it back in " +
   "naturally so it blends with the surrounding lighting, perspective, and materials. " +
-  "Make sure no red tint remains anywhere in the final image, and keep every other " +
-  "part of the photo exactly as it was.";
+  "This is a mandatory, non-negotiable requirement: do not leave any trace, outline, " +
+  "shadow, or partial remnant of the removed object — the marked area must look like " +
+  "it was always empty. Make sure no red tint remains anywhere in the final image, " +
+  "and keep every other part of the photo exactly as it was.";
 
 // Mirrors ReplaceViewModel.kt's buildPrompt(). detectedLabel is Mantha's own
 // label-mask-region guess at what's under the mask (see MaskEditFlow.tsx) —
@@ -318,9 +320,10 @@ function replacePrompt(userPrompt: string | undefined, detectedLabel: string | u
     : `replace ${subject} with a single object that fits naturally with the rest of the room's style`;
   return "This photo has an area marked with a solid red highlight. Treat the red highlight " +
     `strictly as a location marker for editing, not as a color or design element: ${instruction}. ` +
-    "Match the surrounding lighting, perspective, and materials so the edit blends in, make sure " +
-    "no red tint remains anywhere in the final image, and keep every other part of the photo " +
-    "exactly as it was.";
+    "This is a mandatory, non-negotiable requirement: nothing of the original object under the " +
+    "marked area may remain — no trace, outline, or partial remnant of it. Match the surrounding " +
+    "lighting, perspective, and materials so the edit blends in, make sure no red tint remains " +
+    "anywhere in the final image, and keep every other part of the photo exactly as it was.";
 }
 
 interface CatalogProduct {
@@ -515,9 +518,12 @@ Deno.serve(async (req) => {
   // The fastest model ("lite") is tuned to freely reinterpret the whole room
   // rather than follow a precise instruction — great for a plain style
   // redesign, but it's the one most likely to ignore a specific reference
-  // product in favour of inventing its own. When real products are
-  // involved, try the more literal/preserving models first instead.
-  if (productIds.length) {
+  // product in favour of inventing its own, or to leave a masked object
+  // half-erased/half-replaced instead of fully complying with the mask.
+  // Cleanup/Replace and product-referenced redesigns all depend on precise
+  // instruction-following, so all three try the more literal/preserving
+  // models first instead.
+  if (productIds.length || mode === "cleanup" || mode === "replace") {
     models.sort((a, b) => Number(a.includes("lite")) - Number(b.includes("lite")));
   }
 
@@ -588,8 +594,8 @@ Deno.serve(async (req) => {
     // fetched in parallel; a product that fails to load is silently dropped
     // rather than failing the whole redesign — it's an enhancement, not the
     // primary photo.
-    let usedProducts: CatalogProduct[] = [];
-    let productReferenceImages: { b64: string; mimeType: string }[] = [];
+    const usedProducts: CatalogProduct[] = [];
+    const productReferenceImages: { b64: string; mimeType: string }[] = [];
     if (productIds.length) {
       const { data: catalogProducts } = await admin
         .from("products")

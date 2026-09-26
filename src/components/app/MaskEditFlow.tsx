@@ -360,13 +360,21 @@ export function MaskEditFlow({
                 </>
               ) : canvasSrc ? (
                 <div style={{ width: '100%' }}>
-                  <MaskCanvas
-                    ref={canvasRef}
-                    imageSrc={canvasSrc}
-                    initialStrokes={strokes}
-                    onStrokesChange={setStrokes}
-                    onStrokeCountChange={setStrokeCount}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <MaskCanvas
+                      ref={canvasRef}
+                      imageSrc={canvasSrc}
+                      initialStrokes={strokes}
+                      onStrokesChange={setStrokes}
+                      onStrokeCountChange={setStrokeCount}
+                    />
+                    {generate.isPending && (
+                      <div className="turn-wait-in" style={{ position: 'absolute', inset: 0, background: 'rgba(250,248,244,.72)', backdropFilter: 'blur(3px)', borderRadius: 16, zIndex: 5 }}>
+                        <Loader2 className="spin" color="var(--brass)" width={28} height={28} />
+                        <span style={{ fontWeight: 600, fontSize: 13.5 }}>{generatingLabel}</span>
+                      </div>
+                    )}
+                  </div>
                   <p className="muted" style={{ marginTop: 12, fontSize: 12.5 }}>
                     Paint over the {mode === 'cleanup' ? 'thing you want gone' : 'thing you want swapped out'} — the red marks the spot, it won't show up in the result.
                   </p>

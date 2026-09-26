@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
   const categories = detectCategories(promptLower);
   if (categories.length === 0) return json({ products: [] });
 
-  const columns = "id, name, category, brand, price, currency, display_image_url, room_types";
+  const columns = "id, name, category, brand, price, currency, display_image_url, room_types, source_url";
   const all: Record<string, unknown>[] = [];
   const seenIds = new Set<string>();
 

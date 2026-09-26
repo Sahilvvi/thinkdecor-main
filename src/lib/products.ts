@@ -24,8 +24,10 @@ export const PRODUCT_CATEGORIES: { key: ProductCategory; label: string }[] = [
 ];
 
 /** The most a single generation can bring in — Gemini's per-reference-image
- *  fidelity degrades as more pile into one call (see generate-redesign). */
-export const MAX_PRODUCTS_PER_GENERATION = 3;
+ *  fidelity degrades sharply as more pile into one call (verified: 1 product
+ *  composites faithfully, 3 gets ignored for a generic restyle — see the
+ *  matching cap in supabase/functions/generate-redesign/index.ts). */
+export const MAX_PRODUCTS_PER_GENERATION = 2;
 
 export interface Product {
   id: string;
@@ -36,6 +38,8 @@ export interface Product {
   currency: string;
   display_image_url: string;
   room_types: RoomType[];
+  /** Where to buy it, if this came from a retailer (imported), not a manual upload. */
+  source_url: string | null;
 }
 
 /** The real-product catalog, filtered by room type when given. Public read —
@@ -46,7 +50,7 @@ export function useProducts(roomType?: RoomType, category?: ProductCategory) {
     queryFn: async () => {
       let query = db
         .from('products')
-        .select('id, name, category, brand, price, currency, display_image_url, room_types')
+        .select('id, name, category, brand, price, currency, display_image_url, room_types, source_url')
         .eq('active', true)
         .order('name');
       if (roomType) query = query.contains('room_types', [roomType]);

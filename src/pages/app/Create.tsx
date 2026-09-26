@@ -3,7 +3,7 @@ import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowRight, Check, Download, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2,
+  ArrowRight, Check, Download, ExternalLink, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
@@ -418,13 +418,15 @@ export default function Create() {
                   {productChoices.map((p) => {
                     const on = selectedProductIds.includes(p.id);
                     return (
-                      <button
+                      <div
                         key={p.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         title={p.name}
                         onClick={() => toggleProduct(p.id)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleProduct(p.id); } }}
                         style={{
-                          position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', padding: 0,
+                          position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', padding: 0, cursor: 'pointer',
                           boxShadow: on ? '0 0 0 2px var(--brass)' : 'inset 0 0 0 1px var(--stone-2)',
                         }}
                       >
@@ -434,7 +436,22 @@ export default function Create() {
                             <Check width={11} height={11} color="#fff" />
                           </span>
                         )}
-                      </button>
+                        {p.source_url && (
+                          <a
+                            href={p.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Visit ${p.name}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,.55)', borderRadius: 999,
+                              width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                          >
+                            <ExternalLink width={10} height={10} color="#fff" />
+                          </a>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

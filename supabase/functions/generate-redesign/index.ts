@@ -76,10 +76,11 @@ const BUCKET = "generations";
 const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 // A real catalog product per reference image, on top of the room photo. Kept
-// small — Gemini's per-image fidelity degrades as more references pile into
-// one call, so this is a deliberate v1 cap, not a technical ceiling (the
-// model itself accepts far more).
-const MAX_PRODUCTS = 3;
+// small — Gemini's per-image fidelity degrades sharply as more references
+// pile into one call (verified: a single product composites faithfully;
+// three at once regularly gets ignored in favour of a generic restyle), so
+// this is a deliberate, tightened v1 cap, not a technical ceiling.
+const MAX_PRODUCTS = 2;
 const PRODUCT_FETCH_TIMEOUT_MS = 8_000;
 // Per attempt. Two models + one refusal retry still fits the 150s edge limit.
 const GEMINI_TIMEOUT_MS = 40_000;
@@ -367,15 +368,25 @@ async function fetchProductReference(
  *  feature to N products: tells the model exactly which reference image is
  *  which real product, and to match it faithfully rather than invent a
  *  similar-looking item. `startIndex` is 2 when there's a room photo first
- *  (reference image 1), matching how Gemini receives the parts. */
+ *  (reference image 1), matching how Gemini receives the parts.
+ *
+ *  Written as a hard constraint placed *before* the stylistic instructions
+ *  (see callers), not appended after them — testing showed a single product
+ *  composites faithfully, but with the note tacked on at the end after a
+ *  full-room restyle instruction, the model reliably falls back to
+ *  inventing generic furniture instead of matching the reference photos,
+ *  especially with more than one product at once. */
 function productReferenceNote(products: CatalogProduct[], startIndex: number): string {
   if (!products.length) return "";
   const lines = products.map((p, i) =>
-    `reference image ${startIndex + i} is the exact ${p.category.replace(/_/g, " ")} named "${p.name}"`,
+    `Reference image ${startIndex + i} is a real photo of the exact ${p.category.replace(/_/g, " ")} named "${p.name}" — ` +
+    "place this precise item in the room, matching its real colour, material, shape and proportions as exactly as possible. " +
+    "Do not invent a different item, a similar-looking substitute, or a stylistic reinterpretation of it.",
   );
-  return " " + lines.join("; ") + (products.length > 1 ? "." : ".") +
-    " Bring each of these exact products into the room in a natural, fitting spot, replacing whatever currently occupies that role. " +
-    "Match each one's real colour, material, shape and proportions as closely as possible — don't invent a different item.";
+  return "MANDATORY, non-negotiable requirement: " + lines.join(" ") +
+    (products.length > 1 ? " Both of these exact products" : " This exact product") +
+    " must be clearly visible and easily recognizable in the final image, replacing whatever currently occupies that role. " +
+    "This requirement overrides any general style direction below if the two ever conflict. ";
 }
 
 Deno.serve(async (req) => {
@@ -534,18 +545,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    const productNote = productReferenceNote(usedProducts, 2);
     const fullPrompt = mode === "cleanup"
       ? CLEANUP_PROMPT
       : mode === "replace"
-        ? replacePrompt(beautified, detectedLabel) + productReferenceNote(usedProducts, 2)
-        : [
+        ? productNote + replacePrompt(beautified, detectedLabel)
+        : productNote + [
           `Redesign this ${roomLabel ?? "room"} as a photorealistic interior photograph.`,
           stylePrompt ? `Style: ${stylePrompt}.` : "",
           beautified ? `Requested changes: ${beautified.replace(/[.\s]+$/, "")}.` : "",
           "Keep the room's architecture, windows, doors, camera angle and perspective exactly the same, but the",
           "redesign itself must be clearly and obviously visible — change the wall color or finish and the",
           "flooring as part of the style, not just minor styling touches.",
-        ].filter(Boolean).join(" ") + productReferenceNote(usedProducts, 2);
+        ].filter(Boolean).join(" ");
 
     const inputMimeType = sourceBlob.type || "image/png";
     const inputB64 = toBase64(new Uint8Array(await sourceBlob.arrayBuffer()));

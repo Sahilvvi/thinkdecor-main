@@ -151,6 +151,8 @@ export function MaskEditFlow({
   // e.g. "grey sofa") — so just circling an object surfaces real matches
   // for it automatically, before anyone types a word.
   const usingDetectedLabel = prompt.trim().length < 4 && !!label?.trim();
+  const activeQuery = prompt.trim().length >= 4 ? prompt.trim() : (label?.trim() ?? '');
+  const hasActiveQuery = mode === 'replace' && activeQuery.length >= 4;
   useEffect(() => {
     if (mode !== 'replace') return;
     const typed = prompt.trim();
@@ -406,7 +408,7 @@ export function MaskEditFlow({
                         </div>
                       )}
 
-                      {(!!promptProducts.length || searchingProducts) && (
+                      {(!!promptProducts.length || searchingProducts || hasActiveQuery) && (
                         <div style={{ marginTop: 14 }}>
                           <p className="kicker" style={{ fontSize: 10 }}>
                             {usingDetectedLabel ? `Matching what you painted (${label})` : 'Matching your prompt'}
@@ -433,6 +435,11 @@ export function MaskEditFlow({
                           </div>
                           {searchingProducts && promptProducts.length === 0 && (
                             <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
+                          )}
+                          {!searchingProducts && promptProducts.length === 0 && hasActiveQuery && (
+                            <p className="muted" style={{ fontSize: 12 }}>
+                              No real products found for "{activeQuery}" yet — try describing it differently.
+                            </p>
                           )}
                           <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
                             {(showAllProducts ? promptProducts : promptProducts.slice(0, INITIAL_VISIBLE_PRODUCTS)).map((p) => {

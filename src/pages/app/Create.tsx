@@ -137,6 +137,8 @@ export default function Create() {
   // ("a green velvet sofa"); if nothing's typed but something's been marked
   // on the photo, use that detection instead — see supabase/functions/search-products.
   const usingMarkedLabel = prompt.trim().length < 4 && !!markedLabel;
+  const activeQuery = prompt.trim().length >= 4 ? prompt.trim() : (markedLabel ?? '');
+  const hasActiveQuery = activeQuery.length >= 4;
   useEffect(() => {
     const typed = prompt.trim();
     const query = typed.length >= 4 ? typed : (markedLabel ?? '');
@@ -161,7 +163,11 @@ export default function Create() {
     return () => window.clearTimeout(timer);
   }, [prompt, markedLabel, roomType, budget]);
 
-  const productChoices = promptProducts.length > 0 ? promptProducts : (catalogProducts ?? []);
+  // Only fall back to the generic room-type catalog when there's no active
+  // search at all — a search that *did* run and came up empty (e.g. "bowl",
+  // which isn't furniture) must never silently substitute unrelated sofas
+  // and beds; that looked like "detection is right but products are wrong."
+  const productChoices = hasActiveQuery ? promptProducts : (catalogProducts ?? []);
 
   const toggleProduct = (id: string) => {
     setSelectedProductIds((prev) => {
@@ -507,7 +513,7 @@ export default function Create() {
               <div className="box r" style={{ ['--i' as string]: 6 }}>
                 <h5>
                   <span className="n">3</span>
-                  {usingMarkedLabel ? `Matching what you marked (${markedLabel})` : promptProducts.length > 0 ? 'Matching your prompt' : 'Real products'}
+                  {usingMarkedLabel ? `Matching what you marked (${markedLabel})` : hasActiveQuery ? 'Matching your prompt' : 'Real products'}
                   <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
                 </h5>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
@@ -532,7 +538,12 @@ export default function Create() {
                 {searchingProducts && productChoices.length === 0 && (
                   <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
                 )}
-                {!searchingProducts && productChoices.length === 0 && (
+                {!searchingProducts && productChoices.length === 0 && hasActiveQuery && (
+                  <p className="muted" style={{ fontSize: 12 }}>
+                    No real products found for "{activeQuery}" yet — try describing it differently, or clear it to browse by room type.
+                  </p>
+                )}
+                {!searchingProducts && productChoices.length === 0 && !hasActiveQuery && (
                   <p className="muted" style={{ fontSize: 12 }}>Nothing in that budget — try widening it.</p>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>

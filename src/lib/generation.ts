@@ -428,6 +428,8 @@ interface MaskEditRequest {
   prompt?: string;
   /** Replace only — Gemini's own label for what's under the mask, for a better-grounded server prompt. */
   detectedLabel?: string;
+  /** Replace only — real catalog products to composite in, same as Create. */
+  productIds?: string[];
 }
 
 /**
@@ -438,7 +440,7 @@ interface MaskEditRequest {
  * with `mode` set — see the comment at the top of that function for why.
  */
 export async function generateMaskEdit({
-  userId, cleanImage, maskedImage, mode, prompt, detectedLabel,
+  userId, cleanImage, maskedImage, mode, prompt, detectedLabel, productIds,
 }: MaskEditRequest): Promise<Generation> {
   // The clean photo is what Projects shows as "before"; the red-marked copy is
   // only an instruction for the model and is deleted server-side afterwards.
@@ -462,7 +464,10 @@ export async function generateMaskEdit({
   if (uploadError) throw uploadError;
 
   const { data, error } = await supabase.functions.invoke('generate-redesign', {
-    body: { inputPath, maskedPath, mode, prompt: prompt?.trim() || undefined, detectedLabel: detectedLabel || undefined },
+    body: {
+      inputPath, maskedPath, mode, prompt: prompt?.trim() || undefined, detectedLabel: detectedLabel || undefined,
+      productIds: productIds?.length ? productIds : undefined,
+    },
   });
   if (error) {
     const payload = await readFunctionError(error);

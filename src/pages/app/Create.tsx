@@ -17,7 +17,10 @@ import {
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
 } from '@/lib/templates';
-import { useProducts, MAX_PRODUCTS_PER_GENERATION } from '@/lib/products';
+import { useProducts, searchProductsForPrompt, MAX_PRODUCTS_PER_GENERATION, type Product } from '@/lib/products';
+
+/** How long to wait after the last keystroke before searching for real products matching the prompt. */
+const PROMPT_PRODUCT_DEBOUNCE_MS = 700;
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -67,6 +70,37 @@ export default function Create() {
   const [dragging, setDragging] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const { data: catalogProducts } = useProducts(roomType);
+  const [promptProducts, setPromptProducts] = useState<Product[]>([]);
+  const [searchingProducts, setSearchingProducts] = useState(false);
+  const promptSearchId = useRef(0);
+
+  // As the prompt is typed, surface real products matching what it describes
+  // ("a green velvet sofa") instead of only the generic room-type browse —
+  // see supabase/functions/search-products.
+  useEffect(() => {
+    const text = prompt.trim();
+    if (text.length < 4) {
+      promptSearchId.current += 1;
+      setPromptProducts([]);
+      setSearchingProducts(false);
+      return;
+    }
+    const myId = ++promptSearchId.current;
+    setSearchingProducts(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const results = await searchProductsForPrompt({ prompt: text, roomType });
+        if (myId === promptSearchId.current) setPromptProducts(results);
+      } catch {
+        if (myId === promptSearchId.current) setPromptProducts([]);
+      } finally {
+        if (myId === promptSearchId.current) setSearchingProducts(false);
+      }
+    }, PROMPT_PRODUCT_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [prompt, roomType]);
+
+  const productChoices = promptProducts.length > 0 ? promptProducts : (catalogProducts ?? []);
 
   const toggleProduct = (id: string) => {
     setSelectedProductIds((prev) => {
@@ -370,13 +404,18 @@ export default function Create() {
                 ))}
               </div>
             </div>
-            {!!catalogProducts?.length && (
+            {(!!productChoices.length || searchingProducts) && (
               <div className="box r" style={{ ['--i' as string]: 6 }}>
                 <h5>
-                  <span className="n">3</span>Real products <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
+                  <span className="n">3</span>
+                  {promptProducts.length > 0 ? 'Matching your prompt' : 'Real products'}
+                  <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
                 </h5>
+                {searchingProducts && productChoices.length === 0 && (
+                  <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
-                  {catalogProducts.map((p) => {
+                  {productChoices.map((p) => {
                     const on = selectedProductIds.includes(p.id);
                     return (
                       <button
@@ -411,7 +450,7 @@ export default function Create() {
 
         <div className="comp r" style={{ ['--i' as string]: 7 }}>
           <div className="top1">
-            <span className="kicker" style={{ fontSize: 10 }}>{catalogProducts?.length ? '4' : '3'} · Describe it</span>
+            <span className="kicker" style={{ fontSize: 10 }}>{productChoices.length || searchingProducts ? '4' : '3'} · Describe it</span>
             <span className="sel"><img src={selectedTemplate?.image} alt="" />{selectedTemplate?.label}</span>
             <span className="sel">{roomLabel(roomType)}</span>
           </div>

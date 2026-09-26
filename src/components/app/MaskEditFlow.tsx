@@ -15,9 +15,12 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
+import { searchProductsForPrompt, MAX_PRODUCTS_PER_GENERATION, type Product } from '@/lib/products';
 
 /** How long to wait after the last stroke before asking Gemini what's under the mask. */
 const LABEL_DEBOUNCE_MS = 700;
+/** How long to wait after the last keystroke before searching for real products matching the prompt. */
+const PROMPT_PRODUCT_DEBOUNCE_MS = 700;
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
@@ -76,11 +79,26 @@ export function MaskEditFlow({
   const [label, setLabel] = useState<string | null>(null);
   const [labeling, setLabeling] = useState(false);
   const [labelFailed, setLabelFailed] = useState(false);
+  const [promptProducts, setPromptProducts] = useState<Product[]>([]);
+  const [searchingProducts, setSearchingProducts] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
   const canvasRef = useRef<MaskCanvasHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const labelRequestId = useRef(0);
   const labelTimer = useRef<number | null>(null);
+  const promptSearchId = useRef(0);
+
+  const toggleProduct = (id: string) => {
+    setSelectedProductIds((prev) => {
+      if (prev.includes(id)) return prev.filter((p) => p !== id);
+      if (prev.length >= MAX_PRODUCTS_PER_GENERATION) {
+        toast.error(`Up to ${MAX_PRODUCTS_PER_GENERATION} products per design for now.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
 
   const voice = useVoiceInput({
     onResult: (text) => setPrompt((prev) => (prev ? `${prev} ${text}` : text)),
@@ -117,6 +135,32 @@ export function MaskEditFlow({
     return () => { if (labelTimer.current) window.clearTimeout(labelTimer.current); };
   }, [strokeCount, source]);
 
+  // Replace only — as the prompt is typed, surface real products matching
+  // what it describes ("a round wooden coffee table"), same as Create.
+  useEffect(() => {
+    if (mode !== 'replace') return;
+    const text = prompt.trim();
+    if (text.length < 4) {
+      promptSearchId.current += 1;
+      setPromptProducts([]);
+      setSearchingProducts(false);
+      return;
+    }
+    const myId = ++promptSearchId.current;
+    setSearchingProducts(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const results = await searchProductsForPrompt({ prompt: text });
+        if (myId === promptSearchId.current) setPromptProducts(results);
+      } catch {
+        if (myId === promptSearchId.current) setPromptProducts([]);
+      } finally {
+        if (myId === promptSearchId.current) setSearchingProducts(false);
+      }
+    }, PROMPT_PRODUCT_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [prompt, mode]);
+
   const setupPending = isSetupError(creditsError);
   const outOfCredits = credits !== undefined && credits <= 0;
   const { data: subscription } = useSubscription();
@@ -150,6 +194,8 @@ export function MaskEditFlow({
     setStrokes([]);
     setHasGenerated(false);
     setPrompt('');
+    setSelectedProductIds([]);
+    setPromptProducts([]);
   };
 
   const editMaskAgain = () => {
@@ -170,6 +216,7 @@ export function MaskEditFlow({
         mode,
         prompt: prompt.trim(),
         detectedLabel: label ?? undefined,
+        productIds: mode === 'replace' && selectedProductIds.length ? selectedProductIds : undefined,
       });
       setHasGenerated(true);
       setResult(generation);
@@ -341,6 +388,46 @@ export function MaskEditFlow({
                           >
                             {voice.listening ? <MicOff width={15} height={15} /> : <Mic width={15} height={15} />}
                           </button>
+                        </div>
+                      )}
+
+                      {(!!promptProducts.length || searchingProducts) && (
+                        <div style={{ marginTop: 14 }}>
+                          <p className="kicker" style={{ fontSize: 10 }}>
+                            Matching your prompt <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
+                          </p>
+                          {searchingProducts && promptProducts.length === 0 && (
+                            <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
+                          )}
+                          <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
+                            {promptProducts.map((p) => {
+                              const on = selectedProductIds.includes(p.id);
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  title={p.name}
+                                  onClick={() => toggleProduct(p.id)}
+                                  style={{
+                                    position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', padding: 0,
+                                    boxShadow: on ? '0 0 0 2px var(--brass)' : 'inset 0 0 0 1px var(--stone-2)',
+                                  }}
+                                >
+                                  <img src={p.display_image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  {on && (
+                                    <span style={{ position: 'absolute', top: 4, right: 4, background: 'var(--brass)', borderRadius: 999, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <Check width={11} height={11} color="#fff" />
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {selectedProductIds.length > 0 && (
+                            <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+                              {selectedProductIds.length} selected — this exact product will appear in the result.
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>

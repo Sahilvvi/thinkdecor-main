@@ -58,6 +58,16 @@ export function useProducts(roomType?: RoomType, category?: ProductCategory) {
   });
 }
 
+/** Prompt-driven suggestions — given the free text someone typed in Create or
+ *  Replace, returns real products matching what they described (see
+ *  supabase/functions/search-products). Any signed-in user can call this. */
+export async function searchProductsForPrompt(input: { prompt: string; roomType?: RoomType }): Promise<Product[]> {
+  const { data, error } = await supabase.functions.invoke('search-products', { body: input });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return (data?.products ?? []) as Product[];
+}
+
 /* ------------------------------------------------------- admin CRUD ------------------------------------------------------- */
 // RLS restricts insert/update/delete to admins (public.has_role) — these calls
 // simply fail for anyone else, the same trust model as the rest of admin/*.

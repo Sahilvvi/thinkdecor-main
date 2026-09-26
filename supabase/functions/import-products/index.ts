@@ -154,11 +154,26 @@ Deno.serve(async (req) => {
     return json({ imported: 0, message: "No usable products came back for that search." });
   }
 
-  const { error, count } = await admin
+  // products_source_sku_uniq is a partial unique index (where source_sku is
+  // not null), which plain PostgREST upsert can't target via ON CONFLICT —
+  // so dedupe by hand instead: drop anything already ingested from this SKU.
+  const skus = rows.map((r) => r.source_sku);
+  const { data: existing, error: existingErr } = await admin
     .from("products")
-    .upsert(rows, { onConflict: "source_retailer,source_sku", count: "exact" });
+    .select("source_sku")
+    .eq("source_retailer", "google_shopping")
+    .in("source_sku", skus);
+  if (existingErr) return json({ error: existingErr.message }, 500);
 
+  const alreadyImported = new Set((existing ?? []).map((r) => r.source_sku));
+  const newRows = rows.filter((r) => !alreadyImported.has(r.source_sku));
+
+  if (newRows.length === 0) {
+    return json({ imported: 0, message: "Every result from that search is already in the catalog." });
+  }
+
+  const { error } = await admin.from("products").insert(newRows);
   if (error) return json({ error: error.message }, 500);
 
-  return json({ imported: count ?? rows.length });
+  return json({ imported: newRows.length });
 });

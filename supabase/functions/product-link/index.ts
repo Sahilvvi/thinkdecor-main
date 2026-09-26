@@ -8,17 +8,19 @@
 // (still better than nothing) if that lookup fails or the product wasn't
 // imported from Google Shopping at all.
 //
+// The resolved link is cached on the product row (resolved_shop_url /
+// resolved_shop_url_at) for CACHE_TTL_MS — the first click on a given
+// product pays for the live lookup (~1-2s), every click after that for
+// anyone, until the cache goes stale, redirects immediately.
+//
 // Deploy:  supabase functions deploy product-link --no-verify-jwt
 // Secrets: RAPIDAPI_KEY, plus the SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
 //          every project already has.
-//
-// Done as a redirect resolved at click time, not baked into the catalog at
-// import time, so the (metered, free-tier) API call only happens for
-// products someone actually clicks through on — not every imported row.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const CURRENCY_TO_COUNTRY: Record<string, string> = { USD: "us", GBP: "gb", CAD: "ca", AUD: "au" };
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
@@ -32,7 +34,7 @@ Deno.serve(async (req) => {
 
   const { data: product } = await admin
     .from("products")
-    .select("source_retailer, source_sku, source_url, currency")
+    .select("source_retailer, source_sku, source_url, currency, resolved_shop_url, resolved_shop_url_at")
     .eq("id", id)
     .eq("active", true)
     .maybeSingle();
@@ -43,6 +45,11 @@ Deno.serve(async (req) => {
     product.source_url
       ? Response.redirect(product.source_url, 302)
       : new Response("This product has no listing link.", { status: 404 });
+
+  const cacheAge = product.resolved_shop_url_at ? Date.now() - new Date(product.resolved_shop_url_at).getTime() : Infinity;
+  if (product.resolved_shop_url && cacheAge < CACHE_TTL_MS) {
+    return Response.redirect(product.resolved_shop_url, 302);
+  }
 
   const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
   if (product.source_retailer !== "google_shopping" || !product.source_sku || !rapidApiKey) {
@@ -63,7 +70,18 @@ Deno.serve(async (req) => {
     if (!res.ok) return fallback();
     const payload = await res.json();
     const offerUrl: string | undefined = payload?.data?.offers?.[0]?.offer_page_url;
-    return offerUrl ? Response.redirect(offerUrl, 302) : fallback();
+    if (!offerUrl) return fallback();
+
+    // Best-effort — a failed cache write shouldn't break the redirect, but is
+    // awaited (it's one fast local DB call) so it isn't dropped when the
+    // isolate is torn down right after the response is sent.
+    const { error: cacheErr } = await admin
+      .from("products")
+      .update({ resolved_shop_url: offerUrl, resolved_shop_url_at: new Date().toISOString() })
+      .eq("id", id);
+    if (cacheErr) console.error("product-link: couldn't cache resolved URL", cacheErr);
+
+    return Response.redirect(offerUrl, 302);
   } catch {
     return fallback();
   }

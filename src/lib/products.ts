@@ -230,6 +230,36 @@ export async function importProducts(input: {
   return data as { imported: number; message?: string };
 }
 
+export interface BulkImportQuery {
+  category: ProductCategory;
+  query: string;
+  roomTypes: RoomType[];
+}
+
+export interface BulkImportQueryResult {
+  category: ProductCategory;
+  query: string;
+  imported: number;
+  error?: string;
+}
+
+/** Runs a whole list of category+query searches in one call — each one is
+ *  still its own RapidAPI request under the hood (see import-products),
+ *  just batched server-side instead of clicking the single-query form N
+ *  times. Capped server-side (MAX_BATCH_SIZE) so one run can't blow past
+ *  a month's API quota by accident. */
+export async function bulkImportProducts(
+  queries: BulkImportQuery[],
+  opts?: { limit?: number; country?: string },
+): Promise<{ imported: number; results: BulkImportQueryResult[]; skipped: number }> {
+  const { data, error } = await supabase.functions.invoke('import-products', {
+    body: { queries, ...opts },
+  });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data as { imported: number; results: BulkImportQueryResult[]; skipped: number };
+}
+
 export interface ProductAnalyticsRow {
   productId: string;
   selections: number;

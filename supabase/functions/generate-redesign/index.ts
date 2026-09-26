@@ -456,6 +456,14 @@ Deno.serve(async (req) => {
   const productIds = mode !== "cleanup" && Array.isArray(rawProductIds)
     ? [...new Set(rawProductIds.filter((id): id is string => typeof id === "string"))].slice(0, MAX_PRODUCTS)
     : [];
+  // The fastest model ("lite") is tuned to freely reinterpret the whole room
+  // rather than follow a precise instruction — great for a plain style
+  // redesign, but it's the one most likely to ignore a specific reference
+  // product in favour of inventing its own. When real products are
+  // involved, try the more literal/preserving models first instead.
+  if (productIds.length) {
+    models.sort((a, b) => Number(a.includes("lite")) - Number(b.includes("lite")));
+  }
 
   // ---- 1. check the photo before any credit is spent ------------------------
   // Only ever read the caller's own uploads.

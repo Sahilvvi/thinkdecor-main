@@ -42,11 +42,16 @@ export interface Product {
   source_url: string | null;
 }
 
+export interface BudgetFilter {
+  minPrice?: number;
+  maxPrice?: number;
+}
+
 /** The real-product catalog, filtered by room type when given. Public read —
  *  works signed out too, same as the Templates gallery. */
-export function useProducts(roomType?: RoomType, category?: ProductCategory) {
+export function useProducts(roomType?: RoomType, category?: ProductCategory, budget?: BudgetFilter) {
   return useQuery({
-    queryKey: ['products', roomType ?? 'all', category ?? 'all'],
+    queryKey: ['products', roomType ?? 'all', category ?? 'all', budget?.minPrice ?? null, budget?.maxPrice ?? null],
     queryFn: async () => {
       let query = db
         .from('products')
@@ -55,6 +60,8 @@ export function useProducts(roomType?: RoomType, category?: ProductCategory) {
         .order('name');
       if (roomType) query = query.contains('room_types', [roomType]);
       if (category) query = query.eq('category', category);
+      if (budget?.minPrice != null) query = query.gte('price', budget.minPrice);
+      if (budget?.maxPrice != null) query = query.lte('price', budget.maxPrice);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Product[];
@@ -96,6 +103,45 @@ export function useGenerationProducts(generationId?: string | null) {
   });
 }
 
+export interface GenerationProductDetail {
+  id: string;
+  name: string;
+  display_image_url: string;
+  price: number | null;
+  currency: string;
+  source_url: string | null;
+}
+
+/** Every real product actually used in a generation (regardless of whether
+ *  its on-image position was detected) — for a "Shop this look" list, as
+ *  opposed to useGenerationProducts' hotspot dots which need a position. */
+export function useGenerationProductDetails(generationId?: string | null) {
+  return useQuery({
+    queryKey: ['generation-product-details', generationId],
+    enabled: !!generationId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('generation_products')
+        .select('product_id, products(name, display_image_url, price, currency, source_url)')
+        .eq('generation_id', generationId as string);
+      if (error) throw error;
+      return (data ?? []).map((r) => {
+        const p = r.products as unknown as {
+          name: string; display_image_url: string; price: number | null; currency: string; source_url: string | null;
+        } | null;
+        return {
+          id: r.product_id as string,
+          name: p?.name ?? 'Product',
+          display_image_url: p?.display_image_url ?? '',
+          price: p?.price ?? null,
+          currency: p?.currency ?? 'GBP',
+          source_url: p?.source_url ?? null,
+        };
+      }) as GenerationProductDetail[];
+    },
+  });
+}
+
 /** A "shop this" link that resolves to the real retailer's own product page
  *  at click time (see supabase/functions/product-link) — never the Google
  *  Shopping listing / reviews page that source_url itself points at for
@@ -107,7 +153,9 @@ export function productShopUrl(productId: string): string {
 /** Prompt-driven suggestions — given the free text someone typed in Create or
  *  Replace, returns real products matching what they described (see
  *  supabase/functions/search-products). Any signed-in user can call this. */
-export async function searchProductsForPrompt(input: { prompt: string; roomType?: RoomType }): Promise<Product[]> {
+export async function searchProductsForPrompt(
+  input: { prompt: string; roomType?: RoomType } & BudgetFilter,
+): Promise<Product[]> {
   const { data, error } = await supabase.functions.invoke('search-products', { body: input });
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
@@ -175,6 +223,35 @@ export async function importProducts(input: {
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data as { imported: number; message?: string };
+}
+
+export interface ProductAnalyticsRow {
+  productId: string;
+  selections: number;
+  clicks: number;
+}
+
+/** How often each product has been picked into a design (generation_products)
+ *  and how often its shop link's been clicked (product_link_clicks) — so the
+ *  admin catalog page can show what's actually resonating instead of guessing
+ *  what to import more of. Counted client-side; fine at this catalog's size. */
+export async function getProductAnalytics(): Promise<ProductAnalyticsRow[]> {
+  const [{ data: gp, error: gpErr }, { data: clicks, error: clickErr }] = await Promise.all([
+    db.from('generation_products').select('product_id'),
+    db.from('product_link_clicks').select('product_id'),
+  ]);
+  if (gpErr) throw gpErr;
+  if (clickErr) throw clickErr;
+
+  const counts = new Map<string, ProductAnalyticsRow>();
+  const bump = (id: string, key: 'selections' | 'clicks') => {
+    const row = counts.get(id) ?? { productId: id, selections: 0, clicks: 0 };
+    row[key] += 1;
+    counts.set(id, row);
+  };
+  for (const row of gp ?? []) bump(row.product_id as string, 'selections');
+  for (const row of clicks ?? []) bump(row.product_id as string, 'clicks');
+  return [...counts.values()];
 }
 
 const PRODUCT_MEDIA_BUCKET = 'product-media';

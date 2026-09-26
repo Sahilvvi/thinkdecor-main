@@ -3,16 +3,19 @@ import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowRight, Check, Download, ExternalLink, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Wand2,
+  ArrowRight, Check, Crosshair, Download, ExternalLink, ImagePlus, Loader2, Mic, MicOff, RefreshCw, Sparkles, Wand2, X,
 } from 'lucide-react';
 
 import { SEO } from '@/components/shared/SEO';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useAuthStore } from '@/stores/authStore';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
+import { ShopThisLook } from '@/components/app/ShopThisLook';
+import { MaskCanvas, type MaskCanvasHandle } from '@/components/app/MaskCanvas';
 import {
   GenerationError, IS_PLACEHOLDER_GENERATOR, OutOfCreditsError, RateLimitError,
-  downloadStoredImage, fileNameFor, isSetupError, type Generation, useCreditBalance, useGenerate,
+  downloadStoredImage, fileNameFor, isSetupError, labelMaskRegion, type Generation,
+  useCreditBalance, useGenerate, useStoredImageUrl,
 } from '@/lib/generation';
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
@@ -71,18 +74,73 @@ export default function Create() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [dragging, setDragging] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
-  const { data: catalogProducts } = useProducts(roomType);
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
+  const budget = useMemo(() => ({
+    minPrice: budgetMin ? Number(budgetMin) : undefined,
+    maxPrice: budgetMax ? Number(budgetMax) : undefined,
+  }), [budgetMin, budgetMax]);
+  const { data: catalogProducts } = useProducts(roomType, undefined, budget);
   const [promptProducts, setPromptProducts] = useState<Product[]>([]);
   const [searchingProducts, setSearchingProducts] = useState(false);
   const [showAllProducts, setShowAllProducts] = useState(false);
   const promptSearchId = useRef(0);
 
-  // As the prompt is typed, surface real products matching what it describes
-  // ("a green velvet sofa") instead of only the generic room-type browse —
-  // see supabase/functions/search-products.
+  // "Mark an object" — an optional paint step on the uploaded photo (same
+  // mechanism as Replace's mask) used only to ask Gemini what's under the
+  // paint, never sent to the redesign call itself: Create has no mask
+  // channel, it's a full-room restyle, so the stroke is purely a way to
+  // point at something and get real matches for it without typing.
+  const [markMode, setMarkMode] = useState(false);
+  const [markStrokeCount, setMarkStrokeCount] = useState(0);
+  const [markedLabel, setMarkedLabel] = useState<string | null>(null);
+  const [marking, setMarking] = useState(false);
+  const markCanvasRef = useRef<MaskCanvasHandle>(null);
+  const markRequestId = useRef(0);
+  const markTimer = useRef<number | null>(null);
+  const sourceRef = source ? refOf(source) : undefined;
+  const resolvedSourceUrl = useStoredImageUrl(sourceRef);
+
   useEffect(() => {
-    const text = prompt.trim();
-    if (text.length < 4) {
+    if (markTimer.current) window.clearTimeout(markTimer.current);
+    if (!markMode || markStrokeCount === 0) {
+      markRequestId.current += 1;
+      setMarkedLabel(null);
+      setMarking(false);
+      return;
+    }
+    const myId = ++markRequestId.current;
+    setMarking(true);
+    markTimer.current = window.setTimeout(async () => {
+      try {
+        const detection = await markCanvasRef.current?.exportDetection({ maxDimension: 768 });
+        if (!detection || myId !== markRequestId.current) return;
+        const detected = await labelMaskRegion(detection.blob, detection.box);
+        if (myId === markRequestId.current) setMarkedLabel(detected || null);
+      } catch {
+        if (myId === markRequestId.current) setMarkedLabel(null);
+      } finally {
+        if (myId === markRequestId.current) setMarking(false);
+      }
+    }, PROMPT_PRODUCT_DEBOUNCE_MS);
+    return () => { if (markTimer.current) window.clearTimeout(markTimer.current); };
+  }, [markStrokeCount, markMode]);
+
+  const exitMarkMode = () => {
+    setMarkMode(false);
+    setMarkStrokeCount(0);
+    setMarkedLabel(null);
+    markCanvasRef.current?.clear();
+  };
+
+  // As the prompt is typed, surface real products matching what it describes
+  // ("a green velvet sofa"); if nothing's typed but something's been marked
+  // on the photo, use that detection instead — see supabase/functions/search-products.
+  const usingMarkedLabel = prompt.trim().length < 4 && !!markedLabel;
+  useEffect(() => {
+    const typed = prompt.trim();
+    const query = typed.length >= 4 ? typed : (markedLabel ?? '');
+    if (query.length < 4) {
       promptSearchId.current += 1;
       setPromptProducts([]);
       setSearchingProducts(false);
@@ -92,7 +150,7 @@ export default function Create() {
     setSearchingProducts(true);
     const timer = window.setTimeout(async () => {
       try {
-        const results = await searchProductsForPrompt({ prompt: text, roomType });
+        const results = await searchProductsForPrompt({ prompt: query, roomType, ...budget });
         if (myId === promptSearchId.current) setPromptProducts(results);
       } catch {
         if (myId === promptSearchId.current) setPromptProducts([]);
@@ -101,7 +159,7 @@ export default function Create() {
       }
     }, PROMPT_PRODUCT_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [prompt, roomType]);
+  }, [prompt, markedLabel, roomType, budget]);
 
   const productChoices = promptProducts.length > 0 ? promptProducts : (catalogProducts ?? []);
 
@@ -144,6 +202,9 @@ export default function Create() {
       return;
     }
     setSource({ kind: 'file', file, preview: URL.createObjectURL(file) });
+    setMarkMode(false);
+    setMarkStrokeCount(0);
+    setMarkedLabel(null);
   };
 
   const run = async (args: {
@@ -287,7 +348,10 @@ export default function Create() {
                     </div>
                   )}
                   {turn.status === 'done' && turn.result && (
-                    <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} generationId={turn.result.id} />
+                    <>
+                      <StoredCompare before={turn.result.input_image_url} after={turn.result.output_image_url} generationId={turn.result.id} />
+                      <div style={{ marginTop: 12 }}><ShopThisLook generationId={turn.result.id} /></div>
+                    </>
                   )}
                   {turn.status === 'error' && (
                     <div className="note" style={{ margin: 0, background: 'var(--rose-bg)', boxShadow: 'inset 0 0 0 1px #F3D3CB', color: '#7A2E20' }}>
@@ -353,12 +417,44 @@ export default function Create() {
             {dragging && (
               <svg className="ants"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="21" ry="21" /></svg>
             )}
-            {source ? (
+            {source && markMode ? (
+              <div style={{ width: '100%', maxWidth: 420 }}>
+                <p className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                  Circle a sofa, bed, or anything else — Mantha will find real matches for it. This won't change the photo itself.
+                </p>
+                {resolvedSourceUrl && (
+                  <MaskCanvas
+                    ref={markCanvasRef}
+                    imageSrc={resolvedSourceUrl}
+                    onStrokeCountChange={setMarkStrokeCount}
+                  />
+                )}
+                {(marking || markedLabel) && (
+                  <span className="tagp dark" style={{ marginTop: 10, display: 'inline-flex' }}>
+                    {marking ? (
+                      <><Loader2 className="animate-spin" width={13} height={13} /> Detecting…</>
+                    ) : (
+                      <><Sparkles width={13} height={13} /> Looks like: <b>{markedLabel}</b></>
+                    )}
+                  </span>
+                )}
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <button type="button" className="btn btn-line" onClick={exitMarkMode}>
+                    <X width={14} height={14} /> Done marking
+                  </button>
+                </div>
+              </div>
+            ) : source ? (
               <>
                 <div style={{ position: 'relative', width: '100%', maxWidth: 420, borderRadius: 18, overflow: 'hidden' }}>
                   <StoredImage src={refOf(source)} alt="Selected room" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} />
                 </div>
-                <button type="button" className="btn btn-line" style={{ marginTop: 16 }} onClick={() => setSource(null)}>Choose a different photo</button>
+                <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                  <button type="button" className="btn btn-line" onClick={() => { setSource(null); exitMarkMode(); }}>Choose a different photo</button>
+                  <button type="button" className="btn btn-line" onClick={() => setMarkMode(true)}>
+                    <Crosshair width={14} height={14} /> Mark an object to find matches
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -411,9 +507,28 @@ export default function Create() {
               <div className="box r" style={{ ['--i' as string]: 6 }}>
                 <h5>
                   <span className="n">3</span>
-                  {promptProducts.length > 0 ? 'Matching your prompt' : 'Real products'}
+                  {usingMarkedLabel ? `Matching what you marked (${markedLabel})` : promptProducts.length > 0 ? 'Matching your prompt' : 'Real products'}
                   <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
                 </h5>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <span className="muted" style={{ fontSize: 12 }}>Budget</span>
+                  <input
+                    type="number" min={0} inputMode="numeric" placeholder="Min"
+                    value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)}
+                    className="field" style={{ height: 30, width: 72, paddingInline: 8, fontSize: 12.5 }}
+                  />
+                  <span className="muted" style={{ fontSize: 12 }}>–</span>
+                  <input
+                    type="number" min={0} inputMode="numeric" placeholder="Max"
+                    value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)}
+                    className="field" style={{ height: 30, width: 72, paddingInline: 8, fontSize: 12.5 }}
+                  />
+                  {(budgetMin || budgetMax) && (
+                    <button type="button" className="ico-btn" title="Clear budget" onClick={() => { setBudgetMin(''); setBudgetMax(''); }}>
+                      <X width={12} height={12} />
+                    </button>
+                  )}
+                </div>
                 {searchingProducts && productChoices.length === 0 && (
                   <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
                 )}

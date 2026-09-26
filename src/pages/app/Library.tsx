@@ -10,6 +10,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { StoredCompare, StoredImage } from '@/components/app/StoredImage';
+import { ShopThisLook } from '@/components/app/ShopThisLook';
 import {
   type Generation, downloadStoredImage, fileNameFor, formatDate, isSetupError, titleFor, useDeleteGeneration,
   useGenerations,
@@ -182,6 +183,7 @@ export default function Library() {
               <div className="overflow-hidden rounded-2xl border border-border/70">
                 <StoredCompare before={viewing.input_image_url} after={viewing.output_image_url} generationId={viewing.id} />
               </div>
+              <ShopThisLook generationId={viewing.id} />
               {viewing.prompt && (
                 <p className="rounded-xl bg-secondary px-4 py-3 text-[13.5px] text-foreground/70">
                   <span className="font-semibold text-foreground">Your request: </span>

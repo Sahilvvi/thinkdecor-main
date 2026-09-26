@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
   const { data: { user } } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
   if (!user) return json({ error: "Please sign in again." }, 401);
 
-  let body: { prompt?: string; roomType?: string };
+  let body: { prompt?: string; roomType?: string; minPrice?: number; maxPrice?: number };
   try {
     body = await req.json();
   } catch {
@@ -124,6 +124,8 @@ Deno.serve(async (req) => {
 
   const promptLower = String(body.prompt ?? "").toLowerCase().trim();
   const roomType = typeof body.roomType === "string" ? body.roomType : undefined;
+  const minPrice = typeof body.minPrice === "number" ? body.minPrice : undefined;
+  const maxPrice = typeof body.maxPrice === "number" ? body.maxPrice : undefined;
 
   if (promptLower.length < 4) return json({ products: [] });
 
@@ -139,6 +141,8 @@ Deno.serve(async (req) => {
   for (const { category, keyword } of targets) {
     let query = admin.from("products").select(columns).eq("category", category).eq("active", true);
     if (roomType) query = query.contains("room_types", [roomType]);
+    if (minPrice != null) query = query.gte("price", minPrice);
+    if (maxPrice != null) query = query.lte("price", maxPrice);
     const { data: local } = await query.limit(8);
     for (const row of local ?? []) {
       const id = row.id as string;
@@ -154,6 +158,8 @@ Deno.serve(async (req) => {
       url.searchParams.set("q", keyword);
       url.searchParams.set("limit", String(LIVE_TOPUP_LIMIT));
       url.searchParams.set("country", "us");
+      if (minPrice != null) url.searchParams.set("min_price", String(minPrice));
+      if (maxPrice != null) url.searchParams.set("max_price", String(maxPrice));
       const res = await fetch(url, {
         headers: {
           "X-RapidAPI-Key": rapidApiKey,

@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
 
   if (!product) return new Response("Not found", { status: 404 });
 
+  // Logged for the admin analytics view ("what people actually click"),
+  // fire-and-forget — a failed log write should never hold up the redirect.
+  admin.from("product_link_clicks").insert({ product_id: id })
+    .then(({ error }) => { if (error) console.error("product-link: couldn't log click", error); });
+
   const fallback = () =>
     product.source_url
       ? Response.redirect(product.source_url, 302)

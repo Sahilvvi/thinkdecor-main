@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowRight, Check, Download, ExternalLink, Loader2, Mic, MicOff, RotateCcw, Sparkles,
+  ArrowRight, Check, Download, ExternalLink, Loader2, Mic, MicOff, RotateCcw, Sparkles, X,
 } from 'lucide-react';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { MaskCanvas, type MaskCanvasHandle, type Stroke } from '@/components/app/MaskCanvas';
 import { StoredCompare } from '@/components/app/StoredImage';
+import { ShopThisLook } from '@/components/app/ShopThisLook';
 import {
   FREE_SIGNUP_CREDITS, GenerationError, OutOfCreditsError, RateLimitError,
   downloadStoredImage, fileNameFor, isSetupError, labelMaskRegion, useCreditBalance, useGenerateMaskEdit,
@@ -85,6 +86,12 @@ export function MaskEditFlow({
   const [searchingProducts, setSearchingProducts] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
+  const budget = useMemo(() => ({
+    minPrice: budgetMin ? Number(budgetMin) : undefined,
+    maxPrice: budgetMax ? Number(budgetMax) : undefined,
+  }), [budgetMin, budgetMax]);
 
   const canvasRef = useRef<MaskCanvasHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -158,7 +165,7 @@ export function MaskEditFlow({
     setSearchingProducts(true);
     const timer = window.setTimeout(async () => {
       try {
-        const results = await searchProductsForPrompt({ prompt: query });
+        const results = await searchProductsForPrompt({ prompt: query, ...budget });
         if (myId === promptSearchId.current) setPromptProducts(results);
       } catch {
         if (myId === promptSearchId.current) setPromptProducts([]);
@@ -167,7 +174,7 @@ export function MaskEditFlow({
       }
     }, PROMPT_PRODUCT_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [prompt, label, mode]);
+  }, [prompt, label, mode, budget]);
 
   const setupPending = isSetupError(creditsError);
   const outOfCredits = credits !== undefined && credits <= 0;
@@ -405,6 +412,25 @@ export function MaskEditFlow({
                             {usingDetectedLabel ? `Matching what you painted (${label})` : 'Matching your prompt'}
                             <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
                           </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                            <span className="muted" style={{ fontSize: 12 }}>Budget</span>
+                            <input
+                              type="number" min={0} inputMode="numeric" placeholder="Min"
+                              value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)}
+                              className="field" style={{ height: 30, width: 72, paddingInline: 8, fontSize: 12.5 }}
+                            />
+                            <span className="muted" style={{ fontSize: 12 }}>–</span>
+                            <input
+                              type="number" min={0} inputMode="numeric" placeholder="Max"
+                              value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)}
+                              className="field" style={{ height: 30, width: 72, paddingInline: 8, fontSize: 12.5 }}
+                            />
+                            {(budgetMin || budgetMax) && (
+                              <button type="button" className="ico-btn" title="Clear budget" onClick={() => { setBudgetMin(''); setBudgetMax(''); }}>
+                                <X width={12} height={12} />
+                              </button>
+                            )}
+                          </div>
                           {searchingProducts && promptProducts.length === 0 && (
                             <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
                           )}
@@ -529,6 +555,7 @@ export function MaskEditFlow({
             <div style={{ maxWidth: 'min(100%, calc(70vh * 1.3334))', margin: '0 auto' }}>
               <StoredCompare before={cleanBeforeRef} after={result.output_image_url} generationId={result.id} />
             </div>
+            <div style={{ padding: '0 16px' }}><ShopThisLook generationId={result.id} /></div>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 16 }}>
               <span className="muted" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Check width={14} height={14} color="var(--brass)" />

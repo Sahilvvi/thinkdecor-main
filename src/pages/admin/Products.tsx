@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Loader2, X, ImageOff, Eye, EyeOff, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, X, ImageOff, Eye, EyeOff, Download, BarChart2, MousePointerClick, ListChecks } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Button } from '@/components/ui/button';
 import { ROOM_TYPES, type RoomType } from '@/lib/templates';
 import {
-  listAllProducts, createProduct, updateProduct, deleteProduct, uploadProductImage, importProducts,
-  PRODUCT_CATEGORIES, type AdminProduct, type ProductInput, type ProductCategory,
+  listAllProducts, createProduct, updateProduct, deleteProduct, uploadProductImage, importProducts, getProductAnalytics,
+  PRODUCT_CATEGORIES, type AdminProduct, type ProductInput, type ProductCategory, type ProductAnalyticsRow,
 } from '@/lib/products';
 
 const emptyForm: ProductInput = {
@@ -23,6 +23,7 @@ export default function Products() {
   const [confirm, setConfirm] = useState<AdminProduct | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<ProductCategory | 'all'>('all');
   const [importing, setImporting] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
 
   const load = () => listAllProducts().then(setProducts).catch((e) => toast.error((e as Error).message)).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
@@ -64,6 +65,9 @@ export default function Products() {
             </p>
           </div>
           <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <button type="button" className="btn btn-line" onClick={() => setShowInsights(true)}>
+              <BarChart2 width={15} height={15} /> Insights
+            </button>
             <button type="button" className="btn btn-line" onClick={() => setImporting(true)}>
               <Download width={15} height={15} /> Import from search
             </button>
@@ -142,6 +146,12 @@ export default function Products() {
       <AnimatePresence>
         {importing && (
           <ImportPanel onClose={() => setImporting(false)} onImported={() => { setImporting(false); load(); }} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInsights && (
+          <InsightsPanel products={products} onClose={() => setShowInsights(false)} />
         )}
       </AnimatePresence>
 
@@ -290,6 +300,91 @@ function ImportPanel({ onClose, onImported }: { onClose: () => void; onImported:
         <Button onClick={run} disabled={running} variant="hero" className="mt-6 h-auto w-full rounded-full px-5 py-3 text-[14px]">
           {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {running ? 'Searching…' : 'Import products'}
         </Button>
+      </motion.div>
+    </>
+  );
+}
+
+/** What people actually pick and click, not just what's in the catalog —
+ *  so curating what to import more of isn't a guess. */
+function InsightsPanel({ products, onClose }: { products: AdminProduct[]; onClose: () => void }) {
+  const [rows, setRows] = useState<ProductAnalyticsRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getProductAnalytics().then(setRows).catch((e) => setError((e as Error).message));
+  }, []);
+
+  const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const topBy = (key: 'selections' | 'clicks') =>
+    [...(rows ?? [])]
+      .filter((r) => r[key] > 0 && byId.has(r.productId))
+      .sort((a, b) => b[key] - a[key])
+      .slice(0, 8);
+
+  const Row = ({ row, valueKey }: { row: ProductAnalyticsRow; valueKey: 'selections' | 'clicks' }) => {
+    const p = byId.get(row.productId);
+    if (!p) return null;
+    return (
+      <div className="flex items-center gap-3 py-2">
+        <div className="h-10 w-10 flex-none overflow-hidden rounded-lg bg-black/[0.04]">
+          {p.display_image_url && <img src={p.display_image_url} alt={p.name} className="h-full w-full object-cover" />}
+        </div>
+        <p className="min-w-0 flex-1 truncate text-[13px] font-medium" style={{ color: 'var(--ink)' }}>{p.name}</p>
+        <span className="flex-none rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: 'var(--linen)', color: 'var(--char)' }}>
+          {row[valueKey]}
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px]"
+      />
+      <motion.div
+        initial={{ scale: 0.95, y: 12, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="admin-x fixed left-1/2 top-1/2 z-50 w-full max-w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl"
+        style={{ maxHeight: '85vh', overflowY: 'auto' }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-[19px]" style={{ color: 'var(--char)' }}>Catalog insights</h2>
+          <button type="button" onClick={onClose} className="ico-btn"><X width={16} height={16} /></button>
+        </div>
+        <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: 'var(--taupe)' }}>
+          What people actually pick into a design and click through to buy — use this to decide what to import more of.
+        </p>
+
+        {error && <p className="mt-6 text-[13px]" style={{ color: 'var(--rose)' }}>{error}</p>}
+        {!error && !rows && (
+          <div className="mt-8 flex items-center justify-center gap-2 py-10" style={{ color: 'var(--taupe)' }}>
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        )}
+        {rows && (
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="kicker" style={{ fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ListChecks width={13} height={13} /> Most selected into designs
+              </p>
+              {topBy('selections').length === 0
+                ? <p className="mt-3 text-[12.5px]" style={{ color: 'var(--taupe)' }}>No selections recorded yet.</p>
+                : topBy('selections').map((r) => <Row key={r.productId} row={r} valueKey="selections" />)}
+            </div>
+            <div>
+              <p className="kicker" style={{ fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <MousePointerClick width={13} height={13} /> Most clicked to buy
+              </p>
+              {topBy('clicks').length === 0
+                ? <p className="mt-3 text-[12.5px]" style={{ color: 'var(--taupe)' }}>No clicks recorded yet.</p>
+                : topBy('clicks').map((r) => <Row key={r.productId} row={r} valueKey="clicks" />)}
+            </div>
+          </div>
+        )}
       </motion.div>
     </>
   );

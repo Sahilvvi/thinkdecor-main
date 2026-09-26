@@ -21,6 +21,8 @@ import { searchProductsForPrompt, productShopUrl, MAX_PRODUCTS_PER_GENERATION, t
 const LABEL_DEBOUNCE_MS = 700;
 /** How long to wait after the last keystroke before searching for real products matching the prompt. */
 const PROMPT_PRODUCT_DEBOUNCE_MS = 700;
+/** Roughly 3 rows before "View more" kicks in. */
+const INITIAL_VISIBLE_PRODUCTS = 12;
 
 const INTRO = pence(PHASE1_PLAN.introPrice ?? 0.69);
 const MONTHLY = money(PHASE1_PLAN.monthly);
@@ -82,6 +84,7 @@ export function MaskEditFlow({
   const [promptProducts, setPromptProducts] = useState<Product[]>([]);
   const [searchingProducts, setSearchingProducts] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [showAllProducts, setShowAllProducts] = useState(false);
 
   const canvasRef = useRef<MaskCanvasHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -400,7 +403,7 @@ export function MaskEditFlow({
                             <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
                           )}
                           <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
-                            {promptProducts.map((p) => {
+                            {(showAllProducts ? promptProducts : promptProducts.slice(0, INITIAL_VISIBLE_PRODUCTS)).map((p) => {
                               const on = selectedProductIds.includes(p.id);
                               return (
                                 <div
@@ -440,6 +443,16 @@ export function MaskEditFlow({
                               );
                             })}
                           </div>
+                          {promptProducts.length > INITIAL_VISIBLE_PRODUCTS && (
+                            <button
+                              type="button"
+                              className="lnk"
+                              style={{ marginTop: 8, fontSize: 12.5 }}
+                              onClick={() => setShowAllProducts((s) => !s)}
+                            >
+                              {showAllProducts ? 'View fewer' : `View more (${promptProducts.length - INITIAL_VISIBLE_PRODUCTS})`}
+                            </button>
+                          )}
                           {selectedProductIds.length > 0 && (
                             <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
                               {selectedProductIds.length} selected — this exact product will appear in the result.

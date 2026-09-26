@@ -21,6 +21,8 @@ import { useProducts, searchProductsForPrompt, productShopUrl, MAX_PRODUCTS_PER_
 
 /** How long to wait after the last keystroke before searching for real products matching the prompt. */
 const PROMPT_PRODUCT_DEBOUNCE_MS = 700;
+/** Roughly 3 rows at the side panel's usual ~4 columns, before "View more" kicks in. */
+const INITIAL_VISIBLE_PRODUCTS = 12;
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -72,6 +74,7 @@ export default function Create() {
   const { data: catalogProducts } = useProducts(roomType);
   const [promptProducts, setPromptProducts] = useState<Product[]>([]);
   const [searchingProducts, setSearchingProducts] = useState(false);
+  const [showAllProducts, setShowAllProducts] = useState(false);
   const promptSearchId = useRef(0);
 
   // As the prompt is typed, surface real products matching what it describes
@@ -415,7 +418,7 @@ export default function Create() {
                   <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8 }}>
-                  {productChoices.map((p) => {
+                  {(showAllProducts ? productChoices : productChoices.slice(0, INITIAL_VISIBLE_PRODUCTS)).map((p) => {
                     const on = selectedProductIds.includes(p.id);
                     return (
                       <div
@@ -455,6 +458,16 @@ export default function Create() {
                     );
                   })}
                 </div>
+                {productChoices.length > INITIAL_VISIBLE_PRODUCTS && (
+                  <button
+                    type="button"
+                    className="lnk"
+                    style={{ marginTop: 8, fontSize: 12.5 }}
+                    onClick={() => setShowAllProducts((s) => !s)}
+                  >
+                    {showAllProducts ? 'View fewer' : `View more (${productChoices.length - INITIAL_VISIBLE_PRODUCTS})`}
+                  </button>
+                )}
                 {selectedProductIds.length > 0 && (
                   <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
                     {selectedProductIds.length} selected — these exact products will appear in the design.

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Loader2, X, ImageOff, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, X, ImageOff, Eye, EyeOff, Download } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Button } from '@/components/ui/button';
 import { ROOM_TYPES, type RoomType } from '@/lib/templates';
 import {
-  listAllProducts, createProduct, updateProduct, deleteProduct, uploadProductImage,
+  listAllProducts, createProduct, updateProduct, deleteProduct, uploadProductImage, importProducts,
   PRODUCT_CATEGORIES, type AdminProduct, type ProductInput, type ProductCategory,
 } from '@/lib/products';
 
@@ -22,6 +22,7 @@ export default function Products() {
   const [editing, setEditing] = useState<AdminProduct | 'new' | null>(null);
   const [confirm, setConfirm] = useState<AdminProduct | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<ProductCategory | 'all'>('all');
+  const [importing, setImporting] = useState(false);
 
   const load = () => listAllProducts().then(setProducts).catch((e) => toast.error((e as Error).message)).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
@@ -63,6 +64,9 @@ export default function Products() {
             </p>
           </div>
           <div className="actions r" style={{ ['--i' as string]: 1 }}>
+            <button type="button" className="btn btn-line" onClick={() => setImporting(true)}>
+              <Download width={15} height={15} /> Import from search
+            </button>
             <button type="button" className="btn btn-dark" onClick={() => setEditing('new')}>
               <Plus width={15} height={15} /> Add product
             </button>
@@ -136,6 +140,12 @@ export default function Products() {
       </section>
 
       <AnimatePresence>
+        {importing && (
+          <ImportPanel onClose={() => setImporting(false)} onImported={() => { setImporting(false); load(); }} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {editing && (
           <ProductEditor
             product={editing === 'new' ? null : editing}
@@ -172,6 +182,116 @@ export default function Products() {
         )}
       </AnimatePresence>
     </AdminShell>
+  );
+}
+
+function ImportPanel({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+  const [category, setCategory] = useState<ProductCategory>('sofa');
+  const [query, setQuery] = useState('sofa');
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>(['living']);
+  const [limit, setLimit] = useState(20);
+  const [running, setRunning] = useState(false);
+
+  const toggleRoomType = (rt: RoomType) => {
+    setRoomTypes((rs) => (rs.includes(rt) ? rs.filter((r) => r !== rt) : [...rs, rt]));
+  };
+
+  const run = async () => {
+    if (!query.trim()) return toast.error('Enter a search term, e.g. "sofa".');
+    setRunning(true);
+    try {
+      const { imported, message } = await importProducts({ category, query: query.trim(), roomTypes, limit });
+      if (imported > 0) toast.success(`Imported ${imported} product${imported === 1 ? '' : 's'}.`);
+      else toast.message(message ?? 'Nothing new came back for that search.');
+      onImported();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px]"
+      />
+      <motion.div
+        initial={{ scale: 0.95, y: 12, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="admin-x fixed left-1/2 top-1/2 z-50 w-full max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-[19px]" style={{ color: 'var(--char)' }}>Import from search</h2>
+          <button type="button" onClick={onClose} className="ico-btn"><X width={16} height={16} /></button>
+        </div>
+        <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: 'var(--taupe)' }}>
+          Searches real listings (Google Shopping, aggregating Wayfair, Amazon, Walmart and more) and adds real photos, prices and retailers straight into this category.
+        </p>
+
+        <div className="mt-5 space-y-4">
+          <div>
+            <p className="kicker">Search term</p>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g. grey fabric sofa"
+              className="field mt-2 w-full"
+              style={{ height: 44, paddingInline: 14 }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="kicker">Category</p>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ProductCategory)}
+                className="field mt-2 w-full"
+                style={{ height: 44, paddingInline: 12 }}
+              >
+                {PRODUCT_CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <p className="kicker">How many</p>
+              <input
+                type="number"
+                min={1}
+                max={40}
+                value={limit}
+                onChange={(e) => setLimit(Math.min(40, Math.max(1, Number(e.target.value) || 20)))}
+                className="field mt-2 w-full"
+                style={{ height: 44, paddingInline: 14 }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="kicker">Fits which rooms</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {ROOM_TYPES.map((rt) => (
+                <button
+                  key={rt.key}
+                  type="button"
+                  onClick={() => toggleRoomType(rt.key)}
+                  className="pill"
+                  style={roomTypes.includes(rt.key) ? { background: 'var(--char)', color: '#fff', boxShadow: 'none' } : undefined}
+                >
+                  {rt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <Button onClick={run} disabled={running} variant="hero" className="mt-6 h-auto w-full rounded-full px-5 py-3 text-[14px]">
+          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} {running ? 'Searching…' : 'Import products'}
+        </Button>
+      </motion.div>
+    </>
   );
 }
 

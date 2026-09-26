@@ -105,6 +105,22 @@ export async function deleteProduct(id: string) {
   if (error) throw error;
 }
 
+/** Pulls real products into the catalog from OpenWeb Ninja's Google Shopping
+ *  search (see supabase/functions/import-products) — real photos, prices and
+ *  retailers, deduped against anything already imported. */
+export async function importProducts(input: {
+  category: ProductCategory;
+  query: string;
+  roomTypes: RoomType[];
+  limit?: number;
+  country?: string;
+}): Promise<{ imported: number; message?: string }> {
+  const { data, error } = await supabase.functions.invoke('import-products', { body: input });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data as { imported: number; message?: string };
+}
+
 const PRODUCT_MEDIA_BUCKET = 'product-media';
 const PRODUCT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];

@@ -22,17 +22,21 @@ const corsHeaders = {
 };
 
 // Ordered so more specific phrases ("dining table") are checked before the
-// generic ones ("table") that would otherwise swallow them.
+// generic ones ("table") that would otherwise swallow them. Not exhaustive —
+// see the FALLBACK path below for anything typed that isn't on this list.
 const CATEGORY_KEYWORDS: [string, string[]][] = [
   ["dining_table", ["dining table", "dining set", "kitchen table"]],
-  ["coffee_table", ["coffee table", "side table", "console table"]],
+  ["coffee_table", ["coffee table", "side table", "end table", "console table", "nightstand", "bedside table"]],
   ["sofa", ["sofa", "couch", "loveseat", "settee", "sectional"]],
-  ["bed", ["bed frame", "headboard", " bed", "bed."]],
-  ["chair", ["armchair", "accent chair", "recliner", "chair"]],
-  ["lamp", ["lamp", "lighting", "light fixture"]],
-  ["rug", ["rug", "carpet"]],
-  ["storage", ["bookshelf", "bookcase", "shelving", "shelf", "cabinet", "wardrobe", "dresser", "storage"]],
-  ["decor", ["vase", "wall art", "artwork", "mirror", "cushion", "curtain", "plant pot", "decor"]],
+  ["bed", ["bed frame", "headboard", "mattress", "bunk bed", " bed", "bed."]],
+  ["chair", ["armchair", "accent chair", "recliner", "ottoman", "bar stool", "stool", "chair"]],
+  ["lamp", ["lamp", "lighting", "light fixture", "chandelier", "pendant light", "ceiling light"]],
+  ["rug", ["rug", "carpet", "floor mat"]],
+  ["storage", [
+    "bookshelf", "bookcase", "shelving", "shelf", "cabinet", "wardrobe", "cupboard", "almirah",
+    "dresser", "chest of drawers", "drawers", "sideboard", "credenza", "tv unit", "tv stand", "tv console", "storage",
+  ]],
+  ["decor", ["vase", "wall art", "artwork", "painting", "mirror", "cushion", "curtain", "blinds", "plant pot", "plant", "clock", "decor"]],
   ["coffee_table", ["table"]],
 ];
 
@@ -41,14 +45,36 @@ const LIVE_TOPUP_LIMIT = 6;
 const MAX_CATEGORIES = 2;
 const MAX_TOTAL_RESULTS = 14;
 
-function detectCategories(promptLower: string): string[] {
-  const found: string[] = [];
+// Stripped out of the free-text prompt before it's used as a fallback search
+// query (see below) — otherwise "i want to change the cupboard" gets searched
+// verbatim and returns nothing useful.
+const STOPWORDS = new Set([
+  "i", "want", "to", "change", "the", "a", "an", "and", "with", "for", "my", "add", "remove", "replace",
+  "keep", "it", "as", "in", "on", "into", "some", "of", "this", "that", "these", "those", "make", "get",
+  "put", "new", "different", "please", "need", "instead", "there", "here", "room", "up",
+]);
+
+interface CategoryTarget { category: string; keyword: string }
+
+/** Named categories first; if the prompt doesn't mention any of them by a
+ *  known synonym, fall back to the generic "other" category and search
+ *  live using whatever's left of the prompt after stripping filler words —
+ *  so an unanticipated word ("cupboard" before it was added above, or
+ *  anything else not yet on the list) still returns *something* instead of
+ *  silently going empty. */
+function detectTargets(promptLower: string): CategoryTarget[] {
+  const found: CategoryTarget[] = [];
   for (const [category, keywords] of CATEGORY_KEYWORDS) {
-    if (found.includes(category)) continue;
-    if (keywords.some((k) => promptLower.includes(k))) found.push(category);
+    if (found.some((f) => f.category === category)) continue;
+    const hit = keywords.find((k) => promptLower.includes(k));
+    if (hit) found.push({ category, keyword: hit.trim() });
     if (found.length >= MAX_CATEGORIES) break;
   }
-  return found;
+  if (found.length > 0) return found;
+
+  const words = promptLower.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w && !STOPWORDS.has(w));
+  const keyword = words.join(" ").trim();
+  return keyword ? [{ category: "other", keyword }] : [];
 }
 
 interface ShoppingProduct {
@@ -101,8 +127,8 @@ Deno.serve(async (req) => {
 
   if (promptLower.length < 4) return json({ products: [] });
 
-  const categories = detectCategories(promptLower);
-  if (categories.length === 0) return json({ products: [] });
+  const targets = detectTargets(promptLower);
+  if (targets.length === 0) return json({ products: [] });
 
   const columns = "id, name, category, brand, price, currency, display_image_url, room_types, source_url";
   const all: Record<string, unknown>[] = [];
@@ -110,7 +136,7 @@ Deno.serve(async (req) => {
 
   const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
 
-  for (const category of categories) {
+  for (const { category, keyword } of targets) {
     let query = admin.from("products").select(columns).eq("category", category).eq("active", true);
     if (roomType) query = query.contains("room_types", [roomType]);
     const { data: local } = await query.limit(8);
@@ -123,10 +149,6 @@ Deno.serve(async (req) => {
     if (localCount >= MIN_LOCAL_MATCHES || !rapidApiKey) continue;
 
     // Thin on that category locally — top it up with one small live search.
-    // Use the specific keyword that matched, not the whole freeform prompt,
-    // so results stay on-topic (searching the raw sentence returns nothing
-    // useful most of the time).
-    const keyword = CATEGORY_KEYWORDS.find(([c]) => c === category)?.[1][0]?.trim() ?? category;
     try {
       const url = new URL("https://real-time-e-commerce-data.p.rapidapi.com/google-shopping/search");
       url.searchParams.set("q", keyword);

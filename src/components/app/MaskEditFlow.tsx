@@ -138,12 +138,17 @@ export function MaskEditFlow({
     return () => { if (labelTimer.current) window.clearTimeout(labelTimer.current); };
   }, [strokeCount, source]);
 
-  // Replace only — as the prompt is typed, surface real products matching
-  // what it describes ("a round wooden coffee table"), same as Create.
+  // Replace only — surface real products matching either what's typed ("a
+  // round wooden coffee table") or, if nothing's typed yet, what Gemini
+  // already detected under the paint (the `label` from the effect above,
+  // e.g. "grey sofa") — so just circling an object surfaces real matches
+  // for it automatically, before anyone types a word.
+  const usingDetectedLabel = prompt.trim().length < 4 && !!label?.trim();
   useEffect(() => {
     if (mode !== 'replace') return;
-    const text = prompt.trim();
-    if (text.length < 4) {
+    const typed = prompt.trim();
+    const query = typed.length >= 4 ? typed : (label?.trim() ?? '');
+    if (query.length < 4) {
       promptSearchId.current += 1;
       setPromptProducts([]);
       setSearchingProducts(false);
@@ -153,7 +158,7 @@ export function MaskEditFlow({
     setSearchingProducts(true);
     const timer = window.setTimeout(async () => {
       try {
-        const results = await searchProductsForPrompt({ prompt: text });
+        const results = await searchProductsForPrompt({ prompt: query });
         if (myId === promptSearchId.current) setPromptProducts(results);
       } catch {
         if (myId === promptSearchId.current) setPromptProducts([]);
@@ -162,7 +167,7 @@ export function MaskEditFlow({
       }
     }, PROMPT_PRODUCT_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [prompt, mode]);
+  }, [prompt, label, mode]);
 
   const setupPending = isSetupError(creditsError);
   const outOfCredits = credits !== undefined && credits <= 0;
@@ -397,7 +402,8 @@ export function MaskEditFlow({
                       {(!!promptProducts.length || searchingProducts) && (
                         <div style={{ marginTop: 14 }}>
                           <p className="kicker" style={{ fontSize: 10 }}>
-                            Matching your prompt <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
+                            {usingDetectedLabel ? `Matching what you painted (${label})` : 'Matching your prompt'}
+                            <small>optional · up to {MAX_PRODUCTS_PER_GENERATION}</small>
                           </p>
                           {searchingProducts && promptProducts.length === 0 && (
                             <p className="muted" style={{ fontSize: 12 }}>Looking for real products…</p>

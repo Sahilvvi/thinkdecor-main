@@ -17,7 +17,7 @@ import {
 import {
   DEFAULT_TEMPLATE_KEY, ROOM_TYPES, TEMPLATES, type RoomType, roomLabel, templateByKey,
 } from '@/lib/templates';
-import { useProducts, searchProductsForPrompt, MAX_PRODUCTS_PER_GENERATION, type Product } from '@/lib/products';
+import { useProducts, searchProductsForPrompt, productShopUrl, MAX_PRODUCTS_PER_GENERATION, type Product } from '@/lib/products';
 
 /** How long to wait after the last keystroke before searching for real products matching the prompt. */
 const PROMPT_PRODUCT_DEBOUNCE_MS = 700;
@@ -438,7 +438,7 @@ export default function Create() {
                         )}
                         {p.source_url && (
                           <a
-                            href={p.source_url}
+                            href={productShopUrl(p.id)}
                             target="_blank"
                             rel="noopener noreferrer"
                             title={`Visit ${p.name}`}

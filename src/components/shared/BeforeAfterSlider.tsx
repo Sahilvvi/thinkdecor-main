@@ -1,6 +1,8 @@
 import { useRef, useState, useCallback } from 'react';
+import { productShopUrl } from '@/lib/products';
 
 interface Hotspot {
+  id: string;
   x: number;
   y: number;
   name: string;
@@ -89,7 +91,7 @@ export function BeforeAfterSlider({
       {hotspots?.filter((h) => h.source_url).map((h, i) => (
         <a
           key={i}
-          href={h.source_url ?? undefined}
+          href={productShopUrl(h.id)}
           target="_blank"
           rel="noopener noreferrer"
           title={`Shop: ${h.name}`}

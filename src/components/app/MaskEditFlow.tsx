@@ -15,7 +15,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { PHASE1_PLAN, money, pence } from '@/lib/billing';
 import { isActiveSubscription, useSubscription } from '@/hooks/useProfile';
-import { searchProductsForPrompt, MAX_PRODUCTS_PER_GENERATION, type Product } from '@/lib/products';
+import { searchProductsForPrompt, productShopUrl, MAX_PRODUCTS_PER_GENERATION, type Product } from '@/lib/products';
 
 /** How long to wait after the last stroke before asking Gemini what's under the mask. */
 const LABEL_DEBOUNCE_MS = 700;
@@ -423,7 +423,7 @@ export function MaskEditFlow({
                                   )}
                                   {p.source_url && (
                                     <a
-                                      href={p.source_url}
+                                      href={productShopUrl(p.id)}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       title={`Visit ${p.name}`}

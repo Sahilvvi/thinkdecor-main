@@ -63,6 +63,7 @@ export function useProducts(roomType?: RoomType, category?: ProductCategory) {
 }
 
 export interface GenerationProductHotspot {
+  id: string;
   x: number;
   y: number;
   name: string;
@@ -79,12 +80,13 @@ export function useGenerationProducts(generationId?: string | null) {
     queryFn: async () => {
       const { data, error } = await db
         .from('generation_products')
-        .select('position_x, position_y, products(name, source_url)')
+        .select('product_id, position_x, position_y, products(name, source_url)')
         .eq('generation_id', generationId as string);
       if (error) throw error;
       return (data ?? [])
         .filter((r): r is typeof r & { position_x: number; position_y: number } => r.position_x != null && r.position_y != null)
         .map((r) => ({
+          id: r.product_id,
           x: r.position_x,
           y: r.position_y,
           name: (r.products as unknown as { name: string } | null)?.name ?? 'Product',
@@ -92,6 +94,14 @@ export function useGenerationProducts(generationId?: string | null) {
         })) as GenerationProductHotspot[];
     },
   });
+}
+
+/** A "shop this" link that resolves to the real retailer's own product page
+ *  at click time (see supabase/functions/product-link) — never the Google
+ *  Shopping listing / reviews page that source_url itself points at for
+ *  imported products. Public, no auth needed. */
+export function productShopUrl(productId: string): string {
+  return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/product-link?id=${productId}`;
 }
 
 /** Prompt-driven suggestions — given the free text someone typed in Create or
